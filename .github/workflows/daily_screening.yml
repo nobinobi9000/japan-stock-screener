@@ -12,10 +12,10 @@ jobs:
     
     steps:
     - name: チェックアウト
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Python環境セットアップ
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
@@ -36,7 +36,7 @@ jobs:
     
     - name: 結果をアーティファクトとして保存
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: screening-results
         path: |
