@@ -1,0 +1,45 @@
+name: Daily Stock Screening
+
+on:
+  schedule:
+    # 日本時間17:00 (UTC 08:00) に毎日実行
+    - cron: '0 8 * * 1-5'  # 月〜金のみ
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  screen_stocks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v3
+    
+    - name: Python環境セットアップ
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: 依存パッケージインストール
+      run: |
+        pip install --upgrade pip
+        pip install yfinance pandas numpy requests openpyxl
+    
+    - name: スクリーニング実行
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        NOTIFICATION_SERVICE: ${{ secrets.NOTIFICATION_SERVICE || 'slack' }}
+        # テスト時は MAX_STOCKS=50 などを設定
+      run: |
+        python stock_screener.py
+    
+    - name: 結果をアーティファクトとして保存
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: screening-results
+        path: |
+          *.log
+          *.csv
+        retention-days: 7
