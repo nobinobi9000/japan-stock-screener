@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-日本市場全銘柄テクニカルスクリーニングシステム
+日本市場約800銘柄テクニカルスクリーニングシステム
 - 200日線上昇トレンド銘柄の検出
 - 底値と200日線のクロス検出
 - 50日/100日線のゴールデンクロス検出
@@ -242,8 +242,8 @@ class StockScreener:
                 results.append(result)
                 print(f"  ✅ {code} {name}: 条件合致")
             
-            # レート制限対策（0.5秒待機）
-            time.sleep(0.5)
+            # レート制限対策（0.3秒待機）
+            time.sleep(0.3)
         
         print(f"\n✅ スキャン完了: {len(results)}銘柄が条件に合致")
         return results
@@ -355,7 +355,7 @@ def main():
         print(f"⚠️ テストモード: {max_stocks}銘柄のみスキャン\n")
     
     # スクリーニング実行
-    screener = StockScreener(min_volume=1_000_000)  # 最低100万円
+    screener = StockScreener(min_volume=100_000_000)  # 最低1億円
     results = screener.scan_all_stocks(max_stocks=max_stocks)
     
     # 通知送信
