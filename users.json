@@ -1,0 +1,14 @@
+﻿{
+  "users": [
+    {
+      "id": "user_001",
+      "name": "テストユーザー",
+      "plan": "free",
+      "notifications": {
+        "discord": true,
+        "email": "test@example.com"
+      },
+      "created_at": "2025-02-18"
+    }
+  ]
+}

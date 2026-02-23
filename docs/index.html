@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本株スクリーニング - Multi-Plan Service</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 60px;
+        }
+        .hero h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .hero p {
+            font-size: 1.3em;
+            opacity: 0.95;
+        }
+        .plans {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        .plan {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .plan:hover { transform: translateY(-10px); }
+        .plan h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        .plan .price {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        .plan ul {
+            list-style: none;
+            margin: 20px 0;
+        }
+        .plan li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .plan li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+        .latest {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .latest h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>📊 日本株スクリーニング</h1>
+            <p>yfinanceベースのテクニカル分析で、毎朝有望銘柄をお届け</p>
+        </div>
+
+        <div class="plans">
+            <div class="plan">
+                <h2>🆓 無償版</h2>
+                <div class="price">FREE</div>
+                <ul>
+                    <li>厳選3銘柄を毎日通知</li>
+                    <li>中位スコア×多様性戦略</li>
+                    <li>Slack/Discord対応</li>
+                </ul>
+                <a href="#" class="btn">無料登録</a>
+            </div>
+
+            <div class="plan">
+                <h2>💼 ベーシック</h2>
+                <div class="price">¥980<small>/月</small></div>
+                <ul>
+                    <li>全銘柄HTMLレポート</li>
+                    <li>当日分のみ閲覧可能</li>
+                    <li>ソート・検索機能</li>
+                    <li>全指標スコア表示</li>
+                </ul>
+                <a href="reports/20260223.html" class="btn">最新レポートを見る</a>
+            </div>
+
+            <div class="plan">
+                <h2>👑 プレミアム</h2>
+                <div class="price">¥2,980<small>/月</small></div>
+                <ul>
+                    <li>30日分アーカイブ</li>
+                    <li>各銘柄チャート表示</li>
+                    <li>シグナル発生履歴</li>
+                    <li>勝率統計グラフ</li>
+                </ul>
+                <a href="#" class="btn">プレミアム登録</a>
+            </div>
+        </div>
+
+        <div class="latest">
+            <h3>📄 最新スクリーニング結果</h3>
+            <p style="color: #6c757d; margin-bottom: 20px;">
+                本日 6銘柄が条件に合致しました
+            </p>
+            <a href="reports/20260223.html" class="btn">レポートを見る</a>
+        </div>
+    </div>
+</body>
+</html>
