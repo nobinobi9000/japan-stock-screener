@@ -1,4 +1,4 @@
-﻿name: Daily Stock Screening Rev2
+﻿name: Daily Stock Screening
 
 on:
   schedule:
@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: `${{ secrets.GITHUB_TOKEN }}  # トークンを明示的に指定
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,7 +32,7 @@ jobs:
 
       - name: Run screening
         env:
-          DISCORD_WEBHOOK_URL: `${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           NOTIFICATION_SERVICE: discord
           PLAN_MODE: free_beta
           USE_SAMPLE: false
@@ -40,7 +40,7 @@ jobs:
           OUTPUT_DIR: docs
           MIN_SCORE: 30
           ENABLE_BACKTEST: true
-          REPORT_BASE_URL: https://`${{ github.repository_owner }}.github.io/japan-stock-screener
+          REPORT_BASE_URL: https://${{ github.repository_owner }}.github.io/japan-stock-screener
         run: |
           python stock_screener_v3_multiplan.py
 
@@ -49,5 +49,5 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add docs/
-          git diff --quiet && git diff --staged --quiet || git commit -m "Daily screening report `$(date +%Y-%m-%d)"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Daily screening report $(date +%Y-%m-%d)"
           git push
