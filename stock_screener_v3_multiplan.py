@@ -683,7 +683,7 @@ class HTMLReportGenerator:
     <div class="container">
         <div class="hero">
             <h1>📊 日本株スクリーニング</h1>
-            <p>yfinanceベースのテクニカル分析で、毎朝有望銘柄をお届け</p>
+            <p>yfinanceベースのテクニカル分析で、毎日シグナル銘柄をお届け</p>
         </div>
 
         <div class="plans">
@@ -712,7 +712,7 @@ class HTMLReportGenerator:
 
             <div class="plan">
                 <h2>👑 プレミアム</h2>
-                <div class="price">¥2,980<small>/月</small></div>
+                <div class="price">¥1,980<small>/月</small></div>
                 <ul>
                     <li>30日分アーカイブ</li>
                     <li>各銘柄チャート表示</li>
