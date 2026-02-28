@@ -1,0 +1,218 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利用規約 - 日本株スクリーニング</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        h3 {
+            color: #666;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        p, li {
+            margin-bottom: 15px;
+        }
+        .highlight {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .updated {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>利用規約</h1>
+
+        <div class="highlight">
+            <strong>重要:</strong> 本サービスを利用する前に、必ずこの利用規約をお読みください。
+            本サービスを利用することにより、本規約に同意したものとみなされます。
+        </div>
+
+        <h2>第1条（適用）</h2>
+        <p>
+            本規約は、日本株スクリーニングサービス（以下「本サービス」）の利用に関する条件を、
+            本サービスを提供する運営者（以下「当方」）と利用者との間で定めるものです。
+        </p>
+
+        <h2>第2条（サービス内容）</h2>
+        <p>本サービスは、以下の機能を提供します：</p>
+        <ul>
+            <li>日本株式市場のテクニカル分析に基づくスクリーニング結果の提供</li>
+            <li>Discord による通知サービス</li>
+            <li>HTMLレポートの閲覧</li>
+            <li>過去のスクリーニング結果の閲覧（プランによる）</li>
+        </ul>
+
+        <h2>第3条（利用登録）</h2>
+        <h3>3.1 登録</h3>
+        <p>
+            本サービスの利用を希望する者は、Discord サーバーへの参加により利用登録を行うものとします。
+        </p>
+        
+        <h3>3.2 登録情報の管理</h3>
+        <p>
+            利用者は、登録情報（Discord アカウント）を正確かつ最新の状態に保つ責任を負います。
+        </p>
+
+        <h2>第4条（料金及び支払い）</h2>
+        <h3>4.1 プラン</h3>
+        <p>本サービスには以下のプランがあります：</p>
+        <ul>
+            <li><strong>無料版:</strong> 厳選3銘柄の通知</li>
+            <li><strong>ベーシック:</strong> 全銘柄HTMLレポート（¥980/月）</li>
+            <li><strong>プレミアム:</strong> 30日分アーカイブ + チャート（¥2,980/月）</li>
+        </ul>
+
+        <h3>4.2 支払方法</h3>
+        <p>有料プランの支払いは、Stripe を通じたクレジットカード決済により行います。</p>
+
+        <h3>4.3 返金</h3>
+        <p>
+            一度支払われた料金は、サービスの性質上、原則として返金いたしません。
+            ただし、当方の責めに帰すべき事由による場合はこの限りではありません。
+        </p>
+
+        <h2>第5条（免責事項）</h2>
+        <div class="highlight">
+            <h3>5.1 投資判断</h3>
+            <p>
+                <strong>本サービスは投資助言サービスではありません。</strong>
+                提供される情報は過去のテクニカル指標に基づく参考情報であり、
+                将来の投資成果を保証するものではありません。
+            </p>
+            
+            <h3>5.2 投資リスク</h3>
+            <p>
+                株式投資にはリスクが伴います。投資判断は利用者ご自身の責任で行ってください。
+                本サービスの利用により生じた損失について、当方は一切の責任を負いません。
+            </p>
+        </div>
+
+        <h3>5.3 情報の正確性</h3>
+        <p>
+            当方は、本サービスで提供される情報の正確性、完全性、有用性について保証しません。
+            データ取得元（yfinance等）の不具合により、情報が不正確となる場合があります。
+        </p>
+
+        <h3>5.4 サービスの中断・停止</h3>
+        <p>
+            当方は、以下の場合にサービスを中断・停止することがあります：
+        </p>
+        <ul>
+            <li>システムメンテナンス</li>
+            <li>データ提供元の障害</li>
+            <li>天災・事変その他の不可抗力</li>
+            <li>その他、運営上必要と判断した場合</li>
+        </ul>
+
+        <h2>第6条（禁止事項）</h2>
+        <p>利用者は、以下の行為を行ってはなりません：</p>
+        <ul>
+            <li>虚偽の情報を登録すること</li>
+            <li>第三者になりすますこと</li>
+            <li>本サービスの運営を妨害すること</li>
+            <li>スクリーニング結果を商用目的で第三者に提供すること</li>
+            <li>リバースエンジニアリング、解析、改変等を行うこと</li>
+            <li>法令または公序良俗に違反する行為</li>
+        </ul>
+
+        <h2>第7条（知的財産権）</h2>
+        <p>
+            本サービスに関する著作権、商標権その他の知的財産権は、
+            当方または正当な権利者に帰属します。
+        </p>
+
+        <h2>第8条（個人情報の取扱い）</h2>
+        <p>
+            当方は、利用者の個人情報を
+            <a href="privacy.html">プライバシーポリシー</a>
+            に従って適切に取り扱います。
+        </p>
+
+        <h2>第9条（利用停止・解除）</h2>
+        <h3>9.1 当方による停止</h3>
+        <p>
+            当方は、利用者が本規約に違反した場合、
+            事前の通知なくサービスの利用を停止または登録を抹消できます。
+        </p>
+
+        <h3>9.2 利用者による解約</h3>
+        <p>
+            利用者は、Discord サーバーからの退出により、
+            いつでも本サービスの利用を終了できます。
+        </p>
+
+        <h2>第10条（規約の変更）</h2>
+        <p>
+            当方は、必要に応じて本規約を変更できるものとします。
+            変更後の規約は、本サービス上に掲載された時点で効力を生じます。
+        </p>
+
+        <h2>第11条（準拠法・管轄裁判所）</h2>
+        <p>
+            本規約の解釈は日本法に準拠し、本サービスに関する紛争については、
+            東京地方裁判所を第一審の専属的合意管轄裁判所とします。
+        </p>
+
+        <h2>第12条（お問い合わせ）</h2>
+        <p>
+            本規約に関するお問い合わせは、Discord サーバー内のサポートチャンネル、
+            または GitHub Issues よりお願いいたします。
+        </p>
+
+        <div class="updated">
+            <p>制定日: 2025年2月18日</p>
+            <p>最終更新: 2025年2月26日</p>
+        </div>
+
+        <p style="text-align: center; margin-top: 40px;">
+            <a href="../index.html">トップページに戻る</a>
+        </p>
+    </div>
+</body>
+</html>
