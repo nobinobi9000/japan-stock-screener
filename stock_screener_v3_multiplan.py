@@ -51,6 +51,8 @@ from collections import defaultdict
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
+import jpholiday
+import sys
 
 
 # ─────────────────────────────────────────────
@@ -1462,10 +1464,66 @@ class AdvancedNotifier:
         elif self.service == "discord":
             self.send_discord(message)
 
+    def is_market_open() -> tuple[bool, str]:
+        """
+        東京証券取引所の開場日かどうかを判定
+    
+        Returns:
+            (bool, str): (開場かどうか, 理由)
+        """
+        today = datetime.now()
+    
+        # 土曜日チェック
+        if today.weekday() == 5:
+            return False, "土曜日"
+    
+        # 日曜日チェック
+        if today.weekday() == 6:
+            return False, "日曜日"
+    
+        # 祝日チェック
+        if jpholiday.is_holiday(today):
+            holiday_name = jpholiday.is_holiday_name(today)
+            return False, f"祝日（{holiday_name}）"
+    
+        # 年末年始の特別休場日（12/31, 1/2, 1/3）
+        if (today.month == 12 and today.day == 31) or \
+           (today.month == 1 and today.day in [2, 3]):
+           return False, "年末年始休場"
+    
+        return True, ""
+
 
 def main():
-    """メイン実行関数 v3.0（3プラン対応）"""
-    print("🚀 日本市場全銘柄スクリーニング開始 v3.0 - Multi-Plan Edition\n")
+    """メイン実行関数 v3.0 Final（Discord）"""
+    
+    # 市場休場日チェック
+    is_open, reason = is_market_open()
+    if not is_open:
+        today = datetime.now().strftime('%Y年%m月%d日')
+        print(f"🔇 本日（{today}）は{reason}のため市場休場です")
+        print("📊 スクリーニングは実行されません\n")
+        
+        # Discord に休場通知（オプション）
+        notification_service = os.getenv("NOTIFICATION_SERVICE", "discord")
+        if notification_service == "discord":
+            discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+            if discord_webhook:
+                try:
+                    message = {
+                        "content": f"📅 市場休場のお知らせ\n\n本日（{today}）は{reason}のため、"
+                                   f"東京証券取引所は休場です。\n"
+                                   f"スクリーニングは次回開場日に実行されます。"
+                    }
+                    requests.post(discord_webhook, json=message)
+                    print("✅ Discord に休場通知を送信しました")
+                except Exception as e:
+                    print(f"⚠️  Discord 通知エラー: {e}")
+        
+        return
+    
+    print("🚀 日本市場全銘柄スクリーニング開始 v3.0 Final\n")
+    print("📢 通知: Discord\n")  # SendGrid 削除
 
     # ─── 環境変数読み込み ─────────────────────────────────────
     notification_service = os.getenv("NOTIFICATION_SERVICE", "slack")
