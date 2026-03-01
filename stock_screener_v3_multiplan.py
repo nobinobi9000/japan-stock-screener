@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 日本市場全銘柄テクニカルスクリーニングシステム v3.0 - Multi-Plan Edition
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -350,7 +350,7 @@ class HTMLReportGenerator:
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
         }}
         .header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -402,12 +402,14 @@ class HTMLReportGenerator:
         .table-container {{
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 0 10px;
+            width: 100%;
+            max-width: 100%;
+            display: block;
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
-            min-width: 650px;
+            min-width: 800px;
         }}
         thead {{
             background: #495057;
@@ -514,7 +516,7 @@ class HTMLReportGenerator:
             
             th {{ padding: 10px 4px; font-size: 0.75em; }}
             td {{ padding: 8px 4px; font-size: 0.75em; }}
-            table {{ min-width: 550px; }}
+            table {{ min-width: 800px; }}
             
             .tag {{ font-size: 0.7em; padding: 3px 6px; }}
         }}
@@ -1574,7 +1576,7 @@ def is_market_open() -> tuple:
     # 年末年始の特別休場日（12/31, 1/2, 1/3）
     if (today.month == 12 and today.day == 31) or \
        (today.month == 1 and today.day in [2, 3]):
-        return False, "年末年始休場"
+       return False, "年末年始休場"
     
     return True, ""
 
