@@ -1464,34 +1464,34 @@ class AdvancedNotifier:
         elif self.service == "discord":
             self.send_discord(message)
 
-    def is_market_open() -> tuple:
-        """
-        東京証券取引所の開場日かどうかを判定
+def is_market_open() -> tuple:
+    """
+    東京証券取引所の開場日かどうかを判定
     
-        Returns:
-            tuple: (開場かどうか, 理由)
-        """
-        today = datetime.now()
+    Returns:
+        tuple: (開場かどうか, 理由)
+    """
+    today = datetime.now()
     
-        # 土曜日チェック
-        if today.weekday() == 5:
-            return False, "土曜日"
+    # 土曜日チェック
+    if today.weekday() == 5:
+        return False, "土曜日"
     
-        # 日曜日チェック
-        if today.weekday() == 6:
-            return False, "日曜日"
+    # 日曜日チェック
+    if today.weekday() == 6:
+        return False, "日曜日"
     
-        # 祝日チェック
-        if jpholiday.is_holiday(today):
-            holiday_name = jpholiday.is_holiday_name(today)
-            return False, f"祝日（{holiday_name}）"
+    # 祝日チェック
+    if jpholiday.is_holiday(today):
+        holiday_name = jpholiday.is_holiday_name(today)
+        return False, f"祝日（{holiday_name}）"
     
-        # 年末年始の特別休場日（12/31, 1/2, 1/3）
-        if (today.month == 12 and today.day == 31) or \
-           (today.month == 1 and today.day in [2, 3]):
-           return False, "年末年始休場"
+    # 年末年始の特別休場日（12/31, 1/2, 1/3）
+    if (today.month == 12 and today.day == 31) or \
+       (today.month == 1 and today.day in [2, 3]):
+        return False, "年末年始休場"
     
-        return True, ""
+    return True, ""
 
 
 def main():
