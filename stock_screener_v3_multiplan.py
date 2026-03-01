@@ -312,7 +312,7 @@ class HTMLReportGenerator:
     def generate_basic_report(self, results: List[Dict], date: str,
                                sector_report: str = "") -> str:
         """
-        ベーシック版HTMLレポートを生成（当日全件）
+        ベーシック版HTMLレポートを生成（当日全銘柄）
 
         Args:
             results: スクリーニング結果
@@ -341,7 +341,7 @@ class HTMLReportGenerator:
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            padding: 10px;
             color: #333;
         }}
         .container {{
@@ -355,14 +355,16 @@ class HTMLReportGenerator:
         .header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 30px 20px;
             text-align: center;
         }}
         .header h1 {{ font-size: 2em; margin-bottom: 10px; }}
         .header p {{ opacity: 0.9; font-size: 1.1em; }}
+        
         .stats {{
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 2px solid #e9ecef;
@@ -378,23 +380,34 @@ class HTMLReportGenerator:
         }}
         .stat-box .label {{
             color: #6c757d;
-            margin-top: 5px;
+            margin-top: 8px;
+            font-size: 0.9em;
         }}
+        
         .controls {{
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }}
         .controls input {{
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ced4da;
-            border-radius: 4px;
-            width: 300px;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 400px;
             font-size: 1em;
+        }}
+        
+        /* テーブル - モバイル最適化 */
+        .table-container {{
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 10px;
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
+            min-width: 650px;
         }}
         thead {{
             background: #495057;
@@ -404,39 +417,107 @@ class HTMLReportGenerator:
             z-index: 10;
         }}
         th {{
-            padding: 15px;
+            padding: 15px 10px;
             text-align: left;
             font-weight: 600;
             cursor: pointer;
             user-select: none;
+            font-size: 0.95em;
         }}
         th:hover {{ background: #343a40; }}
+        th:after {{
+            content: ' ↕';
+            opacity: 0.5;
+            font-size: 0.8em;
+        }}
         td {{
-            padding: 12px 15px;
+            padding: 12px 10px;
             border-bottom: 1px solid #e9ecef;
+            font-size: 0.9em;
         }}
         tr:hover {{ background: #f8f9fa; }}
+        
         .score-high {{ color: #28a745; font-weight: bold; }}
         .score-mid {{ color: #ffc107; font-weight: bold; }}
         .score-low {{ color: #dc3545; font-weight: bold; }}
-        .signal-yes {{ color: #28a745; }}
-        .signal-no {{ color: #6c757d; }}
-        .footer {{
-            padding: 30px;
-            text-align: center;
-            background: #f8f9fa;
-            color: #6c757d;
-        }}
+        
         .tag {{
             display: inline-block;
             padding: 4px 8px;
             border-radius: 4px;
-            font-size: 0.85em;
+            font-size: 0.8em;
             font-weight: 600;
+            white-space: nowrap;
         }}
         .tag-safe {{ background: #d4edda; color: #155724; }}
         .tag-normal {{ background: #fff3cd; color: #856404; }}
         .tag-risky {{ background: #f8d7da; color: #721c24; }}
+        
+        .footer {{
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            color: #6c757d;
+            border-top: 2px solid #e9ecef;
+        }}
+        .footer a {{
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+        }}
+        .footer a:hover {{ text-decoration: underline; }}
+        
+        /* スマホ対応（768px以下） */
+        @media (max-width: 768px) {{
+            body {{ padding: 5px; }}
+            .container {{ border-radius: 8px; }}
+            
+            .header {{ padding: 20px 15px; }}
+            .header h1 {{ font-size: 1.4em; }}
+            .header p {{ font-size: 0.95em; }}
+            
+            .stats {{
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                padding: 15px 10px;
+            }}
+            .stat-box {{ padding: 10px 5px; }}
+            .stat-box .number {{ font-size: 1.5em; }}
+            .stat-box .label {{ font-size: 0.8em; }}
+            
+            .controls {{ padding: 15px 10px; }}
+            .controls input {{ 
+                font-size: 16px; /* iOS zoom防止 */
+                max-width: 100%;
+            }}
+            
+            .table-container {{ padding: 0 5px; }}
+            th {{ padding: 12px 6px; font-size: 0.85em; }}
+            td {{ padding: 10px 6px; font-size: 0.85em; }}
+            
+            .footer {{ padding: 20px 15px; }}
+            .footer a {{ 
+                display: block; 
+                margin: 10px 0;
+            }}
+        }}
+        
+        /* 極小スマホ対応（480px以下） */
+        @media (max-width: 480px) {{
+            .header h1 {{ font-size: 1.2em; }}
+            .header p {{ font-size: 0.85em; }}
+            
+            .stats {{ grid-template-columns: repeat(3, 1fr); gap: 8px; }}
+            .stat-box .number {{ font-size: 1.3em; }}
+            .stat-box .label {{ font-size: 0.75em; }}
+            
+            th {{ padding: 10px 4px; font-size: 0.75em; }}
+            td {{ padding: 8px 4px; font-size: 0.75em; }}
+            table {{ min-width: 550px; }}
+            
+            .tag {{ font-size: 0.7em; padding: 3px 6px; }}
+        }}
     </style>
 </head>
 <body>
@@ -473,7 +554,7 @@ class HTMLReportGenerator:
                     <th onclick="sortTable(1)">コード</th>
                     <th onclick="sortTable(2)">銘柄名</th>
                     <th onclick="sortTable(3)">セクター</th>
-                    <th onclick="sortTable(4)">スコア ▼</th>
+                    <th onclick="sortTable(4)">スコア ⭐</th>
                     <th onclick="sortTable(5)">株価</th>
                     <th>シグナル</th>
                     <th>リスク</th>
@@ -492,15 +573,15 @@ class HTMLReportGenerator:
                          else "tag-risky")
 
             signals = []
-            if r['bottom_cross'] == '✅': signals.append('底値クロス')
-            if r['golden_cross'] == '✅': signals.append('GC')
-            if r['bb_reversal'] == '✅': signals.append('BB反発')
-            if r['bb_breakout'] == '✅': signals.append('BBブレイク')
-            if r['volume_surge'] == '✅': signals.append('出来高急増')
-            if r['obv_trend_up'] == '✅': signals.append('OBV↑')
-            if r['ichimoku_bullish'] != '—': signals.append('一目好転')
+            if r['bottom_cross'] == '●': signals.append('底値クロス')
+            if r['golden_cross'] == '●': signals.append('GC')
+            if r['bb_reversal'] == '●': signals.append('BB反発')
+            if r['bb_breakout'] == '●': signals.append('BBブレイク')
+            if r['volume_surge'] == '●': signals.append('出来高急増')
+            if r['obv_trend_up'] == '●': signals.append('OBV↑')
+            if r['ichimoku_bullish'] != '－': signals.append('一目好転')
 
-            signal_str = ", ".join(signals) if signals else "—"
+            signal_str = ", ".join(signals) if signals else "－"
 
             html += f"""
                 <tr>
@@ -518,13 +599,16 @@ class HTMLReportGenerator:
         html += """
             </tbody>
         </table>
-        </div>  <!-- table-container -->
+        </div>
 
         <div class="footer">
-            <p>📌 このレポートは当日限り有効です。翌日以降は最新版をご確認ください。</p>
-            <p style="margin-top: 10px;">
-                <a href="../index.html" style="color: #667eea; text-decoration: none;">🏠 トップページへ</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">👑 プレミアムプランを見る</a>
+            <p>⚠️ このレポートは当日限り有効です。翌日以降は最新版をご確認ください。</p>
+            <p style="margin-top: 15px;">
+                <a href="../index.html">🏠 トップページへ</a> |
+                <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.85em; color: #999;">
+                本サービスは投資助言ではありません。投資判断は自己責任で行ってください。
             </p>
         </div>
     </div>
@@ -540,7 +624,7 @@ class HTMLReportGenerator:
                 let bVal = b.cells[col].textContent.trim();
 
                 // 数値列の判定
-                if (col === 4 || col === 5) {
+                if (col === 0 || col === 4 || col === 5) {
                     aVal = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
                     bVal = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
                 }
@@ -572,6 +656,7 @@ class HTMLReportGenerator:
         filepath.write_text(html, encoding='utf-8')
         print(f"✅ HTMLレポート生成: {filepath}")
         return f"reports/{filename}"
+
 
     def generate_index_page(self, latest_report_path: str = "",
                              total_stocks: int = 0) -> str:
