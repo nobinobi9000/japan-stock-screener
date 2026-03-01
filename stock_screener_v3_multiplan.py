@@ -1,41 +1,41 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-日本市場全銘柄テクニカルスクリーニングシステム v3.0 - Multi-Plan Edition
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【3プラン対応 + 段階的リリース設計】
+譌･譛ｬ蟶ょｴ蜈ｨ驫俶氛繝・け繝九き繝ｫ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ繧ｷ繧ｹ繝・Β v3.0 - Multi-Plan Edition
+笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏・
+縲・繝励Λ繝ｳ蟇ｾ蠢・+ 谿ｵ髫守噪繝ｪ繝ｪ繝ｼ繧ｹ險ｭ險医・
 
-■ リリースロードマップ
-  Phase 1: 暫定無償版（PLAN_MODE=free_beta）
-    - 全64件をHTMLレポート化して GitHub Pages で公開
-    - Slack/Discordには選抜3件のみ通知（中位×多様性戦略）
-    - 認証なし、誰でもアクセス可能
+笆 繝ｪ繝ｪ繝ｼ繧ｹ繝ｭ繝ｼ繝峨・繝・・
+  Phase 1: 證ｫ螳夂┌蜆溽沿・・LAN_MODE=free_beta・・
+    - 蜈ｨ64莉ｶ繧辿TML繝ｬ繝昴・繝亥喧縺励※ GitHub Pages 縺ｧ蜈ｬ髢・
+    - Slack/Discord縺ｫ縺ｯ驕ｸ謚・莉ｶ縺ｮ縺ｿ騾夂衍・井ｸｭ菴催怜､壽ｧ俶ｧ謌ｦ逡･・・
+    - 隱崎ｨｼ縺ｪ縺励∬ｪｰ縺ｧ繧ゅい繧ｯ繧ｻ繧ｹ蜿ｯ閭ｽ
 
-  Phase 2: ベーシック分離（PLAN_MODE=basic）
-    - 無償版：中位3件のみ通知、HTMLリンクなし
-    - ベーシック：全件HTML（当日分のみ）
-    - 簡易認証導入
+  Phase 2: 繝吶・繧ｷ繝・け蛻・屬・・LAN_MODE=basic・・
+    - 辟｡蜆溽沿・壻ｸｭ菴・莉ｶ縺ｮ縺ｿ騾夂衍縲？TML繝ｪ繝ｳ繧ｯ縺ｪ縺・
+    - 繝吶・繧ｷ繝・け・壼・莉ｶHTML・亥ｽ捺律蛻・・縺ｿ・・
+    - 邁｡譏楢ｪ崎ｨｼ蟆主・
 
-  Phase 3: プレミアム実装（PLAN_MODE=premium）
-    - 30日分アーカイブ + 各銘柄チャート生成
-    - Stripe連携・認証強化
+  Phase 3: 繝励Ξ繝溘い繝螳溯｣・ｼ・LAN_MODE=premium・・
+    - 30譌･蛻・い繝ｼ繧ｫ繧､繝・+ 蜷・釜譟・メ繝｣繝ｼ繝育函謌・
+    - Stripe騾｣謳ｺ繝ｻ隱崎ｨｼ蠑ｷ蛹・
 
-■ 技術スタック（yfinanceのみ）
-  【価格・出来高データ（history）から計算】
-    - ボリンジャーバンド (BB%b / バンド幅)
-    - 出来高分析 (前日比・30日平均比)
-    - OBV (オン・バランス・ボリューム) + トレンド
-    - VWAP近似値 (日足終値ベース)
-    - SMA 25 / 75 / 200 + 移動平均乖離率
-    - 一目均衡表 (転換線・基準線・先行スパン雲・遅行スパン)
-    - MA200上昇トレンド判定
-    - 底値200日線クロス / MA50/100 ゴールデンクロス
+笆 謚陦薙せ繧ｿ繝・け・・finance縺ｮ縺ｿ・・
+  縲蝉ｾ｡譬ｼ繝ｻ蜃ｺ譚･鬮倥ョ繝ｼ繧ｿ・・istory・峨°繧芽ｨ育ｮ励・
+    - 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝・(BB%b / 繝舌Φ繝牙ｹ・
+    - 蜃ｺ譚･鬮伜・譫・(蜑肴律豈斐・30譌･蟷ｳ蝮・ｯ・
+    - OBV (繧ｪ繝ｳ繝ｻ繝舌Λ繝ｳ繧ｹ繝ｻ繝懊Μ繝･繝ｼ繝) + 繝医Ξ繝ｳ繝・
+    - VWAP霑台ｼｼ蛟､ (譌･雜ｳ邨ょ､繝吶・繧ｹ)
+    - SMA 25 / 75 / 200 + 遘ｻ蜍募ｹｳ蝮・ｹ夜屬邇・
+    - 荳逶ｮ蝮・｡｡陦ｨ (霆｢謠帷ｷ壹・蝓ｺ貅也ｷ壹・蜈郁｡後せ繝代Φ髮ｲ繝ｻ驕・｡後せ繝代Φ)
+    - MA200荳頑・繝医Ξ繝ｳ繝牙愛螳・
+    - 蠎募､200譌･邱壹け繝ｭ繧ｹ / MA50/100 繧ｴ繝ｼ繝ｫ繝・Φ繧ｯ繝ｭ繧ｹ
 
-  【ticker.info（統計データ）から取得】
-    - 信用倍率 / Short Ratio / Short % of Float（主に米国株）
+  縲腎icker.info・育ｵｱ險医ョ繝ｼ繧ｿ・峨°繧牙叙蠕励・
+    - 菫｡逕ｨ蛟咲紫 / Short Ratio / Short % of Float・井ｸｻ縺ｫ邀ｳ蝗ｽ譬ｪ・・
 
-  【総合スコアリング】
-    - 0〜100点の点数化（配点はSCORE_WEIGHTSで管理）
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  縲千ｷ丞粋繧ｹ繧ｳ繧｢繝ｪ繝ｳ繧ｰ縲・
+    - 0縲・00轤ｹ縺ｮ轤ｹ謨ｰ蛹厄ｼ磯・轤ｹ縺ｯSCORE_WEIGHTS縺ｧ邂｡逅・ｼ・
+笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏・
 """
 
 import yfinance as yf
@@ -55,53 +55,53 @@ import jpholiday
 import sys
 
 
-# ─────────────────────────────────────────────
-#  定数定義
-# ─────────────────────────────────────────────
-BB_PERIOD        = 20       # ボリンジャーバンド期間
-BB_STD           = 2.0      # ボリンジャーバンド 標準偏差倍率
-OBV_TREND_DAYS   = 10       # OBV トレンド判定期間
-ICHIMOKU_CONV    = 9        # 一目均衡表 転換線期間
-ICHIMOKU_BASE    = 26       # 一目均衡表 基準線期間
-ICHIMOKU_SPAN2   = 52       # 一目均衡表 先行スパン2期間
-ICHIMOKU_LAG     = 26       # 一目均衡表 遅行スパンずれ
-MA_SHORT         = 25       # 短期MA（日本株標準）
-MA_MID           = 75       # 中期MA（日本株標準）
-MA_LONG          = 200      # 長期MA
-SCORE_WEIGHTS = {            # 総合スコア配点（合計100点）
-    'ma_trend'       : 15,   # MA200上昇
-    'golden_cross'   : 10,   # ゴールデンクロス
-    'bottom_cross'   : 10,   # 底値クロス
-    'bb_signal'      : 15,   # BB位置 (反発 or ブレイクアウト)
-    'obv_trend'      : 10,   # OBV上昇トレンド
-    'ichimoku'       : 20,   # 一目均衡表 (雲上・好転)
-    'volume_surge'   : 10,   # 出来高急増
-    'short_squeeze'  : 10,   # 信用倍率スコア
+# 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+#  螳壽焚螳夂ｾｩ
+# 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+BB_PERIOD        = 20       # 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝画悄髢・
+BB_STD           = 2.0      # 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝・讓呎ｺ門￥蟾ｮ蛟咲紫
+OBV_TREND_DAYS   = 10       # OBV 繝医Ξ繝ｳ繝牙愛螳壽悄髢・
+ICHIMOKU_CONV    = 9        # 荳逶ｮ蝮・｡｡陦ｨ 霆｢謠帷ｷ壽悄髢・
+ICHIMOKU_BASE    = 26       # 荳逶ｮ蝮・｡｡陦ｨ 蝓ｺ貅也ｷ壽悄髢・
+ICHIMOKU_SPAN2   = 52       # 荳逶ｮ蝮・｡｡陦ｨ 蜈郁｡後せ繝代Φ2譛滄俣
+ICHIMOKU_LAG     = 26       # 荳逶ｮ蝮・｡｡陦ｨ 驕・｡後せ繝代Φ縺壹ｌ
+MA_SHORT         = 25       # 遏ｭ譛櫪A・域律譛ｬ譬ｪ讓呎ｺ厄ｼ・
+MA_MID           = 75       # 荳ｭ譛櫪A・域律譛ｬ譬ｪ讓呎ｺ厄ｼ・
+MA_LONG          = 200      # 髟ｷ譛櫪A
+SCORE_WEIGHTS = {            # 邱丞粋繧ｹ繧ｳ繧｢驟咲せ・亥粋險・00轤ｹ・・
+    'ma_trend'       : 15,   # MA200荳頑・
+    'golden_cross'   : 10,   # 繧ｴ繝ｼ繝ｫ繝・Φ繧ｯ繝ｭ繧ｹ
+    'bottom_cross'   : 10,   # 蠎募､繧ｯ繝ｭ繧ｹ
+    'bb_signal'      : 15,   # BB菴咲ｽｮ (蜿咲匱 or 繝悶Ξ繧､繧ｯ繧｢繧ｦ繝・
+    'obv_trend'      : 10,   # OBV荳頑・繝医Ξ繝ｳ繝・
+    'ichimoku'       : 20,   # 荳逶ｮ蝮・｡｡陦ｨ (髮ｲ荳翫・螂ｽ霆｢)
+    'volume_surge'   : 10,   # 蜃ｺ譚･鬮俶･蠅・
+    'short_squeeze'  : 10,   # 菫｡逕ｨ蛟咲紫繧ｹ繧ｳ繧｢
 }
 
 
 class TechnicalIndicators:
     """
-    テクニカル指標計算クラス（yfinanceデータのみで完結）
-    各メソッドはpd.DataFrameを受け取り、列を追加して返す。
+    繝・け繝九き繝ｫ謖・ｨ呵ｨ育ｮ励け繝ｩ繧ｹ・・finance繝・・繧ｿ縺ｮ縺ｿ縺ｧ螳檎ｵ撰ｼ・
+    蜷・Γ繧ｽ繝・ラ縺ｯpd.DataFrame繧貞女縺大叙繧翫∝・繧定ｿｽ蜉縺励※霑斐☆縲・
     """
 
-    # ── ボリンジャーバンド ──────────────────────────────────────────
+    # 笏笏 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def bollinger_bands(data: pd.DataFrame,
                         period: int = BB_PERIOD,
                         std_dev: float = BB_STD) -> pd.DataFrame:
         """
-        ボリンジャーバンドと %b・バンド幅を計算
+        繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝峨→ %b繝ｻ繝舌Φ繝牙ｹ・ｒ險育ｮ・
 
-        追加列:
-          BB_Middle : 中央線 (SMA)
-          BB_Upper  : アッパーバンド
-          BB_Lower  : ロワーバンド
-          BB_Pct_B  : %b = (終値 - Lower) / (Upper - Lower)
-                      0以下 = 下限割れ（売られすぎ / 反発候補）
-                      1以上 = 上限突破（強いブレイクアウト候補）
-          BB_Width  : バンド幅 = (Upper - Lower) / Middle（スクイーズ検知）
+        霑ｽ蜉蛻・
+          BB_Middle : 荳ｭ螟ｮ邱・(SMA)
+          BB_Upper  : 繧｢繝・ヱ繝ｼ繝舌Φ繝・
+          BB_Lower  : 繝ｭ繝ｯ繝ｼ繝舌Φ繝・
+          BB_Pct_B  : %b = (邨ょ､ - Lower) / (Upper - Lower)
+                      0莉･荳・= 荳矩剞蜑ｲ繧鯉ｼ亥｣ｲ繧峨ｌ縺吶℃ / 蜿咲匱蛟呵｣懶ｼ・
+                      1莉･荳・= 荳企剞遯∫ｴ・亥ｼｷ縺・ヶ繝ｬ繧､繧ｯ繧｢繧ｦ繝亥呵｣懶ｼ・
+          BB_Width  : 繝舌Φ繝牙ｹ・= (Upper - Lower) / Middle・医せ繧ｯ繧､繝ｼ繧ｺ讀懃衍・・
         """
         df = data.copy()
         close = df['Close']
@@ -114,17 +114,17 @@ class TechnicalIndicators:
         df['BB_Width'] = band_range / df['BB_Middle'].replace(0, np.nan)
         return df
 
-    # ── OBV（オン・バランス・ボリューム）──────────────────────────────
+    # 笏笏 OBV・医が繝ｳ繝ｻ繝舌Λ繝ｳ繧ｹ繝ｻ繝懊Μ繝･繝ｼ繝・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def obv(data: pd.DataFrame, trend_days: int = OBV_TREND_DAYS) -> pd.DataFrame:
         """
-        OBVとそのトレンド（上昇/下降）を計算
+        OBV縺ｨ縺昴・繝医Ξ繝ｳ繝会ｼ井ｸ頑・/荳矩剄・峨ｒ險育ｮ・
 
-        追加列:
-          OBV             :累積OBV値
-          OBV_SMA         : OBVの短期移動平均
-          OBV_Trend_Up    : bool - OBVが上昇トレンドならTrue
-          OBV_Divergence  : bool - 価格が下落しているのにOBVが上昇（強気ダイバージェンス）
+        霑ｽ蜉蛻・
+          OBV             :邏ｯ遨弘BV蛟､
+          OBV_SMA         : OBV縺ｮ遏ｭ譛溽ｧｻ蜍募ｹｳ蝮・
+          OBV_Trend_Up    : bool - OBV縺御ｸ頑・繝医Ξ繝ｳ繝峨↑繧欝rue
+          OBV_Divergence  : bool - 萓｡譬ｼ縺御ｸ玖誠縺励※縺・ｋ縺ｮ縺ｫOBV縺御ｸ頑・・亥ｼｷ豌励ム繧､繝舌・繧ｸ繧ｧ繝ｳ繧ｹ・・
         """
         df = data.copy()
         close = df['Close']
@@ -137,7 +137,7 @@ class TechnicalIndicators:
         df['OBV_SMA'] = obv_series.rolling(trend_days).mean()
         df['OBV_Trend_Up'] = obv_series.iloc[-1] > obv_series.iloc[-trend_days] if len(df) >= trend_days else False
 
-        # 強気ダイバージェンス: 直近trend_days間、価格下落 & OBV上昇
+        # 蠑ｷ豌励ム繧､繝舌・繧ｸ繧ｧ繝ｳ繧ｹ: 逶ｴ霑奏rend_days髢薙∽ｾ｡譬ｼ荳玖誠 & OBV荳頑・
         if len(df) >= trend_days:
             price_down = close.iloc[-1] < close.iloc[-trend_days]
             obv_up = obv_series.iloc[-1] > obv_series.iloc[-trend_days]
@@ -147,16 +147,16 @@ class TechnicalIndicators:
 
         return df
 
-    # ── 出来高分析 ──────────────────────────────────────────────────
+    # 笏笏 蜃ｺ譚･鬮伜・譫・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def volume_analysis(data: pd.DataFrame, avg_period: int = 30) -> pd.DataFrame:
         """
-        出来高の前日比・平均比を計算
+        蜃ｺ譚･鬮倥・蜑肴律豈斐・蟷ｳ蝮・ｯ斐ｒ險育ｮ・
 
-        追加列:
-          Volume_Ratio_1d   : 前日比倍率
-          Volume_Ratio_Avg  : 30日平均比倍率（1.5以上 = 急増）
-          Volume_Yen        : 売買代金（円）
+        霑ｽ蜉蛻・
+          Volume_Ratio_1d   : 蜑肴律豈泌咲紫
+          Volume_Ratio_Avg  : 30譌･蟷ｳ蝮・ｯ泌咲紫・・.5莉･荳・= 諤･蠅暦ｼ・
+          Volume_Yen        : 螢ｲ雋ｷ莉｣驥托ｼ亥・・・
         """
         df = data.copy()
         vol = df['Volume']
@@ -166,16 +166,16 @@ class TechnicalIndicators:
         df['Volume_Ratio_Avg'] = vol / df['Volume_MA'].replace(0, np.nan)
         return df
 
-    # ── VWAP（日足終値ベース近似）─────────────────────────────────────
+    # 笏笏 VWAP・域律雜ｳ邨ょ､繝吶・繧ｹ霑台ｼｼ・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def vwap_daily_approx(data: pd.DataFrame, period: int = 20) -> pd.DataFrame:
         """
-        日足データを用いたVWAP近似（(H+L+C)/3 × Volume の累積比）
+        譌･雜ｳ繝・・繧ｿ繧堤畑縺・◆VWAP霑台ｼｼ・・H+L+C)/3 ﾃ・Volume 縺ｮ邏ｯ遨肴ｯ費ｼ・
 
-        ※ 真のVWAPは日中足が必要。これはセッション内近似値。
-        追加列:
-          VWAP_Approx : 期間内のVWAP近似値
-          Above_VWAP  : 現在値がVWAPを上回っているか
+        窶ｻ 逵溘・VWAP縺ｯ譌･荳ｭ雜ｳ縺悟ｿ・ｦ√ゅ％繧後・繧ｻ繝・す繝ｧ繝ｳ蜀・ｿ台ｼｼ蛟､縲・
+        霑ｽ蜉蛻・
+          VWAP_Approx : 譛滄俣蜀・・VWAP霑台ｼｼ蛟､
+          Above_VWAP  : 迴ｾ蝨ｨ蛟､縺祁WAP繧剃ｸ雁屓縺｣縺ｦ縺・ｋ縺・
         """
         df = data.copy()
         typical = (df['High'] + df['Low'] + df['Close']) / 3
@@ -184,16 +184,16 @@ class TechnicalIndicators:
         df['Above_VWAP'] = df['Close'] > df['VWAP_Approx']
         return df
 
-    # ── 移動平均 & 乖離率 ─────────────────────────────────────────────
+    # 笏笏 遘ｻ蜍募ｹｳ蝮・& 荵夜屬邇・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def moving_averages(data: pd.DataFrame) -> pd.DataFrame:
         """
-        MA25 / MA75 / MA200 と乖離率を計算
+        MA25 / MA75 / MA200 縺ｨ荵夜屬邇・ｒ險育ｮ・
 
-        追加列:
+        霑ｽ蜉蛻・
           MA25 / MA75 / MA200
-          MA25_Dev  : 25日乖離率 (%)   正 = 上方乖離
-          MA75_Dev  : 75日乖離率 (%)
+          MA25_Dev  : 25譌･荵夜屬邇・(%)   豁｣ = 荳頑婿荵夜屬
+          MA75_Dev  : 75譌･荵夜屬邇・(%)
         """
         df = data.copy()
         close = df['Close']
@@ -204,43 +204,43 @@ class TechnicalIndicators:
         df['MA75_Dev'] = (close - df['MA75']) / df['MA75'].replace(0, np.nan) * 100
         return df
 
-    # ── 一目均衡表 ───────────────────────────────────────────────────
+    # 笏笏 荳逶ｮ蝮・｡｡陦ｨ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     @staticmethod
     def ichimoku(data: pd.DataFrame) -> pd.DataFrame:
         """
-        一目均衡表を計算（転換線・基準線・先行スパン1/2・遅行スパン）
+        荳逶ｮ蝮・｡｡陦ｨ繧定ｨ育ｮ暦ｼ郁ｻ｢謠帷ｷ壹・蝓ｺ貅也ｷ壹・蜈郁｡後せ繝代Φ1/2繝ｻ驕・｡後せ繝代Φ・・
 
-        追加列:
-          Ichi_Conv   : 転換線  (9期間高値+安値)/2
-          Ichi_Base   : 基準線  (26期間高値+安値)/2
-          Ichi_SpanA  : 先行スパン1 (26期間先に描画)
-          Ichi_SpanB  : 先行スパン2 (26期間先に描画)
-          Ichi_Lag    : 遅行スパン  (26期間前にシフト)
-          Ichi_Cloud_Thick : 雲の厚さ（絶対値）
-          Ichi_Price_in_Cloud  : 価格が雲の中
-          Ichi_Price_above_Cloud : 価格が雲の上
-          Ichi_Bullish : bool - 買いゾーン判定
+        霑ｽ蜉蛻・
+          Ichi_Conv   : 霆｢謠帷ｷ・ (9譛滄俣鬮伜､+螳牙､)/2
+          Ichi_Base   : 蝓ｺ貅也ｷ・ (26譛滄俣鬮伜､+螳牙､)/2
+          Ichi_SpanA  : 蜈郁｡後せ繝代Φ1 (26譛滄俣蜈医↓謠冗判)
+          Ichi_SpanB  : 蜈郁｡後せ繝代Φ2 (26譛滄俣蜈医↓謠冗判)
+          Ichi_Lag    : 驕・｡後せ繝代Φ  (26譛滄俣蜑阪↓繧ｷ繝輔ヨ)
+          Ichi_Cloud_Thick : 髮ｲ縺ｮ蜴壹＆・育ｵｶ蟇ｾ蛟､・・
+          Ichi_Price_in_Cloud  : 萓｡譬ｼ縺碁峇縺ｮ荳ｭ
+          Ichi_Price_above_Cloud : 萓｡譬ｼ縺碁峇縺ｮ荳・
+          Ichi_Bullish : bool - 雋ｷ縺・だ繝ｼ繝ｳ蛻､螳・
         """
         df = data.copy()
         high = df['High']
         low  = df['Low']
         close = df['Close']
 
-        # 転換線・基準線
+        # 霆｢謠帷ｷ壹・蝓ｺ貅也ｷ・
         def mid(h, l, p):
             return (h.rolling(p).max() + l.rolling(p).min()) / 2
 
         df['Ichi_Conv'] = mid(high, low, ICHIMOKU_CONV)
         df['Ichi_Base'] = mid(high, low, ICHIMOKU_BASE)
 
-        # 先行スパン（26日先シフトのため、現在の最新値を計算）
+        # 蜈郁｡後せ繝代Φ・・6譌･蜈医す繝輔ヨ縺ｮ縺溘ａ縲∫樟蝨ｨ縺ｮ譛譁ｰ蛟､繧定ｨ育ｮ暦ｼ・
         df['Ichi_SpanA'] = ((df['Ichi_Conv'] + df['Ichi_Base']) / 2).shift(ICHIMOKU_LAG)
         df['Ichi_SpanB'] = mid(high, low, ICHIMOKU_SPAN2).shift(ICHIMOKU_LAG)
 
-        # 遅行スパン（現在の終値を26日前にシフト）
+        # 驕・｡後せ繝代Φ・育樟蝨ｨ縺ｮ邨ょ､繧・6譌･蜑阪↓繧ｷ繝輔ヨ・・
         df['Ichi_Lag'] = close.shift(-ICHIMOKU_LAG)
 
-        # 雲の分析（先行スパンはシフト前の現在値を使う）
+        # 髮ｲ縺ｮ蛻・梵・亥・陦後せ繝代Φ縺ｯ繧ｷ繝輔ヨ蜑阪・迴ｾ蝨ｨ蛟､繧剃ｽｿ縺・ｼ・
         span_a_now = (df['Ichi_Conv'] + df['Ichi_Base']) / 2
         span_b_now = mid(high, low, ICHIMOKU_SPAN2)
         cloud_top    = np.maximum(span_a_now, span_b_now)
@@ -250,10 +250,10 @@ class TechnicalIndicators:
         df['Ichi_Price_above_Cloud'] = close > cloud_top
         df['Ichi_Price_in_Cloud']    = (close >= cloud_bottom) & (close <= cloud_top)
 
-        # 三役好転（簡易版）:
-        #   1. 終値 > 雲の上
-        #   2. 転換線 > 基準線
-        #   3. 遅行スパン > 26日前の終値（= close > close.shift(26)）
+        # 荳牙ｽｹ螂ｽ霆｢・育ｰ｡譏鍋沿・・
+        #   1. 邨ょ､ > 髮ｲ縺ｮ荳・
+        #   2. 霆｢謠帷ｷ・> 蝓ｺ貅也ｷ・
+        #   3. 驕・｡後せ繝代Φ > 26譌･蜑阪・邨ょ､・・ close > close.shift(26)・・
         tenkan_above_kijun = df['Ichi_Conv'] > df['Ichi_Base']
         lag_above_price    = close > close.shift(ICHIMOKU_LAG)
         df['Ichi_Bullish'] = (
@@ -266,14 +266,14 @@ class TechnicalIndicators:
 
 class ScoringEngine:
     """
-    各指標を 0〜100 点の総合スコアに変換するエンジン
-    各シグナルのON/OFFとスコア配点は SCORE_WEIGHTS で管理
+    蜷・欠讓吶ｒ 0縲・00 轤ｹ縺ｮ邱丞粋繧ｹ繧ｳ繧｢縺ｫ螟画鋤縺吶ｋ繧ｨ繝ｳ繧ｸ繝ｳ
+    蜷・す繧ｰ繝翫Ν縺ｮON/OFF縺ｨ繧ｹ繧ｳ繧｢驟咲せ縺ｯ SCORE_WEIGHTS 縺ｧ邂｡逅・
     """
 
     @staticmethod
     def score(row: pd.Series, signals: Dict) -> Tuple[float, Dict]:
         """
-        signals: {key: bool} の辞書から総合スコアを計算
+        signals: {key: bool} 縺ｮ霎樊嶌縺九ｉ邱丞粋繧ｹ繧ｳ繧｢繧定ｨ育ｮ・
         Returns: (total_score, detail_dict)
         """
         detail = {}
@@ -291,36 +291,36 @@ class ScoringEngine:
 
 class HTMLReportGenerator:
     """
-    HTMLレポート生成クラス（ベーシック・プレミアム対応）
-    GitHub Pages用の静的HTMLを生成
+    HTML繝ｬ繝昴・繝育函謌舌け繝ｩ繧ｹ・医・繝ｼ繧ｷ繝・け繝ｻ繝励Ξ繝溘い繝蟇ｾ蠢懶ｼ・
+    GitHub Pages逕ｨ縺ｮ髱咏噪HTML繧堤函謌・
     """
 
     def __init__(self, output_dir: str = "docs"):
         """
         Args:
-            output_dir: 出力ディレクトリ（GitHub Pagesのルート）
+            output_dir: 蜃ｺ蜉帙ョ繧｣繝ｬ繧ｯ繝医Μ・・itHub Pages縺ｮ繝ｫ繝ｼ繝茨ｼ・
         """
         self.output_dir = Path(output_dir)
         self.reports_dir = self.output_dir / "reports"
         self.premium_dir = self.output_dir / "premium"
         self.assets_dir = self.output_dir / "assets"
 
-        # ディレクトリ作成
+        # 繝・ぅ繝ｬ繧ｯ繝医Μ菴懈・
         for d in [self.reports_dir, self.premium_dir, self.assets_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
     def generate_basic_report(self, results: List[Dict], date: str,
                                sector_report: str = "") -> str:
         """
-        ベーシック版HTMLレポートを生成（当日全件）
+        繝吶・繧ｷ繝・け迚・TML繝ｬ繝昴・繝医ｒ逕滓・・亥ｽ捺律蜈ｨ莉ｶ・・
 
         Args:
-            results: スクリーニング結果
-            date: 日付文字列（YYYY-MM-DD）
-            sector_report: セクター統計
+            results: 繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡
+            date: 譌･莉俶枚蟄怜・・・YYY-MM-DD・・
+            sector_report: 繧ｻ繧ｯ繧ｿ繝ｼ邨ｱ險・
 
         Returns:
-            生成したHTMLファイルのパス（相対）
+            逕滓・縺励◆HTML繝輔ぃ繧､繝ｫ縺ｮ繝代せ・育嶌蟇ｾ・・
         """
         if not results:
             return ""
@@ -329,13 +329,13 @@ class HTMLReportGenerator:
         filename = f"{date_str}.html"
         filepath = self.reports_dir / filename
 
-        # ソート可能なテーブルHTML
+        # 繧ｽ繝ｼ繝亥庄閭ｽ縺ｪ繝・・繝悶ΝHTML
         html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スクリーニング結果 - {date}</title>
+    <title>繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡 - {date}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -442,41 +442,41 @@ class HTMLReportGenerator:
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 日本株スクリーニング結果</h1>
-            <p>📅 {date} | ベーシックプラン</p>
+            <h1>投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡</h1>
+            <p>套 {date} | 繝吶・繧ｷ繝・け繝励Λ繝ｳ</p>
         </div>
 
         <div class="stats">
             <div class="stat-box">
                 <div class="number">{len(results)}</div>
-                <div class="label">該当銘柄数</div>
+                <div class="label">隧ｲ蠖馴釜譟・焚</div>
             </div>
             <div class="stat-box">
                 <div class="number">{results[0]['total_score']:.0f}</div>
-                <div class="label">最高スコア</div>
+                <div class="label">譛鬮倥せ繧ｳ繧｢</div>
             </div>
             <div class="stat-box">
                 <div class="number">{len(set(r['sector'] for r in results))}</div>
-                <div class="label">セクター数</div>
+                <div class="label">繧ｻ繧ｯ繧ｿ繝ｼ謨ｰ</div>
             </div>
         </div>
 
         <div class="controls">
-            <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+            <input type="text" id="search" placeholder="剥 驫俶氛蜷阪・繧ｳ繝ｼ繝峨〒讀懃ｴ｢..." onkeyup="filterTable()">
         </div>
 
         <div class="table-container">
         <table id="stockTable">
             <thead>
                 <tr>
-                    <th onclick="sortTable(0)">順位</th>
-                    <th onclick="sortTable(1)">コード</th>
-                    <th onclick="sortTable(2)">銘柄名</th>
-                    <th onclick="sortTable(3)">セクター</th>
-                    <th onclick="sortTable(4)">スコア ▼</th>
-                    <th onclick="sortTable(5)">株価</th>
-                    <th>シグナル</th>
-                    <th>リスク</th>
+                    <th onclick="sortTable(0)">鬆・ｽ・/th>
+                    <th onclick="sortTable(1)">繧ｳ繝ｼ繝・/th>
+                    <th onclick="sortTable(2)">驫俶氛蜷・/th>
+                    <th onclick="sortTable(3)">繧ｻ繧ｯ繧ｿ繝ｼ</th>
+                    <th onclick="sortTable(4)">繧ｹ繧ｳ繧｢ 笆ｼ</th>
+                    <th onclick="sortTable(5)">譬ｪ萓｡</th>
+                    <th>繧ｷ繧ｰ繝翫Ν</th>
+                    <th>繝ｪ繧ｹ繧ｯ</th>
                 </tr>
             </thead>
             <tbody>
@@ -487,20 +487,20 @@ class HTMLReportGenerator:
                           else "score-mid" if r['total_score'] >= 50
                           else "score-low")
 
-            risk_class = ("tag-safe" if "安定" in r['risk_tag']
-                         else "tag-normal" if "標準" in r['risk_tag']
+            risk_class = ("tag-safe" if "螳牙ｮ・ in r['risk_tag']
+                         else "tag-normal" if "讓呎ｺ・ in r['risk_tag']
                          else "tag-risky")
 
             signals = []
-            if r['bottom_cross'] == '✅': signals.append('底値クロス')
-            if r['golden_cross'] == '✅': signals.append('GC')
-            if r['bb_reversal'] == '✅': signals.append('BB反発')
-            if r['bb_breakout'] == '✅': signals.append('BBブレイク')
-            if r['volume_surge'] == '✅': signals.append('出来高急増')
-            if r['obv_trend_up'] == '✅': signals.append('OBV↑')
-            if r['ichimoku_bullish'] != '—': signals.append('一目好転')
+            if r['bottom_cross'] == '笨・: signals.append('蠎募､繧ｯ繝ｭ繧ｹ')
+            if r['golden_cross'] == '笨・: signals.append('GC')
+            if r['bb_reversal'] == '笨・: signals.append('BB蜿咲匱')
+            if r['bb_breakout'] == '笨・: signals.append('BB繝悶Ξ繧､繧ｯ')
+            if r['volume_surge'] == '笨・: signals.append('蜃ｺ譚･鬮俶･蠅・)
+            if r['obv_trend_up'] == '笨・: signals.append('OBV竊・)
+            if r['ichimoku_bullish'] != '窶・: signals.append('荳逶ｮ螂ｽ霆｢')
 
-            signal_str = ", ".join(signals) if signals else "—"
+            signal_str = ", ".join(signals) if signals else "窶・
 
             html += f"""
                 <tr>
@@ -509,7 +509,7 @@ class HTMLReportGenerator:
                     <td>{r['name']}</td>
                     <td><small>{r['sector']}</small></td>
                     <td class="{score_class}">{r['total_score']:.0f}</td>
-                    <td>¥{r['price']:,.0f}</td>
+                    <td>ﾂ･{r['price']:,.0f}</td>
                     <td><small>{signal_str}</small></td>
                     <td><span class="tag {risk_class}">{r['risk_tag']}</span></td>
                 </tr>
@@ -521,10 +521,10 @@ class HTMLReportGenerator:
         </div>  <!-- table-container -->
 
         <div class="footer">
-            <p>📌 このレポートは当日限り有効です。翌日以降は最新版をご確認ください。</p>
+            <p>東 縺薙・繝ｬ繝昴・繝医・蠖捺律髯舌ｊ譛牙柑縺ｧ縺吶らｿ梧律莉･髯阪・譛譁ｰ迚医ｒ縺皮｢ｺ隱阪￥縺縺輔＞縲・/p>
             <p style="margin-top: 10px;">
-                <a href="../index.html" style="color: #667eea; text-decoration: none;">🏠 トップページへ</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">👑 プレミアムプランを見る</a>
+                <a href="../index.html" style="color: #667eea; text-decoration: none;">匠 繝医ャ繝励・繝ｼ繧ｸ縺ｸ</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">荘 繝励Ξ繝溘い繝繝励Λ繝ｳ繧定ｦ九ｋ</a>
             </p>
         </div>
     </div>
@@ -539,7 +539,7 @@ class HTMLReportGenerator:
                 let aVal = a.cells[col].textContent.trim();
                 let bVal = b.cells[col].textContent.trim();
 
-                // 数値列の判定
+                // 謨ｰ蛟､蛻励・蛻､螳・
                 if (col === 4 || col === 5) {
                     aVal = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
                     bVal = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
@@ -570,16 +570,16 @@ class HTMLReportGenerator:
 """
 
         filepath.write_text(html, encoding='utf-8')
-        print(f"✅ HTMLレポート生成: {filepath}")
+        print(f"笨・HTML繝ｬ繝昴・繝育函謌・ {filepath}")
         return f"reports/{filename}"
 
     def generate_index_page(self, latest_report_path: str = "",
                              total_stocks: int = 0) -> str:
         """
-        トップページ（プラン説明・最新レポートリンク）を生成
+        繝医ャ繝励・繝ｼ繧ｸ・医・繝ｩ繝ｳ隱ｬ譏弱・譛譁ｰ繝ｬ繝昴・繝医Μ繝ｳ繧ｯ・峨ｒ逕滓・
 
         Returns:
-            生成したindex.htmlのパス
+            逕滓・縺励◆index.html縺ｮ繝代せ
         """
         filepath = self.output_dir / "index.html"
 
@@ -588,7 +588,7 @@ class HTMLReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本株スクリーニング - Multi-Plan Service</title>
+    <title>譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ - Multi-Plan Service</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -650,7 +650,7 @@ class HTMLReportGenerator:
             font-size: 1em;
         }}
         
-        /* テーブル - モバイル最適化 */
+        /* 繝・・繝悶Ν - 繝｢繝舌う繝ｫ譛驕ｩ蛹・*/
         .table-container {{
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -714,7 +714,7 @@ class HTMLReportGenerator:
             margin: 0 10px;
         }}
         
-        /* スマホ対応 */
+        /* 繧ｹ繝槭・蟇ｾ蠢・*/
         @media (max-width: 768px) {{
             body {{ padding: 5px; }}
             .container {{ border-radius: 8px; }}
@@ -732,7 +732,7 @@ class HTMLReportGenerator:
             .stat-box .label {{ font-size: 0.75em; }}
             
             .controls {{ padding: 10px; }}
-            .controls input {{ font-size: 16px; /* iOS zoom防止 */ }}
+            .controls input {{ font-size: 16px; /* iOS zoom髦ｲ豁｢ */ }}
             
             th {{ padding: 10px 6px; font-size: 0.8em; }}
             td {{ padding: 8px 6px; font-size: 0.8em; }}
@@ -741,7 +741,7 @@ class HTMLReportGenerator:
             .footer a {{ display: block; margin: 8px 0; }}
         }}
         
-        /* 極小スマホ対応 */
+        /* 讌ｵ蟆上せ繝槭・蟇ｾ蠢・*/
         @media (max-width: 480px) {{
             .header h1 {{ font-size: 1.1em; }}
             .stats {{ grid-template-columns: repeat(3, 1fr); }}
@@ -754,53 +754,53 @@ class HTMLReportGenerator:
 <body>
     <div class="container">
         <div class="hero">
-            <h1>📊 日本株スクリーニング</h1>
-            <p>yfinanceベースのテクニカル分析で、毎日シグナル銘柄をお届け</p>
+            <h1>投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ</h1>
+            <p>yfinance繝吶・繧ｹ縺ｮ繝・け繝九き繝ｫ蛻・梵縺ｧ縲∵ｯ取律繧ｷ繧ｰ繝翫Ν驫俶氛繧偵♀螻翫￠</p>
         </div>
 
         <div class="plans">
             <div class="plan">
-                <h2>🆓 無償版</h2>
+                <h2>・ 辟｡蜆溽沿</h2>
                 <div class="price">FREE</div>
                 <ul>
-                    <li>厳選3銘柄を毎日通知</li>
-                    <li>中位スコア×多様性戦略</li>
-                    <li>Slack/Discord対応</li>
+                    <li>蜴ｳ驕ｸ3驫俶氛繧呈ｯ取律騾夂衍</li>
+                    <li>荳ｭ菴阪せ繧ｳ繧｢ﾃ怜､壽ｧ俶ｧ謌ｦ逡･</li>
+                    <li>Slack/Discord蟇ｾ蠢・/li>
                 </ul>
-                <a href="#" class="btn">無料登録</a>
+                <a href="#" class="btn">辟｡譁咏匳骭ｲ</a>
             </div>
 
             <div class="plan">
-                <h2>💼 ベーシック</h2>
-                <div class="price">¥980<small>/月</small></div>
+                <h2>直 繝吶・繧ｷ繝・け</h2>
+                <div class="price">ﾂ･980<small>/譛・/small></div>
                 <ul>
-                    <li>全銘柄HTMLレポート</li>
-                    <li>当日分のみ閲覧可能</li>
-                    <li>ソート・検索機能</li>
-                    <li>全指標スコア表示</li>
+                    <li>蜈ｨ驫俶氛HTML繝ｬ繝昴・繝・/li>
+                    <li>蠖捺律蛻・・縺ｿ髢ｲ隕ｧ蜿ｯ閭ｽ</li>
+                    <li>繧ｽ繝ｼ繝医・讀懃ｴ｢讖溯・</li>
+                    <li>蜈ｨ謖・ｨ吶せ繧ｳ繧｢陦ｨ遉ｺ</li>
                 </ul>
-                <a href="{latest_report_path}" class="btn">最新レポートを見る</a>
+                <a href="{latest_report_path}" class="btn">譛譁ｰ繝ｬ繝昴・繝医ｒ隕九ｋ</a>
             </div>
 
             <div class="plan">
-                <h2>👑 プレミアム</h2>
-                <div class="price">¥1,980<small>/月</small></div>
+                <h2>荘 繝励Ξ繝溘い繝</h2>
+                <div class="price">ﾂ･1,980<small>/譛・/small></div>
                 <ul>
-                    <li>30日分アーカイブ</li>
-                    <li>各銘柄チャート表示</li>
-                    <li>シグナル発生履歴</li>
-                    <li>勝率統計グラフ</li>
+                    <li>30譌･蛻・い繝ｼ繧ｫ繧､繝・/li>
+                    <li>蜷・釜譟・メ繝｣繝ｼ繝郁｡ｨ遉ｺ</li>
+                    <li>繧ｷ繧ｰ繝翫Ν逋ｺ逕溷ｱ･豁ｴ</li>
+                    <li>蜍晉紫邨ｱ險医げ繝ｩ繝・/li>
                 </ul>
-                <a href="#" class="btn">プレミアム登録</a>
+                <a href="#" class="btn">繝励Ξ繝溘い繝逋ｻ骭ｲ</a>
             </div>
         </div>
 
         <div class="latest">
-            <h3>📄 最新スクリーニング結果</h3>
+            <h3>塘 譛譁ｰ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡</h3>
             <p style="color: #6c757d; margin-bottom: 20px;">
-                本日 {total_stocks}銘柄が条件に合致しました
+                譛ｬ譌･ {total_stocks}驫俶氛縺梧擅莉ｶ縺ｫ蜷郁・縺励∪縺励◆
             </p>
-            <a href="{latest_report_path}" class="btn">レポートを見る</a>
+            <a href="{latest_report_path}" class="btn">繝ｬ繝昴・繝医ｒ隕九ｋ</a>
         </div>
     </div>
 </body>
@@ -808,14 +808,14 @@ class HTMLReportGenerator:
 """
 
         filepath.write_text(html, encoding='utf-8')
-        print(f"✅ トップページ生成: {filepath}")
+        print(f"笨・繝医ャ繝励・繝ｼ繧ｸ逕滓・: {filepath}")
         return "index.html"
 
 
 class AdvancedStockScreener:
     """
-    高度な日本株スクリーニングクラス v2.0
-    ─ yfinanceのみで動作する全指標を統合
+    鬮伜ｺｦ縺ｪ譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ繧ｯ繝ｩ繧ｹ v2.0
+    笏 yfinance縺ｮ縺ｿ縺ｧ蜍穂ｽ懊☆繧句・謖・ｨ吶ｒ邨ｱ蜷・
     """
 
     def __init__(self,
@@ -824,9 +824,9 @@ class AdvancedStockScreener:
                  min_score: float = 30.0):
         """
         Args:
-            min_volume   : 最低30日平均売買代金（円）
-            enable_backtest : バックテスト機能を有効化
-            min_score    : スクリーニング通過の最低スコア（0〜100）
+            min_volume   : 譛菴・0譌･蟷ｳ蝮・｣ｲ雋ｷ莉｣驥托ｼ亥・・・
+            enable_backtest : 繝舌ャ繧ｯ繝・せ繝域ｩ溯・繧呈怏蜉ｹ蛹・
+            min_score    : 繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ騾夐℃縺ｮ譛菴弱せ繧ｳ繧｢・・縲・00・・
         """
         self.min_volume    = min_volume
         self.enable_backtest = enable_backtest
@@ -838,32 +838,32 @@ class AdvancedStockScreener:
 
     def select_free_tier_stocks(self, results: List[Dict], count: int = 3) -> List[Dict]:
         """
-        無料版用：中位スコア帯から多様性を持って選抜
+        辟｡譁咏沿逕ｨ・壻ｸｭ菴阪せ繧ｳ繧｢蟶ｯ縺九ｉ螟壽ｧ俶ｧ繧呈戟縺｣縺ｦ驕ｸ謚・
 
-        戦略:
-          1. スコア50〜75の中位帯を抽出
-          2. 流動性（安心感）でソート
-          3. セクター重複を避けて選択
-          4. 「とっておきは出さない」が、安定感は出す
+        謌ｦ逡･:
+          1. 繧ｹ繧ｳ繧｢50縲・5縺ｮ荳ｭ菴榊ｸｯ繧呈歓蜃ｺ
+          2. 豬∝虚諤ｧ・亥ｮ牙ｿ・─・峨〒繧ｽ繝ｼ繝・
+          3. 繧ｻ繧ｯ繧ｿ繝ｼ驥崎､・ｒ驕ｿ縺代※驕ｸ謚・
+          4. 縲後→縺｣縺ｦ縺翫″縺ｯ蜃ｺ縺輔↑縺・阪′縲∝ｮ牙ｮ壽─縺ｯ蜃ｺ縺・
 
         Args:
-            results: 全スクリーニング結果（スコア順ソート済み）
-            count: 選抜数
+            results: 蜈ｨ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡・医せ繧ｳ繧｢鬆・た繝ｼ繝域ｸ医∩・・
+            count: 驕ｸ謚懈焚
 
         Returns:
-            選抜された銘柄リスト
+            驕ｸ謚懊＆繧後◆驫俶氛繝ｪ繧ｹ繝・
         """
-        # 中位スコア帯を抽出（50〜75点）
+        # 荳ｭ菴阪せ繧ｳ繧｢蟶ｯ繧呈歓蜃ｺ・・0縲・5轤ｹ・・
         mid_tier = [r for r in results if 50 <= r['total_score'] < 75]
 
         if not mid_tier:
-            # 中位帯がない場合は全体から選ぶ
+            # 荳ｭ菴榊ｸｯ縺後↑縺・ｴ蜷医・蜈ｨ菴薙°繧蛾∈縺ｶ
             mid_tier = results
 
-        # 流動性でソート（信頼感・安心感を優先）
+        # 豬∝虚諤ｧ縺ｧ繧ｽ繝ｼ繝茨ｼ井ｿ｡鬆ｼ諢溘・螳牙ｿ・─繧貞━蜈茨ｼ・
         mid_tier.sort(key=lambda x: x['avg_volume_30d'], reverse=True)
 
-        # セクター重複を避けて選択
+        # 繧ｻ繧ｯ繧ｿ繝ｼ驥崎､・ｒ驕ｿ縺代※驕ｸ謚・
         selected = []
         used_sectors = set()
 
@@ -874,7 +874,7 @@ class AdvancedStockScreener:
                 if len(selected) == count:
                     break
 
-        # 件数に満たない場合は重複を許容して追加
+        # 莉ｶ謨ｰ縺ｫ貅縺溘↑縺・ｴ蜷医・驥崎､・ｒ險ｱ螳ｹ縺励※霑ｽ蜉
         if len(selected) < count:
             for stock in mid_tier:
                 if stock not in selected:
@@ -884,44 +884,44 @@ class AdvancedStockScreener:
 
         return selected
 
-    # ─────────────────────────────────────────────
-    #  銘柄リスト取得（既存ロジック維持）
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  驫俶氛繝ｪ繧ｹ繝亥叙蠕暦ｼ域里蟄倥Ο繧ｸ繝・け邯ｭ謖・ｼ・
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def get_jpx_stock_list(self) -> pd.DataFrame:
-        """東証コード総当たり方式（既存ロジック維持）"""
-        print("📥 東証銘柄リストを生成中（コード総当たり方式）...")
+        """譚ｱ險ｼ繧ｳ繝ｼ繝臥ｷ丞ｽ薙◆繧頑婿蠑擾ｼ域里蟄倥Ο繧ｸ繝・け邯ｭ謖・ｼ・""
+        print("踏 譚ｱ險ｼ驫俶氛繝ｪ繧ｹ繝医ｒ逕滓・荳ｭ・医さ繝ｼ繝臥ｷ丞ｽ薙◆繧頑婿蠑擾ｼ・..")
         code_ranges = (
             list(range(1300, 1500)) +
             list(range(1700, 2000)) +
             list(range(2000, 9999))
         )
-        stocks = [{'code': str(c).zfill(4), 'name': str(c), 'sector': '不明'}
+        stocks = [{'code': str(c).zfill(4), 'name': str(c), 'sector': '荳肴・'}
                   for c in code_ranges]
         df = pd.DataFrame(stocks)
-        print(f"✅ {len(df)}件のコードを生成しました")
+        print(f"笨・{len(df)}莉ｶ縺ｮ繧ｳ繝ｼ繝峨ｒ逕滓・縺励∪縺励◆")
         return df
 
     def _get_sample_stocks(self) -> pd.DataFrame:
-        """サンプル銘柄リスト（開発・テスト用）"""
+        """繧ｵ繝ｳ繝励Ν驫俶氛繝ｪ繧ｹ繝茨ｼ磯幕逋ｺ繝ｻ繝・せ繝育畑・・""
         return pd.DataFrame({
             'code': ['7203','8306','9984','6758','8001',
                      '9432','6861','7974','4063','4502'],
-            'name': ['トヨタ','三菱UFJ','ソフトバンクG','ソニーG','伊藤忠',
-                     'NTT','キーエンス','任天堂','信越化学','武田薬品'],
-            'sector': ['輸送用機器','銀行','情報・通信','電気機器','卸売',
-                       '情報・通信','電気機器','その他製品','化学','医薬品']
+            'name': ['繝医Κ繧ｿ','荳芽廠UFJ','繧ｽ繝輔ヨ繝舌Φ繧ｯG','繧ｽ繝九・G','莨願陸蠢',
+                     'NTT','繧ｭ繝ｼ繧ｨ繝ｳ繧ｹ','莉ｻ螟ｩ蝣・,'菫｡雜雁喧蟄ｦ','豁ｦ逕ｰ阮ｬ蜩・],
+            'sector': ['霈ｸ騾∫畑讖溷勣','驫陦・,'諠・ｱ繝ｻ騾壻ｿ｡','髮ｻ豌玲ｩ溷勣','蜊ｸ螢ｲ',
+                       '諠・ｱ繝ｻ騾壻ｿ｡','髮ｻ豌玲ｩ溷勣','縺昴・莉冶｣ｽ蜩・,'蛹門ｭｦ','蛹ｻ阮ｬ蜩・]
         })
 
-    # ─────────────────────────────────────────────
-    #  既存メソッド（後方互換のため維持）
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  譌｢蟄倥Γ繧ｽ繝・ラ・亥ｾ梧婿莠呈鋤縺ｮ縺溘ａ邯ｭ謖・ｼ・
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def calculate_ma(self, prices: pd.Series, period: int) -> pd.Series:
-        """移動平均線を計算（後方互換）"""
+        """遘ｻ蜍募ｹｳ蝮・ｷ壹ｒ險育ｮ暦ｼ亥ｾ梧婿莠呈鋤・・""
         return prices.rolling(window=period).mean()
 
     def is_ma_trending_up(self, ma: pd.Series, lookback: int = 5,
                           min_slope: float = 0.0001) -> bool:
-        """MA上昇トレンド判定（後方互換）"""
+        """MA荳頑・繝医Ξ繝ｳ繝牙愛螳夲ｼ亥ｾ梧婿莠呈鋤・・""
         if len(ma.dropna()) < lookback:
             return False
         recent_ma = ma.dropna().iloc[-lookback:].values
@@ -929,11 +929,11 @@ class AdvancedStockScreener:
         slope = np.polyfit(np.arange(lookback), normalized, 1)[0]
         return slope > min_slope
 
-    # ─────────────────────────────────────────────
-    #  バックテスト（既存ロジック維持・拡張）
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  繝舌ャ繧ｯ繝・せ繝茨ｼ域里蟄倥Ο繧ｸ繝・け邯ｭ謖√・諡｡蠑ｵ・・
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def detect_signal_dates(self, data: pd.DataFrame) -> List[str]:
-        """過去シグナル発生日を検出（バックテスト用）"""
+        """驕主悉繧ｷ繧ｰ繝翫Ν逋ｺ逕滓律繧呈､懷・・医ヰ繝・け繝・せ繝育畑・・""
         signal_dates = []
         for i in range(MA_LONG, len(data)):
             current = data.iloc[i]
@@ -949,7 +949,7 @@ class AdvancedStockScreener:
 
     def calculate_win_rate(self, data: pd.DataFrame, signal_dates: List[str],
                            forward_days: int = 5) -> Tuple[float, int, int]:
-        """シグナル後勝率を計算（後方互換）"""
+        """繧ｷ繧ｰ繝翫Ν蠕悟享邇・ｒ險育ｮ暦ｼ亥ｾ梧婿莠呈鋤・・""
         if not signal_dates:
             return 0.0, 0, 0
         wins, total = 0, 0
@@ -965,33 +965,33 @@ class AdvancedStockScreener:
         return (wins / total * 100) if total > 0 else 0.0, wins, total
 
     def calculate_volatility(self, data: pd.DataFrame, window: int = 20) -> float:
-        """ボラティリティ（年率）を計算"""
+        """繝懊Λ繝・ぅ繝ｪ繝・ぅ・亥ｹｴ邇・ｼ峨ｒ險育ｮ・""
         returns = data['Close'].pct_change()
         return returns.tail(window).std() * np.sqrt(252) * 100
 
-    # ─────────────────────────────────────────────
-    #  信用倍率スコア（ticker.info から取得）
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  菫｡逕ｨ蛟咲紫繧ｹ繧ｳ繧｢・・icker.info 縺九ｉ蜿門ｾ暦ｼ・
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def get_short_score(self, info: Dict) -> Tuple[float, str]:
         """
-        信用倍率・ショート比率からスコアを計算
+        菫｡逕ｨ蛟咲紫繝ｻ繧ｷ繝ｧ繝ｼ繝域ｯ皮紫縺九ｉ繧ｹ繧ｳ繧｢繧定ｨ育ｮ・
 
-        - short_ratio     : 貸株残高 / 1日平均出来高（返済にかかる日数）
-          → 高いほど売り方の「しこり」が大きい（ショートスクイーズ候補）
-        - short_float_pct : Float株数に対するショート比率(%)
+        - short_ratio     : 雋ｸ譬ｪ谿矩ｫ・/ 1譌･蟷ｳ蝮・・譚･鬮假ｼ郁ｿ疲ｸ医↓縺九°繧区律謨ｰ・・
+          竊・鬮倥＞縺ｻ縺ｩ螢ｲ繧頑婿縺ｮ縲後＠縺薙ｊ縲阪′螟ｧ縺阪＞・医す繝ｧ繝ｼ繝医せ繧ｯ繧､繝ｼ繧ｺ蛟呵｣懶ｼ・
+        - short_float_pct : Float譬ｪ謨ｰ縺ｫ蟇ｾ縺吶ｋ繧ｷ繝ｧ繝ｼ繝域ｯ皮紫(%)
 
         Returns:
-            (score 0〜1.0, 説明ラベル)
+            (score 0縲・.0, 隱ｬ譏弱Λ繝吶Ν)
         """
-        short_ratio = info.get('shortRatio')         # 例: 3.5 日
-        short_float = info.get('shortPercentOfFloat')  # 例: 0.12 = 12%
+        short_ratio = info.get('shortRatio')         # 萓・ 3.5 譌･
+        short_float = info.get('shortPercentOfFloat')  # 萓・ 0.12 = 12%
 
         label_parts = []
         score = 0.0
 
         if short_ratio is not None:
-            label_parts.append(f"ShortRatio:{short_ratio:.1f}日")
-            # 5日以上 → しこり大 → スクイーズ期待
+            label_parts.append(f"ShortRatio:{short_ratio:.1f}譌･")
+            # 5譌･莉･荳・竊・縺励％繧雁､ｧ 竊・繧ｹ繧ｯ繧､繝ｼ繧ｺ譛溷ｾ・
             if short_ratio >= 10:
                 score += 1.0
             elif short_ratio >= 5:
@@ -1002,7 +1002,7 @@ class AdvancedStockScreener:
         if short_float is not None:
             pct = short_float * 100 if short_float < 1 else short_float
             label_parts.append(f"ShortFloat:{pct:.1f}%")
-            # 20%以上 → 高ショート → スクイーズ候補
+            # 20%莉･荳・竊・鬮倥す繝ｧ繝ｼ繝・竊・繧ｹ繧ｯ繧､繝ｼ繧ｺ蛟呵｣・
             if pct >= 20:
                 score = min(score + 1.0, 1.0)
             elif pct >= 10:
@@ -1013,28 +1013,28 @@ class AdvancedStockScreener:
 
         return min(score, 1.0), " / ".join(label_parts)
 
-    # ─────────────────────────────────────────────
-    #  メインスクリーニング
-    # ─────────────────────────────────────────────
-    def screen_stock(self, code: str, name: str, sector: str = "不明") -> Optional[Dict]:
-        """個別銘柄スクリーニング（v2.0 全指標統合版）"""
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  繝｡繧､繝ｳ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    def screen_stock(self, code: str, name: str, sector: str = "荳肴・") -> Optional[Dict]:
+        """蛟句挨驫俶氛繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ・・2.0 蜈ｨ謖・ｨ咏ｵｱ蜷育沿・・""
         ticker_symbol = f"{code}.T"
 
         try:
             ticker = yf.Ticker(ticker_symbol)
-            # バックテスト + 一目均衡表に十分なデータ確保（最低2年）
+            # 繝舌ャ繧ｯ繝・せ繝・+ 荳逶ｮ蝮・｡｡陦ｨ縺ｫ蜊∝・縺ｪ繝・・繧ｿ遒ｺ菫晢ｼ域怙菴・蟷ｴ・・
             data = ticker.history(period="2y")
 
             if data.empty or len(data) < MA_LONG:
                 return None
 
-            # ── 銘柄名・セクター補完 ──────────────────────────────────
+            # 笏笏 驫俶氛蜷阪・繧ｻ繧ｯ繧ｿ繝ｼ陬懷ｮ・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             info = {}
             if name == code:
                 try:
                     info = ticker.info
                     name   = info.get('longName') or info.get('shortName') or code
-                    sector = info.get('sector') or info.get('industry') or '不明'
+                    sector = info.get('sector') or info.get('industry') or '荳肴・'
                 except Exception:
                     pass
             else:
@@ -1043,7 +1043,7 @@ class AdvancedStockScreener:
                 except Exception:
                     pass
 
-            # ── テクニカル指標を一括計算 ─────────────────────────────
+            # 笏笏 繝・け繝九き繝ｫ謖・ｨ吶ｒ荳諡ｬ險育ｮ・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             data = TechnicalIndicators.bollinger_bands(data)
             data = TechnicalIndicators.obv(data)
             data = TechnicalIndicators.volume_analysis(data)
@@ -1051,11 +1051,11 @@ class AdvancedStockScreener:
             data = TechnicalIndicators.moving_averages(data)
             data = TechnicalIndicators.ichimoku(data)
 
-            # MA50/100 は既存バックテスト用に追加
+            # MA50/100 縺ｯ譌｢蟄倥ヰ繝・け繝・せ繝育畑縺ｫ霑ｽ蜉
             data['MA50']  = data['Close'].rolling(50).mean()
             data['MA100'] = data['Close'].rolling(100).mean()
 
-            # ── 流動性チェック ───────────────────────────────────────
+            # 笏笏 豬∝虚諤ｧ繝√ぉ繝・け 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             avg_volume_30d = data['Volume_Yen'].tail(30).mean()
             if avg_volume_30d < self.min_volume:
                 return None
@@ -1063,72 +1063,72 @@ class AdvancedStockScreener:
             latest = data.iloc[-1]
             prev   = data.iloc[-2] if len(data) >= 2 else latest
 
-            # ── 既存シグナル ──────────────────────────────────────────
+            # 笏笏 譌｢蟄倥す繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             ma200_trending = self.is_ma_trending_up(data['MA200'])
             bottom_cross   = bool(latest['Low'] <= latest['MA200'] < latest['Close'])
             golden_cross   = bool(prev['MA50'] < prev['MA100'] and
                                   latest['MA50'] >= latest['MA100'])
 
-            # ── ボリンジャーバンドシグナル ────────────────────────────
+            # 笏笏 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝峨す繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             pct_b   = latest.get('BB_Pct_B', np.nan)
             bb_width = latest.get('BB_Width', np.nan)
-            # 反発候補: %b <= 0.2 (下限付近) かつバンド幅が収縮していない
+            # 蜿咲匱蛟呵｣・ %b <= 0.2 (荳矩剞莉倩ｿ・ 縺九▽繝舌Φ繝牙ｹ・′蜿守ｸｮ縺励※縺・↑縺・
             bb_reversal    = (not np.isnan(pct_b)) and (pct_b <= 0.2)
-            # ブレイクアウト候補: %b >= 1.0 (上限突破) かつ出来高急増
+            # 繝悶Ξ繧､繧ｯ繧｢繧ｦ繝亥呵｣・ %b >= 1.0 (荳企剞遯∫ｴ) 縺九▽蜃ｺ譚･鬮俶･蠅・
             bb_breakout    = (not np.isnan(pct_b)) and (pct_b >= 1.0)
             bb_signal      = bb_reversal or bb_breakout
 
-            # %b の説明ラベル
+            # %b 縺ｮ隱ｬ譏弱Λ繝吶Ν
             if np.isnan(pct_b):
                 bb_label = "N/A"
             elif pct_b <= 0.0:
-                bb_label = f"⬇下限割れ({pct_b:.2f})"
+                bb_label = f"筮・ｸ矩剞蜑ｲ繧・{pct_b:.2f})"
             elif pct_b <= 0.2:
-                bb_label = f"📍下限付近({pct_b:.2f})"
+                bb_label = f"桃荳矩剞莉倩ｿ・{pct_b:.2f})"
             elif pct_b >= 1.0:
-                bb_label = f"🚀上限突破({pct_b:.2f})"
+                bb_label = f"噫荳企剞遯∫ｴ({pct_b:.2f})"
             elif pct_b >= 0.8:
-                bb_label = f"📈上限付近({pct_b:.2f})"
+                bb_label = f"嶋荳企剞莉倩ｿ・{pct_b:.2f})"
             else:
-                bb_label = f"中間({pct_b:.2f})"
+                bb_label = f"荳ｭ髢・{pct_b:.2f})"
 
-            # ── 出来高シグナル ───────────────────────────────────────
+            # 笏笏 蜃ｺ譚･鬮倥す繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             vol_ratio_avg  = latest.get('Volume_Ratio_Avg', 1.0)
             vol_ratio_1d   = latest.get('Volume_Ratio_1d', 1.0)
-            volume_surge   = bool(vol_ratio_avg >= 1.5)  # 30日平均の1.5倍以上
+            volume_surge   = bool(vol_ratio_avg >= 1.5)  # 30譌･蟷ｳ蝮・・1.5蛟堺ｻ･荳・
 
-            # ── OBVシグナル ──────────────────────────────────────────
+            # 笏笏 OBV繧ｷ繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             obv_trend_up    = bool(latest.get('OBV_Trend_Up', False))
             obv_divergence  = bool(latest.get('OBV_Divergence', False))
-            obv_signal      = obv_trend_up  # スコアにはトレンドを使用
+            obv_signal      = obv_trend_up  # 繧ｹ繧ｳ繧｢縺ｫ縺ｯ繝医Ξ繝ｳ繝峨ｒ菴ｿ逕ｨ
 
-            # ── 一目均衡表シグナル ────────────────────────────────────
+            # 笏笏 荳逶ｮ蝮・｡｡陦ｨ繧ｷ繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             ichimoku_bullish     = bool(latest.get('Ichi_Bullish', False))
             above_cloud          = bool(latest.get('Ichi_Price_above_Cloud', False))
             in_cloud             = bool(latest.get('Ichi_Price_in_Cloud', False))
             cloud_thick          = latest.get('Ichi_Cloud_Thick', 0.0)
 
             if ichimoku_bullish:
-                ichi_label = "🟢三役好転"
+                ichi_label = "泙荳牙ｽｹ螂ｽ霆｢"
             elif above_cloud:
-                ichi_label = "🔵雲の上"
+                ichi_label = "鳩髮ｲ縺ｮ荳・
             elif in_cloud:
-                ichi_label = "🟡雲の中"
+                ichi_label = "泯髮ｲ縺ｮ荳ｭ"
             else:
-                ichi_label = "🔴雲の下"
+                ichi_label = "閥髮ｲ縺ｮ荳・
 
-            # ── 移動平均乖離率 ────────────────────────────────────────
+            # 笏笏 遘ｻ蜍募ｹｳ蝮・ｹ夜屬邇・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             ma25_dev = latest.get('MA25_Dev', np.nan)
             ma75_dev = latest.get('MA75_Dev', np.nan)
 
-            # ── VWAP ────────────────────────────────────────────────
+            # 笏笏 VWAP 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             above_vwap = bool(latest.get('Above_VWAP', False))
 
-            # ── 信用倍率（ticker.info）───────────────────────────────
+            # 笏笏 菫｡逕ｨ蛟咲紫・・icker.info・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             short_score_raw, short_label = self.get_short_score(info)
-            short_squeeze = short_score_raw >= 0.5  # 50%以上でシグナル扱い
+            short_squeeze = short_score_raw >= 0.5  # 50%莉･荳翫〒繧ｷ繧ｰ繝翫Ν謇ｱ縺・
 
-            # ── 総合スコア計算 ────────────────────────────────────────
+            # 笏笏 邱丞粋繧ｹ繧ｳ繧｢險育ｮ・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             signals = {
                 'ma_trend'      : ma200_trending,
                 'golden_cross'  : golden_cross,
@@ -1141,81 +1141,81 @@ class AdvancedStockScreener:
             }
             total_score, score_detail = self.scorer.score(latest, signals)
 
-            # ── スコアフィルタ ────────────────────────────────────────
+            # 笏笏 繧ｹ繧ｳ繧｢繝輔ぅ繝ｫ繧ｿ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             if total_score < self.min_score:
                 return None
 
-            # ── バックテスト（既存ロジック維持）─────────────────────
+            # 笏笏 繝舌ャ繧ｯ繝・せ繝茨ｼ域里蟄倥Ο繧ｸ繝・け邯ｭ謖・ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             win_rate, backtest_sample = 0.0, 0
             if self.enable_backtest:
                 signal_dates = self.detect_signal_dates(data)
                 win_rate, _, total_bt = self.calculate_win_rate(data, signal_dates)
                 backtest_sample = total_bt
 
-            # ── ボラティリティ & リスクタグ ──────────────────────────
+            # 笏笏 繝懊Λ繝・ぅ繝ｪ繝・ぅ & 繝ｪ繧ｹ繧ｯ繧ｿ繧ｰ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             volatility = self.calculate_volatility(data)
             if avg_volume_30d >= 100_000_000:
-                risk_tag = "🟢安定"
+                risk_tag = "泙螳牙ｮ・
             elif avg_volume_30d >= 10_000_000:
-                risk_tag = "🟡標準"
+                risk_tag = "泯讓呎ｺ・
             else:
-                risk_tag = "🔴冒険"
+                risk_tag = "閥蜀帝匱"
 
-            # ── セクター統計更新 ──────────────────────────────────────
+            # 笏笏 繧ｻ繧ｯ繧ｿ繝ｼ邨ｱ險域峩譁ｰ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
             self.sector_stats[sector] += 1
 
             return {
-                # ── 基本情報 ──────────────────────────────────────────
+                # 笏笏 蝓ｺ譛ｬ諠・ｱ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'code'              : code,
                 'name'              : name,
                 'sector'            : sector,
                 'price'             : latest['Close'],
                 'date'              : latest.name.strftime('%Y-%m-%d'),
 
-                # ── 総合スコア ────────────────────────────────────────
+                # 笏笏 邱丞粋繧ｹ繧ｳ繧｢ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'total_score'       : total_score,
                 'score_detail'      : score_detail,
 
-                # ── 既存シグナル ──────────────────────────────────────
-                'ma200_trend'       : '上昇' if ma200_trending else '横ばい/下落',
-                'bottom_cross'      : '✅' if bottom_cross else '—',
-                'golden_cross'      : '✅' if golden_cross else '—',
+                # 笏笏 譌｢蟄倥す繧ｰ繝翫Ν 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+                'ma200_trend'       : '荳頑・' if ma200_trending else '讓ｪ縺ｰ縺・荳玖誠',
+                'bottom_cross'      : '笨・ if bottom_cross else '窶・,
+                'golden_cross'      : '笨・ if golden_cross else '窶・,
 
-                # ── ボリンジャーバンド ────────────────────────────────
+                # 笏笏 繝懊Μ繝ｳ繧ｸ繝｣繝ｼ繝舌Φ繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'bb_pct_b'          : round(pct_b, 3) if not np.isnan(pct_b) else None,
                 'bb_width'          : round(bb_width, 4) if not np.isnan(bb_width) else None,
                 'bb_label'          : bb_label,
-                'bb_reversal'       : '✅' if bb_reversal else '—',
-                'bb_breakout'       : '✅' if bb_breakout else '—',
+                'bb_reversal'       : '笨・ if bb_reversal else '窶・,
+                'bb_breakout'       : '笨・ if bb_breakout else '窶・,
 
-                # ── 出来高 ────────────────────────────────────────────
+                # 笏笏 蜃ｺ譚･鬮・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'avg_volume_30d'    : avg_volume_30d,
                 'volume_ratio_1d'   : round(vol_ratio_1d, 2),
                 'volume_ratio_avg'  : round(vol_ratio_avg, 2),
-                'volume_surge'      : '✅' if volume_surge else '—',
+                'volume_surge'      : '笨・ if volume_surge else '窶・,
 
-                # ── OBV ──────────────────────────────────────────────
-                'obv_trend_up'      : '✅' if obv_trend_up else '—',
-                'obv_divergence'    : '✅強気D' if obv_divergence else '—',
+                # 笏笏 OBV 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+                'obv_trend_up'      : '笨・ if obv_trend_up else '窶・,
+                'obv_divergence'    : '笨・ｼｷ豌優' if obv_divergence else '窶・,
 
-                # ── VWAP ──────────────────────────────────────────────
-                'above_vwap'        : '✅' if above_vwap else '—',
+                # 笏笏 VWAP 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+                'above_vwap'        : '笨・ if above_vwap else '窶・,
                 'vwap_approx'       : round(latest.get('VWAP_Approx', 0), 1),
 
-                # ── 移動平均乖離率 ────────────────────────────────────
+                # 笏笏 遘ｻ蜍募ｹｳ蝮・ｹ夜屬邇・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'ma25_dev'          : round(ma25_dev, 2) if not np.isnan(ma25_dev) else None,
                 'ma75_dev'          : round(ma75_dev, 2) if not np.isnan(ma75_dev) else None,
 
-                # ── 一目均衡表 ────────────────────────────────────────
+                # 笏笏 荳逶ｮ蝮・｡｡陦ｨ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'ichimoku_label'    : ichi_label,
-                'ichimoku_bullish'  : '✅三役好転' if ichimoku_bullish else '—',
+                'ichimoku_bullish'  : '笨・ｸ牙ｽｹ螂ｽ霆｢' if ichimoku_bullish else '窶・,
                 'cloud_thick_pct'   : round(cloud_thick, 2) if not np.isnan(cloud_thick) else None,
 
-                # ── 信用倍率（info）──────────────────────────────────
+                # 笏笏 菫｡逕ｨ蛟咲紫・・nfo・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'short_info'        : short_label,
-                'short_squeeze'     : '✅' if short_squeeze else '—',
+                'short_squeeze'     : '笨・ if short_squeeze else '窶・,
 
-                # ── リスク・バックテスト ──────────────────────────────
+                # 笏笏 繝ｪ繧ｹ繧ｯ繝ｻ繝舌ャ繧ｯ繝・せ繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
                 'volatility'        : volatility,
                 'risk_tag'          : risk_tag,
                 'win_rate'          : win_rate,
@@ -1225,73 +1225,73 @@ class AdvancedStockScreener:
         except Exception:
             return None
 
-    # ─────────────────────────────────────────────
-    #  全銘柄スキャン
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  蜈ｨ驫俶氛繧ｹ繧ｭ繝｣繝ｳ
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def scan_all_stocks(self, max_stocks: Optional[int] = None,
                         use_sample: bool = False) -> List[Dict]:
-        """全銘柄スキャン"""
-        print("📊 銘柄リストを取得中...")
+        """蜈ｨ驫俶氛繧ｹ繧ｭ繝｣繝ｳ"""
+        print("投 驫俶氛繝ｪ繧ｹ繝医ｒ蜿門ｾ嶺ｸｭ...")
         stocks_df = self._get_sample_stocks() if use_sample else self.get_jpx_stock_list()
 
         if max_stocks:
             stocks_df = stocks_df.head(max_stocks)
 
         total = len(stocks_df)
-        print(f"🔍 {total}銘柄のスクリーニングを開始（最低スコア: {self.min_score}点）\n")
+        print(f"剥 {total}驫俶氛縺ｮ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ繧帝幕蟋具ｼ域怙菴弱せ繧ｳ繧｢: {self.min_score}轤ｹ・噂n")
 
         results = []
         for idx, row in stocks_df.iterrows():
             code   = row['code']
             name   = row['name']
-            sector = row.get('sector', '不明')
+            sector = row.get('sector', '荳肴・')
 
             if (idx + 1) % 50 == 0:
-                print(f"進捗: {idx + 1}/{total} ({len(results)}銘柄合致)")
+                print(f"騾ｲ謐・ {idx + 1}/{total} ({len(results)}驫俶氛蜷郁・)")
 
             result = self.screen_stock(code, name, sector)
             if result:
                 results.append(result)
-                print(f"  ✅ {code} {result['name']} "
-                      f"[{sector}] スコア:{result['total_score']}点")
+                print(f"  笨・{code} {result['name']} "
+                      f"[{sector}] 繧ｹ繧ｳ繧｢:{result['total_score']}轤ｹ")
 
             time.sleep(0.5)
 
-        print(f"\n✅ スキャン完了: {len(results)}銘柄が条件に合致")
+        print(f"\n笨・繧ｹ繧ｭ繝｣繝ｳ螳御ｺ・ {len(results)}驫俶氛縺梧擅莉ｶ縺ｫ蜷郁・")
 
-        # 総合スコア → 勝率 の順でソート
+        # 邱丞粋繧ｹ繧ｳ繧｢ 竊・蜍晉紫 縺ｮ鬆・〒繧ｽ繝ｼ繝・
         results.sort(key=lambda x: (x['total_score'], x['win_rate']), reverse=True)
         return results
 
-    # ─────────────────────────────────────────────
-    #  セクターレポート（既存維持）
-    # ─────────────────────────────────────────────
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    #  繧ｻ繧ｯ繧ｿ繝ｼ繝ｬ繝昴・繝茨ｼ域里蟄倡ｶｭ謖・ｼ・
+    # 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     def generate_sector_report(self) -> str:
-        """セクター別レポート生成"""
+        """繧ｻ繧ｯ繧ｿ繝ｼ蛻･繝ｬ繝昴・繝育函謌・""
         if not self.sector_stats:
             return ""
-        report = "\n📊 セクター別内訳:\n"
+        report = "\n投 繧ｻ繧ｯ繧ｿ繝ｼ蛻･蜀・ｨｳ:\n"
         for sector, count in sorted(self.sector_stats.items(),
                                      key=lambda x: x[1], reverse=True)[:5]:
-            report += f"  • {sector}: {count}銘柄\n"
+            report += f"  窶｢ {sector}: {count}驫俶氛\n"
         return report
 
 
 class AdvancedNotifier:
     """
-    拡張通知クラス v3.0（3プラン対応）
-    ─ プランに応じて通知内容を切り替え
+    諡｡蠑ｵ騾夂衍繧ｯ繝ｩ繧ｹ v3.0・・繝励Λ繝ｳ蟇ｾ蠢懶ｼ・
+    笏 繝励Λ繝ｳ縺ｫ蠢懊§縺ｦ騾夂衍蜀・ｮｹ繧貞・繧頑崛縺・
     """
 
     def __init__(self, service: str = "slack", plan_mode: str = "free_beta"):
         """
         Args:
-            service: 通知サービス（slack / discord）
-            plan_mode: プランモード
-                - "free_beta": 暫定無償版（3件+HTMLリンク）
-                - "free": 正式無償版（3件のみ）
-                - "basic": ベーシック（HTMLリンク重視）
-                - "premium": プレミアム（HTMLリンク重視）
+            service: 騾夂衍繧ｵ繝ｼ繝薙せ・・lack / discord・・
+            plan_mode: 繝励Λ繝ｳ繝｢繝ｼ繝・
+                - "free_beta": 證ｫ螳夂┌蜆溽沿・・莉ｶ+HTML繝ｪ繝ｳ繧ｯ・・
+                - "free": 豁｣蠑冗┌蜆溽沿・・莉ｶ縺ｮ縺ｿ・・
+                - "basic": 繝吶・繧ｷ繝・け・・TML繝ｪ繝ｳ繧ｯ驥崎ｦ厄ｼ・
+                - "premium": 繝励Ξ繝溘い繝・・TML繝ｪ繝ｳ繧ｯ驥崎ｦ厄ｼ・
         """
         self.service         = service
         self.plan_mode       = plan_mode
@@ -1303,60 +1303,60 @@ class AdvancedNotifier:
     def format_message_free(self, selected: List[Dict], total_count: int,
                              html_path: str = "") -> str:
         """
-        無料版通知メッセージ（選抜3件）
+        辟｡譁咏沿騾夂衍繝｡繝・そ繝ｼ繧ｸ・磯∈謚・莉ｶ・・
 
         Args:
-            selected: 選抜された3銘柄
-            total_count: 全該当銘柄数
-            html_path: HTMLレポートのパス（free_betaモードのみ）
+            selected: 驕ｸ謚懊＆繧後◆3驫俶氛
+            total_count: 蜈ｨ隧ｲ蠖馴釜譟・焚
+            html_path: HTML繝ｬ繝昴・繝医・繝代せ・・ree_beta繝｢繝ｼ繝峨・縺ｿ・・
         """
-        today = datetime.now().strftime('%Y年%m月%d日')
+        today = datetime.now().strftime('%Y蟷ｴ%m譛・d譌･')
 
         if not selected:
             return (
-                f"📊 日本株スクリーニング結果\n📅 {today}\n\n"
-                "🔇 本日は条件に合致する銘柄がありませんでした。\n"
+                f"投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡\n套 {today}\n\n"
+                "這 譛ｬ譌･縺ｯ譚｡莉ｶ縺ｫ蜷郁・縺吶ｋ驫俶氛縺後≠繧翫∪縺帙ｓ縺ｧ縺励◆縲・n"
             )
 
         msg = (
-            f"📊 日本株スクリーニング結果 v3.0\n"
-            f"📅 {today}\n\n"
-            f"🎯 本日 {total_count}銘柄が条件に合致しました\n\n"
-            f"【今日の注目3銘柄】（中位×安定戦略）\n"
-            f"{'─'*40}\n\n"
+            f"投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡 v3.0\n"
+            f"套 {today}\n\n"
+            f"識 譛ｬ譌･ {total_count}驫俶氛縺梧擅莉ｶ縺ｫ蜷郁・縺励∪縺励◆\n\n"
+            f"縲蝉ｻ頑律縺ｮ豕ｨ逶ｮ3驫俶氛縲托ｼ井ｸｭ菴催怜ｮ牙ｮ壽姶逡･・噂n"
+            f"{'笏'*40}\n\n"
         )
 
         for i, r in enumerate(selected, 1):
-            # シグナル要約
+            # 繧ｷ繧ｰ繝翫Ν隕∫ｴ・
             signals = []
-            if r['bb_reversal'] == '✅': signals.append('BB反発')
-            if r['bb_breakout'] == '✅': signals.append('BBブレイク')
-            if r['volume_surge'] == '✅': signals.append('出来高急増')
-            if r['obv_trend_up'] == '✅': signals.append('OBV上昇')
-            if r['ichimoku_bullish'] != '—': signals.append(r['ichimoku_label'])
+            if r['bb_reversal'] == '笨・: signals.append('BB蜿咲匱')
+            if r['bb_breakout'] == '笨・: signals.append('BB繝悶Ξ繧､繧ｯ')
+            if r['volume_surge'] == '笨・: signals.append('蜃ｺ譚･鬮俶･蠅・)
+            if r['obv_trend_up'] == '笨・: signals.append('OBV荳頑・')
+            if r['ichimoku_bullish'] != '窶・: signals.append(r['ichimoku_label'])
 
-            signal_str = " | ".join(signals) if signals else "安定推移"
+            signal_str = " | ".join(signals) if signals else "螳牙ｮ壽耳遘ｻ"
 
             msg += (
-                f"{i}. 【{r['code']}】{r['name']}\n"
-                f"   ⭐ スコア: {r['total_score']:.0f}点  |  {r['sector']}\n"
-                f"   💵 株価: ¥{r['price']:,.0f}  |  {r['risk_tag']}\n"
-                f"   📊 {signal_str}\n\n"
+                f"{i}. 縲須r['code']}縲捜r['name']}\n"
+                f"   箝・繧ｹ繧ｳ繧｢: {r['total_score']:.0f}轤ｹ  |  {r['sector']}\n"
+                f"   跳 譬ｪ萓｡: ﾂ･{r['price']:,.0f}  |  {r['risk_tag']}\n"
+                f"   投 {signal_str}\n\n"
             )
 
-        # free_betaモードの場合はHTMLリンクを追加
+        # free_beta繝｢繝ｼ繝峨・蝣ｴ蜷医・HTML繝ｪ繝ｳ繧ｯ繧定ｿｽ蜉
         if self.plan_mode == "free_beta" and html_path:
             msg += (
-                f"{'─'*40}\n"
-                f"📄 全{total_count}銘柄の詳細レポートはこちら\n"
+                f"{'笏'*40}\n"
+                f"塘 蜈ｨ{total_count}驫俶氛縺ｮ隧ｳ邏ｰ繝ｬ繝昴・繝医・縺薙■繧噂n"
                 f"   {self.base_url}/{html_path}\n\n"
             )
 
         msg += (
-            f"{'─'*40}\n"
-            f"💎 上位銘柄も見たい方は\n"
-            f"   👉 ベーシックプラン ¥980/月\n"
-            f"   👉 プレミアムプラン ¥2,980/月（チャート付き）\n"
+            f"{'笏'*40}\n"
+            f"虫 荳贋ｽ埼釜譟・ｂ隕九◆縺・婿縺ｯ\n"
+            f"   痩 繝吶・繧ｷ繝・け繝励Λ繝ｳ ﾂ･980/譛・n"
+            f"   痩 繝励Ξ繝溘い繝繝励Λ繝ｳ ﾂ･2,980/譛茨ｼ医メ繝｣繝ｼ繝井ｻ倥″・噂n"
         )
 
         return msg
@@ -1364,101 +1364,101 @@ class AdvancedNotifier:
     def format_message_full(self, results: List[Dict], sector_report: str = "",
                             html_path: str = "") -> str:
         """
-        ベーシック・プレミアム用通知（HTMLリンク重視）
+        繝吶・繧ｷ繝・け繝ｻ繝励Ξ繝溘い繝逕ｨ騾夂衍・・TML繝ｪ繝ｳ繧ｯ驥崎ｦ厄ｼ・
 
         Args:
-            results: 全スクリーニング結果
-            html_path: HTMLレポートのパス
+            results: 蜈ｨ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡
+            html_path: HTML繝ｬ繝昴・繝医・繝代せ
         """
-        today = datetime.now().strftime('%Y年%m月%d日')
-        plan_label = "プレミアムプラン" if self.plan_mode == "premium" else "ベーシックプラン"
+        today = datetime.now().strftime('%Y蟷ｴ%m譛・d譌･')
+        plan_label = "繝励Ξ繝溘い繝繝励Λ繝ｳ" if self.plan_mode == "premium" else "繝吶・繧ｷ繝・け繝励Λ繝ｳ"
 
         if not results:
             return (
-                f"📊 日本株スクリーニング結果\n📅 {today}\n\n"
-                "🔇 本日は条件に合致する銘柄がありませんでした。\n"
+                f"投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡\n套 {today}\n\n"
+                "這 譛ｬ譌･縺ｯ譚｡莉ｶ縺ｫ蜷郁・縺吶ｋ驫俶氛縺後≠繧翫∪縺帙ｓ縺ｧ縺励◆縲・n"
             )
 
-        # Top 5のサマリー
+        # Top 5縺ｮ繧ｵ繝槭Μ繝ｼ
         msg = (
-            f"📊 日本株スクリーニング結果 v3.0\n"
-            f"📅 {today}  |  {plan_label}\n\n"
-            f"🎯 {len(results)}銘柄が条件に合致しました\n\n"
-            f"【Top 5 サマリー】\n"
-            f"{'─'*40}\n\n"
+            f"投 譌･譛ｬ譬ｪ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡 v3.0\n"
+            f"套 {today}  |  {plan_label}\n\n"
+            f"識 {len(results)}驫俶氛縺梧擅莉ｶ縺ｫ蜷郁・縺励∪縺励◆\n\n"
+            f"縲慎op 5 繧ｵ繝槭Μ繝ｼ縲曾n"
+            f"{'笏'*40}\n\n"
         )
 
         for i, r in enumerate(results[:5], 1):
             msg += (
-                f"{i}. 【{r['code']}】{r['name']}\n"
-                f"   ⭐ {r['total_score']:.0f}点  |  {r['sector']}\n"
-                f"   💵 ¥{r['price']:,.0f}  |  {r['risk_tag']}\n\n"
+                f"{i}. 縲須r['code']}縲捜r['name']}\n"
+                f"   箝・{r['total_score']:.0f}轤ｹ  |  {r['sector']}\n"
+                f"   跳 ﾂ･{r['price']:,.0f}  |  {r['risk_tag']}\n\n"
             )
 
         if len(results) > 5:
-            msg += f"...他{len(results)-5}銘柄\n\n"
+            msg += f"...莉本len(results)-5}驫俶氛\n\n"
 
-        # HTMLリンク
+        # HTML繝ｪ繝ｳ繧ｯ
         msg += (
-            f"{'─'*40}\n"
-            f"📄 全{len(results)}銘柄の詳細レポート\n"
+            f"{'笏'*40}\n"
+            f"塘 蜈ｨ{len(results)}驫俶氛縺ｮ隧ｳ邏ｰ繝ｬ繝昴・繝・n"
             f"   {self.base_url}/{html_path}\n\n"
         )
 
-        # セクターレポート
+        # 繧ｻ繧ｯ繧ｿ繝ｼ繝ｬ繝昴・繝・
         if sector_report:
             msg += sector_report
 
         return msg
 
     def send_slack(self, message: str):
-        """Slack送信"""
+        """Slack騾∽ｿ｡"""
         if not self.slack_webhook:
-            print("⚠️ SLACK_WEBHOOK_URL が設定されていません")
+            print("笞・・SLACK_WEBHOOK_URL 縺瑚ｨｭ螳壹＆繧後※縺・∪縺帙ｓ")
             return
         resp = requests.post(self.slack_webhook, json={"text": message})
-        print("✅ Slack送信完了" if resp.status_code == 200
-              else f"❌ Slack失敗: {resp.status_code}")
+        print("笨・Slack騾∽ｿ｡螳御ｺ・ if resp.status_code == 200
+              else f"笶・Slack螟ｱ謨・ {resp.status_code}")
 
     def send_discord(self, message: str):
-        """Discord送信（2000文字制限対応）"""
+        """Discord騾∽ｿ｡・・000譁・ｭ怜宛髯仙ｯｾ蠢懶ｼ・""
         if not self.discord_webhook:
-            print("⚠️ DISCORD_WEBHOOK_URL が設定されていません")
+            print("笞・・DISCORD_WEBHOOK_URL 縺瑚ｨｭ螳壹＆繧後※縺・∪縺帙ｓ")
             return
-        # 2000文字制限のため分割送信
+        # 2000譁・ｭ怜宛髯舌・縺溘ａ蛻・牡騾∽ｿ｡
         chunks = [message[i:i+1900] for i in range(0, len(message), 1900)]
         for chunk in chunks:
             resp = requests.post(self.discord_webhook, json={"content": chunk})
-            print("✅ Discord送信完了" if resp.status_code == 204
-                  else f"❌ Discord失敗: {resp.status_code}")
+            print("笨・Discord騾∽ｿ｡螳御ｺ・ if resp.status_code == 204
+                  else f"笶・Discord螟ｱ謨・ {resp.status_code}")
             time.sleep(0.3)
 
     def notify(self, results: List[Dict], selected: List[Dict] = None,
                sector_report: str = "", html_path: str = ""):
         """
-        通知を送信（プランに応じて切り替え）
+        騾夂衍繧帝∽ｿ｡・医・繝ｩ繝ｳ縺ｫ蠢懊§縺ｦ蛻・ｊ譖ｿ縺茨ｼ・
 
         Args:
-            results: 全スクリーニング結果
-            selected: 無料版選抜銘柄（free/free_betaモードのみ）
-            sector_report: セクター統計
-            html_path: HTMLレポートのパス
+            results: 蜈ｨ繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ邨先棡
+            selected: 辟｡譁咏沿驕ｸ謚憺釜譟・ｼ・ree/free_beta繝｢繝ｼ繝峨・縺ｿ・・
+            sector_report: 繧ｻ繧ｯ繧ｿ繝ｼ邨ｱ險・
+            html_path: HTML繝ｬ繝昴・繝医・繝代せ
         """
-        # メッセージ生成
+        # 繝｡繝・そ繝ｼ繧ｸ逕滓・
         if self.plan_mode in ["free", "free_beta"]:
             if selected is None:
-                print("❌ エラー: 無料版モードでは selected が必要です")
+                print("笶・繧ｨ繝ｩ繝ｼ: 辟｡譁咏沿繝｢繝ｼ繝峨〒縺ｯ selected 縺悟ｿ・ｦ√〒縺・)
                 return
             message = self.format_message_free(selected, len(results), html_path)
         else:
             message = self.format_message_full(results, sector_report, html_path)
 
-        # コンソール出力
+        # 繧ｳ繝ｳ繧ｽ繝ｼ繝ｫ蜃ｺ蜉・
         print("\n" + "=" * 50)
         print(message)
         print("=" * 50 + "\n")
 
-        # Webhook送信
+        # Webhook騾∽ｿ｡
         if self.service == "slack":
             self.send_slack(message)
         elif self.service == "discord":
@@ -1466,66 +1466,66 @@ class AdvancedNotifier:
 
     def is_market_open() -> tuple[bool, str]:
         """
-        東京証券取引所の開場日かどうかを判定
+        譚ｱ莠ｬ險ｼ蛻ｸ蜿門ｼ墓園縺ｮ髢句ｴ譌･縺九←縺・°繧貞愛螳・
     
         Returns:
-            (bool, str): (開場かどうか, 理由)
+            (bool, str): (髢句ｴ縺九←縺・°, 逅・罰)
         """
         today = datetime.now()
     
-        # 土曜日チェック
+        # 蝨滓屆譌･繝√ぉ繝・け
         if today.weekday() == 5:
-            return False, "土曜日"
+            return False, "蝨滓屆譌･"
     
-        # 日曜日チェック
+        # 譌･譖懈律繝√ぉ繝・け
         if today.weekday() == 6:
-            return False, "日曜日"
+            return False, "譌･譖懈律"
     
-        # 祝日チェック
+        # 逾晄律繝√ぉ繝・け
         if jpholiday.is_holiday(today):
             holiday_name = jpholiday.is_holiday_name(today)
-            return False, f"祝日（{holiday_name}）"
+            return False, f"逾晄律・・holiday_name}・・
     
-        # 年末年始の特別休場日（12/31, 1/2, 1/3）
+        # 蟷ｴ譛ｫ蟷ｴ蟋九・迚ｹ蛻･莨大ｴ譌･・・2/31, 1/2, 1/3・・
         if (today.month == 12 and today.day == 31) or \
            (today.month == 1 and today.day in [2, 3]):
-           return False, "年末年始休場"
+           return False, "蟷ｴ譛ｫ蟷ｴ蟋倶ｼ大ｴ"
     
         return True, ""
 
 
 def main():
-    """メイン実行関数 v3.0 Final（Discord）"""
+    """繝｡繧､繝ｳ螳溯｡碁未謨ｰ v3.0 Final・・iscord・・""
     
-    # 市場休場日チェック
+    # 蟶ょｴ莨大ｴ譌･繝√ぉ繝・け
     is_open, reason = is_market_open()
     if not is_open:
-        today = datetime.now().strftime('%Y年%m月%d日')
-        print(f"🔇 本日（{today}）は{reason}のため市場休場です")
-        print("📊 スクリーニングは実行されません\n")
+        today = datetime.now().strftime('%Y蟷ｴ%m譛・d譌･')
+        print(f"這 譛ｬ譌･・・today}・峨・{reason}縺ｮ縺溘ａ蟶ょｴ莨大ｴ縺ｧ縺・)
+        print("投 繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ縺ｯ螳溯｡後＆繧後∪縺帙ｓ\n")
         
-        # Discord に休場通知（オプション）
+        # Discord 縺ｫ莨大ｴ騾夂衍・医が繝励す繝ｧ繝ｳ・・
         notification_service = os.getenv("NOTIFICATION_SERVICE", "discord")
         if notification_service == "discord":
             discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
             if discord_webhook:
                 try:
                     message = {
-                        "content": f"📅 市場休場のお知らせ\n\n本日（{today}）は{reason}のため、"
-                                   f"東京証券取引所は休場です。\n"
-                                   f"スクリーニングは次回開場日に実行されます。"
+                        "content": f"套 蟶ょｴ莨大ｴ縺ｮ縺顔衍繧峨○\n\n譛ｬ譌･・・today}・峨・{reason}縺ｮ縺溘ａ縲・
+                                   f"譚ｱ莠ｬ險ｼ蛻ｸ蜿門ｼ墓園縺ｯ莨大ｴ縺ｧ縺吶・n"
+                                   f"繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ縺ｯ谺｡蝗樣幕蝣ｴ譌･縺ｫ螳溯｡後＆繧後∪縺吶・
                     }
                     requests.post(discord_webhook, json=message)
-                    print("✅ Discord に休場通知を送信しました")
+                    print("笨・Discord 縺ｫ莨大ｴ騾夂衍繧帝∽ｿ｡縺励∪縺励◆")
                 except Exception as e:
-                    print(f"⚠️  Discord 通知エラー: {e}")
+                    print(f"笞・・ Discord 騾夂衍繧ｨ繝ｩ繝ｼ: {e}")
         
         return
     
-    print("🚀 日本市場全銘柄スクリーニング開始 v3.0 Final\n")
-    print("📢 通知: Discord\n")  # SendGrid 削除
+    print("噫 譌･譛ｬ蟶ょｴ蜈ｨ驫俶氛繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ髢句ｧ・v3.0 Final\n")
+    print("討 騾夂衍: Discord\n")  # SendGrid 蜑企勁
 
-    # ─── 環境変数読み込み ─────────────────────────────────────
+    # 笏笏笏 迺ｰ蠅・､画焚隱ｭ縺ｿ霎ｼ縺ｿ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     notification_service = os.getenv("NOTIFICATION_SERVICE", "slack")
     plan_mode            = os.getenv("PLAN_MODE", "free_beta")
     max_stocks           = os.getenv("MAX_STOCKS")
@@ -1534,14 +1534,14 @@ def main():
     use_sample           = os.getenv("USE_SAMPLE", "false").lower() == "true"
     output_dir           = os.getenv("OUTPUT_DIR", "docs")
 
-    print(f"⚙️  プランモード: {plan_mode}")
-    print(f"📢 通知サービス: {notification_service}")
+    print(f"笞呻ｸ・ 繝励Λ繝ｳ繝｢繝ｼ繝・ {plan_mode}")
+    print(f"討 騾夂衍繧ｵ繝ｼ繝薙せ: {notification_service}")
 
     if max_stocks:
         max_stocks = int(max_stocks)
-        print(f"⚠️  テストモード: {max_stocks}銘柄のみスキャン\n")
+        print(f"笞・・ 繝・せ繝医Δ繝ｼ繝・ {max_stocks}驫俶氛縺ｮ縺ｿ繧ｹ繧ｭ繝｣繝ｳ\n")
 
-    # ─── スクリーニング実行 ───────────────────────────────────
+    # 笏笏笏 繧ｹ繧ｯ繝ｪ繝ｼ繝九Φ繧ｰ螳溯｡・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     screener = AdvancedStockScreener(
         min_volume      = 1_000_000,
         enable_backtest = enable_backtest,
@@ -1550,48 +1550,48 @@ def main():
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
 
     if not results:
-        print("\n🔇 条件に合致する銘柄がありませんでした")
+        print("\n這 譚｡莉ｶ縺ｫ蜷郁・縺吶ｋ驫俶氛縺後≠繧翫∪縺帙ｓ縺ｧ縺励◆")
         return
 
-    # ─── セクターレポート生成 ─────────────────────────────────
+    # 笏笏笏 繧ｻ繧ｯ繧ｿ繝ｼ繝ｬ繝昴・繝育函謌・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     sector_report = screener.generate_sector_report()
 
-    # ─── プランに応じた処理 ───────────────────────────────────
+    # 笏笏笏 繝励Λ繝ｳ縺ｫ蠢懊§縺溷・逅・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     html_path = ""
     selected = []
 
     if plan_mode in ["free", "free_beta"]:
-        # 無料版：中位3件を選抜
+        # 辟｡譁咏沿・壻ｸｭ菴・莉ｶ繧帝∈謚・
         selected = screener.select_free_tier_stocks(results, count=3)
-        print(f"\n🎯 無料版：{len(selected)}銘柄を選抜しました")
+        print(f"\n識 辟｡譁咏沿・嘴len(selected)}驫俶氛繧帝∈謚懊＠縺ｾ縺励◆")
         for i, s in enumerate(selected, 1):
-            print(f"  {i}. {s['code']} {s['name']} (スコア:{s['total_score']:.0f}点)")
+            print(f"  {i}. {s['code']} {s['name']} (繧ｹ繧ｳ繧｢:{s['total_score']:.0f}轤ｹ)")
 
     if plan_mode == "free_beta":
-        # 暫定無償版：HTMLレポート生成
-        print("\n📄 HTMLレポート生成中（暫定無償版）...")
+        # 證ｫ螳夂┌蜆溽沿・唏TML繝ｬ繝昴・繝育函謌・
+        print("\n塘 HTML繝ｬ繝昴・繝育函謌蝉ｸｭ・域圻螳夂┌蜆溽沿・・..")
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
         html_gen.generate_index_page(html_path, len(results))
 
     elif plan_mode == "basic":
-        # ベーシック：HTMLレポート生成（当日のみ）
-        print("\n📄 HTMLレポート生成中（ベーシック版）...")
+        # 繝吶・繧ｷ繝・け・唏TML繝ｬ繝昴・繝育函謌撰ｼ亥ｽ捺律縺ｮ縺ｿ・・
+        print("\n塘 HTML繝ｬ繝昴・繝育函謌蝉ｸｭ・医・繝ｼ繧ｷ繝・け迚茨ｼ・..")
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
         html_gen.generate_index_page(html_path, len(results))
 
     elif plan_mode == "premium":
-        # プレミアム：30日分アーカイブ + チャート生成（将来実装）
-        print("\n👑 プレミアム版は将来実装予定です")
+        # 繝励Ξ繝溘い繝・・0譌･蛻・い繝ｼ繧ｫ繧､繝・+ 繝√Ε繝ｼ繝育函謌撰ｼ亥ｰ・擂螳溯｣・ｼ・
+        print("\n荘 繝励Ξ繝溘い繝迚医・蟆・擂螳溯｣・ｺ亥ｮ壹〒縺・)
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
         html_gen.generate_index_page(html_path, len(results))
 
-    # ─── 通知送信 ─────────────────────────────────────────────
+    # 笏笏笏 騾夂衍騾∽ｿ｡ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
 
     if plan_mode in ["free", "free_beta"]:
@@ -1600,8 +1600,9 @@ def main():
     else:
         notifier.notify(results, sector_report=sector_report, html_path=html_path)
 
-    print("\n✅ 処理完了")
+    print("\n笨・蜃ｦ逅・ｮ御ｺ・)
 
 
 if __name__ == "__main__":
     main()
+
