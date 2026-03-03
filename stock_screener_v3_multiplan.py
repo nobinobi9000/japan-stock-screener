@@ -975,29 +975,34 @@ class AdvancedStockScreener:
     #  銘柄リスト取得（既存ロジック維持）
     # ─────────────────────────────────────────────
     def get_jpx_stock_list(self) -> pd.DataFrame:
-        """東証コード総当たり方式（既存ロジック維持）"""
-        print("📥 東証銘柄リストを生成中（コード総当たり方式）...")
-        code_ranges = (
-            list(range(1300, 1500)) +
-            list(range(1700, 2000)) +
-            list(range(2000, 9999))
-        )
-        stocks = [{'code': str(c).zfill(4), 'name': str(c), 'sector': '不明'}
-                  for c in code_ranges]
-        df = pd.DataFrame(stocks)
-        print(f"✅ {len(df)}件のコードを生成しました")
-        return df
+        """JPX銘柄リストをローカルCSVから読み込み（約3,700銘柄）"""
+        print("📥 JPX銘柄リストを読み込み中...")
 
-    def _get_sample_stocks(self) -> pd.DataFrame:
-        """サンプル銘柄リスト（開発・テスト用）"""
-        return pd.DataFrame({
-            'code': ['7203','8306','9984','6758','8001',
-                     '9432','6861','7974','4063','4502'],
-            'name': ['トヨタ','三菱UFJ','ソフトバンクG','ソニーG','伊藤忠',
-                     'NTT','キーエンス','任天堂','信越化学','武田薬品'],
-            'sector': ['輸送用機器','銀行','情報・通信','電気機器','卸売',
-                       '情報・通信','電気機器','その他製品','化学','医薬品']
-        })
+        csv_path = Path("data/jpx_stock_list.csv")
+
+        try:
+            if csv_path.exists():
+                # ローカルCSVを読み込み
+                stocks = pd.read_csv(csv_path, dtype={'code': str})
+                print(f"✅ {len(stocks)}銘柄を読み込みました（JPX公式リスト）")
+            
+                # 市場別集計
+                if 'market' in stocks.columns:
+                    for market_type in ['プライム', 'スタンダード', 'グロース']:
+                        count = len(stocks[stocks['market'].str.contains(market_type, na=False)])
+                        if count > 0:
+                            print(f"   - {market_type}: {count}銘柄")
+                print()
+                return stocks
+            else:
+                print(f"⚠️ CSVファイルが見つかりません: {csv_path}")
+                print("📋 フォールバック: サンプルリストを使用\n")
+                return self._get_sample_stocks()
+            
+        except Exception as e:
+            print(f"❌ CSV読み込みエラー: {e}")
+            print("📋 フォールバック: サンプルリストを使用\n")
+            return self._get_sample_stocks()
 
     # ─────────────────────────────────────────────
     #  既存メソッド（後方互換のため維持）
