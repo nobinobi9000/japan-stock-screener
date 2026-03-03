@@ -9,92 +9,160 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
+            padding: 10px;
+            color: #333;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-        }
-        .hero {
-            text-align: center;
-            color: white;
-            margin-bottom: 60px;
-        }
-        .hero h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        .hero p {
-            font-size: 1.3em;
-            opacity: 0.95;
-        }
-        .plans {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 60px;
-        }
-        .plan {
             background: white;
             border-radius: 12px;
-            padding: 40px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
+            overflow: hidden;
         }
-        .plan:hover { transform: translateY(-10px); }
-        .plan h2 {
-            font-size: 1.8em;
-            margin-bottom: 15px;
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1em; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+        }
+        .stat-box .number {
+            font-size: 1.5em;
+            font-weight: bold;
             color: #667eea;
         }
-        .plan .price {
-            font-size: 2.5em;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #333;
+        .stat-box .label {
+            color: #6c757d;
+            margin-top: 5px;
+            font-size: 0.85em;
         }
-        .plan ul {
-            list-style: none;
-            margin: 20px 0;
+        
+        .controls {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
         }
-        .plan li {
-            padding: 10px 0;
-            border-bottom: 1px solid #e9ecef;
+        .controls input {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 1em;
         }
-        .plan li:before {
-            content: "✓ ";
-            color: #28a745;
-            font-weight: bold;
-            margin-right: 10px;
+        
+        /* テーブル - モバイル最適化 */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
-        .btn {
-            display: inline-block;
-            padding: 15px 40px;
-            background: #667eea;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        thead {
+            background: #495057;
             color: white;
-            text-decoration: none;
-            border-radius: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th {
+            padding: 12px 8px;
+            text-align: left;
             font-weight: 600;
-            transition: all 0.3s;
-            margin-top: 20px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.9em;
         }
-        .btn:hover {
-            background: #764ba2;
-            transform: scale(1.05);
+        th:hover { background: #343a40; }
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.85em;
         }
-        .latest {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
+        tr:hover { background: #f8f9fa; }
+        
+        .score-high { color: #28a745; font-weight: bold; }
+        .score-mid { color: #ffc107; font-weight: bold; }
+        .score-low { color: #dc3545; font-weight: bold; }
+        .signal-yes { color: #28a745; }
+        .signal-no { color: #6c757d; }
+        
+        .tag {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tag-safe { background: #d4edda; color: #155724; }
+        .tag-normal { background: #fff3cd; color: #856404; }
+        .tag-risky { background: #f8d7da; color: #721c24; }
+        
+        .footer {
+            padding: 20px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            background: #f8f9fa;
+            color: #6c757d;
+            font-size: 0.9em;
         }
-        .latest h3 {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            color: #333;
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { border-radius: 8px; }
+            .header { padding: 15px; }
+            .header h1 { font-size: 1.3em; }
+            .header p { font-size: 0.9em; }
+            
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                padding: 10px;
+            }
+            .stat-box { padding: 8px; }
+            .stat-box .number { font-size: 1.3em; }
+            .stat-box .label { font-size: 0.75em; }
+            
+            .controls { padding: 10px; }
+            .controls input { font-size: 16px; /* iOS zoom防止 */ }
+            
+            th { padding: 10px 6px; font-size: 0.8em; }
+            td { padding: 8px 6px; font-size: 0.8em; }
+            
+            .footer { padding: 15px 10px; font-size: 0.85em; }
+            .footer a { display: block; margin: 8px 0; }
+        }
+        
+        /* 極小スマホ対応 */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.1em; }
+            .stats { grid-template-columns: repeat(3, 1fr); }
+            .stat-box .number { font-size: 1.2em; }
+            th, td { font-size: 0.75em; padding: 8px 4px; }
+            table { min-width: 500px; }
         }
     </style>
 </head>
@@ -126,7 +194,7 @@
                     <li>ソート・検索機能</li>
                     <li>全指標スコア表示</li>
                 </ul>
-                <a href="reports/20260228.html" class="btn">最新レポートを見る</a>
+                <a href="reports/20260303.html" class="btn">最新レポートを見る</a>
             </div>
 
             <div class="plan">
@@ -145,9 +213,9 @@
         <div class="latest">
             <h3>📄 最新スクリーニング結果</h3>
             <p style="color: #6c757d; margin-bottom: 20px;">
-                本日 2681銘柄が条件に合致しました
+                本日 2035銘柄が条件に合致しました
             </p>
-            <a href="reports/20260228.html" class="btn">レポートを見る</a>
+            <a href="reports/20260303.html" class="btn">レポートを見る</a>
         </div>
     </div>
 </body>
