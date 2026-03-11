@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スクリーニング結果 - 2026-03-12</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: visible;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+        }
+        .stat-box .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-box .label {
+            color: #6c757d;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .controls input {
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 400px;
+            font-size: 1em;
+        }
+        
+        /* テーブル - モバイル最適化 */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            max-width: 100%;
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        thead {
+            background: #495057;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.95em;
+        }
+        th:hover { background: #343a40; }
+        th:after {
+            content: ' ↕';
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.9em;
+        }
+        tr:hover { background: #f8f9fa; }
+        
+        .score-high { color: #28a745; font-weight: bold; }
+        .score-mid { color: #ffc107; font-weight: bold; }
+        .score-low { color: #dc3545; font-weight: bold; }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tag-safe { background: #d4edda; color: #155724; }
+        .tag-normal { background: #fff3cd; color: #856404; }
+        .tag-risky { background: #f8d7da; color: #721c24; }
+        
+        .footer {
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            color: #6c757d;
+            border-top: 2px solid #e9ecef;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+        }
+        .footer a:hover { text-decoration: underline; }
+        
+        /* スマホ対応（768px以下） */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { border-radius: 8px; }
+            
+            .header { padding: 20px 15px; }
+            .header h1 { font-size: 1.4em; }
+            .header p { font-size: 0.95em; }
+            
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                padding: 15px 10px;
+            }
+            .stat-box { padding: 10px 5px; }
+            .stat-box .number { font-size: 1.5em; }
+            .stat-box .label { font-size: 0.8em; }
+            
+            .controls { padding: 15px 10px; }
+            .controls input { 
+                font-size: 16px; /* iOS zoom防止 */
+                max-width: 100%;
+            }
+            
+            .table-container { padding: 0 5px; }
+            th { padding: 12px 6px; font-size: 0.85em; }
+            td { padding: 10px 6px; font-size: 0.85em; }
+            
+            .footer { padding: 20px 15px; }
+            .footer a { 
+                display: block; 
+                margin: 10px 0;
+            }
+        }
+        
+        /* 極小スマホ対応（480px以下） */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.2em; }
+            .header p { font-size: 0.85em; }
+            
+            .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .stat-box .number { font-size: 1.3em; }
+            .stat-box .label { font-size: 0.75em; }
+            
+            th { padding: 10px 4px; font-size: 0.75em; }
+            td { padding: 8px 4px; font-size: 0.75em; }
+            table { min-width: 800px; }
+            
+            .tag { font-size: 0.7em; padding: 3px 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 日本株スクリーニング結果</h1>
+            <p>📅 2026-03-12 | ベーシックプラン</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="number">11</div>
+                <div class="label">該当銘柄数</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">45</div>
+                <div class="label">最高スコア</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">3</div>
+                <div class="label">セクター数</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+        </div>
+
+        <div class="table-container">
+        <table id="stockTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">順位</th>
+                    <th onclick="sortTable(1)">コード</th>
+                    <th onclick="sortTable(2)">銘柄名</th>
+                    <th onclick="sortTable(3)">セクター</th>
+                    <th onclick="sortTable(4)">スコア ⭐</th>
+                    <th onclick="sortTable(5)">株価</th>
+                    <th>シグナル</th>
+                    <th>リスク</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                    <td>1</td>
+                    <td><strong>1326</strong></td>
+                    <td>ＳＰＤＲゴールド・シェア</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥75,590</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-safe">🟢安定</span></td>
+                </tr>
+
+                <tr>
+                    <td>2</td>
+                    <td><strong>1328</strong></td>
+                    <td>ＮＥＸＴ　ＦＵＮＤＳ　金価格連動型上場投信</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥19,560</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-safe">🟢安定</span></td>
+                </tr>
+
+                <tr>
+                    <td>3</td>
+                    <td><strong>1332</strong></td>
+                    <td>ニッスイ</td>
+                    <td><small>水産・農林業</small></td>
+                    <td class="score-low">30</td>
+                    <td>¥1,398</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-safe">🟢安定</span></td>
+                </tr>
+
+                <tr>
+                    <td>4</td>
+                    <td><strong>1301</strong></td>
+                    <td>極洋</td>
+                    <td><small>水産・農林業</small></td>
+                    <td class="score-low">35</td>
+                    <td>¥5,280</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-safe">🟢安定</span></td>
+                </tr>
+
+                <tr>
+                    <td>5</td>
+                    <td><strong>133A</strong></td>
+                    <td>グローバルＸ　超短期米国債　ＥＴＦ</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥1,069</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-safe">🟢安定</span></td>
+                </tr>
+
+                <tr>
+                    <td>6</td>
+                    <td><strong>1381</strong></td>
+                    <td>アクシーズ</td>
+                    <td><small>水産・農林業</small></td>
+                    <td class="score-low">30</td>
+                    <td>¥3,715</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-normal">🟡標準</span></td>
+                </tr>
+
+                <tr>
+                    <td>7</td>
+                    <td><strong>1325</strong></td>
+                    <td>ＮＥＸＴ　ＦＵＮＤＳ　ブラジル株式指数・ボベスパ連動型上場投信</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">35</td>
+                    <td>¥317</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-normal">🟡標準</span></td>
+                </tr>
+
+                <tr>
+                    <td>8</td>
+                    <td><strong>1322</strong></td>
+                    <td>上場インデックスファンド中国Ａ株（パンダ）Ｅ　Ｆｕｎｄ　ＣＳＩ３００</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥11,525</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-normal">🟡標準</span></td>
+                </tr>
+
+                <tr>
+                    <td>9</td>
+                    <td><strong>138A</strong></td>
+                    <td>光フードサービス</td>
+                    <td><small>小売業</small></td>
+                    <td class="score-low">35</td>
+                    <td>¥2,855</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-risky">🔴冒険</span></td>
+                </tr>
+
+                <tr>
+                    <td>10</td>
+                    <td><strong>1380</strong></td>
+                    <td>秋川牧園</td>
+                    <td><small>水産・農林業</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥1,070</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-risky">🔴冒険</span></td>
+                </tr>
+
+                <tr>
+                    <td>11</td>
+                    <td><strong>1319</strong></td>
+                    <td>ＮＥＸＴ　ＦＵＮＤＳ　日経３００株価指数連動型上場投信</td>
+                    <td><small>-</small></td>
+                    <td class="score-low">45</td>
+                    <td>¥700</td>
+                    <td><small>一目好転</small></td>
+                    <td><span class="tag tag-risky">🔴冒険</span></td>
+                </tr>
+
+            </tbody>
+        </table>
+        </div>
+
+        <div class="footer">
+            <p>⚠️ このレポートは当日限り有効です。翌日以降は最新版をご確認ください。</p>
+            <p style="margin-top: 15px;">
+                <a href="../index.html">🏠 トップページへ</a> |
+                <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.85em; color: #999;">
+                本サービスは投資助言ではありません。投資判断は自己責任で行ってください。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function sortTable(col) {
+            const table = document.getElementById("stockTable");
+            const rows = Array.from(table.rows).slice(1);
+            const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+
+            rows.sort((a, b) => {
+                let aVal = a.cells[col].textContent.trim();
+                let bVal = b.cells[col].textContent.trim();
+
+                // 数値列の判定
+                if (col === 0 || col === 4 || col === 5) {
+                    aVal = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
+                    bVal = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
+                }
+
+                return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+            });
+
+            rows.forEach(row => table.tBodies[0].appendChild(row));
+            table.dataset.sortCol = col;
+            table.dataset.sortDir = isAsc ? "desc" : "asc";
+        }
+
+        function filterTable() {
+            const input = document.getElementById("search").value.toUpperCase();
+            const table = document.getElementById("stockTable");
+            const rows = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < rows.length; i++) {
+                const code = rows[i].cells[1].textContent;
+                const name = rows[i].cells[2].textContent;
+                rows[i].style.display = (code + name).toUpperCase().includes(input) ? "" : "none";
+            }
+        }
+    </script>
+</body>
+</html>
