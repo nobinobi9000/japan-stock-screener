@@ -660,244 +660,6 @@ class HTMLReportGenerator:
         return f"reports/{filename}"
 
 
-    def generate_index_page(self, latest_report_path: str = "",
-                             total_stocks: int = 0) -> str:
-        """
-        トップページ（プラン説明・最新レポートリンク）を生成
-
-        Returns:
-            生成したindex.htmlのパス
-        """
-        filepath = self.output_dir / "index.html"
-
-        html = f"""<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本株スクリーニング - Multi-Plan Service</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
-            color: #333;
-        }}
-        .container {{
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }}
-        .header h1 {{ font-size: 1.5em; margin-bottom: 10px; }}
-        .header p {{ opacity: 0.9; font-size: 1em; }}
-        
-        .stats {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-        }}
-        .stat-box {{
-            text-align: center;
-            padding: 10px;
-        }}
-        .stat-box .number {{
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }}
-        .stat-box .label {{
-            color: #6c757d;
-            margin-top: 5px;
-            font-size: 0.85em;
-        }}
-        
-        .controls {{
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }}
-        .controls input {{
-            padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            width: 100%;
-            font-size: 1em;
-        }}
-        
-        /* テーブル - モバイル最適化 */
-        .table-container {{
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }}
-        thead {{
-            background: #495057;
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }}
-        th {{
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.9em;
-        }}
-        th:hover {{ background: #343a40; }}
-        td {{
-            padding: 10px 8px;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 0.85em;
-        }}
-        tr:hover {{ background: #f8f9fa; }}
-        
-        .score-high {{ color: #28a745; font-weight: bold; }}
-        .score-mid {{ color: #ffc107; font-weight: bold; }}
-        .score-low {{ color: #dc3545; font-weight: bold; }}
-        .signal-yes {{ color: #28a745; }}
-        .signal-no {{ color: #6c757d; }}
-        
-        .tag {{
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: 600;
-            white-space: nowrap;
-        }}
-        .tag-safe {{ background: #d4edda; color: #155724; }}
-        .tag-normal {{ background: #fff3cd; color: #856404; }}
-        .tag-risky {{ background: #f8d7da; color: #721c24; }}
-        
-        .footer {{
-            padding: 20px;
-            text-align: center;
-            background: #f8f9fa;
-            color: #6c757d;
-            font-size: 0.9em;
-        }}
-        .footer a {{
-            color: #667eea;
-            text-decoration: none;
-            margin: 0 10px;
-        }}
-        
-        /* スマホ対応 */
-        @media (max-width: 768px) {{
-            body {{ padding: 5px; }}
-            .container {{ border-radius: 8px; }}
-            .header {{ padding: 15px; }}
-            .header h1 {{ font-size: 1.3em; }}
-            .header p {{ font-size: 0.9em; }}
-            
-            .stats {{
-                grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
-                padding: 10px;
-            }}
-            .stat-box {{ padding: 8px; }}
-            .stat-box .number {{ font-size: 1.3em; }}
-            .stat-box .label {{ font-size: 0.75em; }}
-            
-            .controls {{ padding: 10px; }}
-            .controls input {{ font-size: 16px; /* iOS zoom防止 */ }}
-            
-            th {{ padding: 10px 6px; font-size: 0.8em; }}
-            td {{ padding: 8px 6px; font-size: 0.8em; }}
-            
-            .footer {{ padding: 15px 10px; font-size: 0.85em; }}
-            .footer a {{ display: block; margin: 8px 0; }}
-        }}
-        
-        /* 極小スマホ対応 */
-        @media (max-width: 480px) {{
-            .header h1 {{ font-size: 1.1em; }}
-            .stats {{ grid-template-columns: repeat(3, 1fr); }}
-            .stat-box .number {{ font-size: 1.2em; }}
-            th, td {{ font-size: 0.75em; padding: 8px 4px; }}
-            table {{ min-width: 500px; }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="hero">
-            <h1>📊 日本株スクリーニング</h1>
-            <p>yfinanceベースのテクニカル分析で、毎日シグナル銘柄をお届け</p>
-        </div>
-
-        <div class="plans">
-            <div class="plan">
-                <h2>🆓 無償版</h2>
-                <div class="price">FREE</div>
-                <ul>
-                    <li>厳選3銘柄を毎日通知</li>
-                    <li>中位スコア×多様性戦略</li>
-                    <li>Slack/Discord対応</li>
-                </ul>
-                <a href="#" class="btn">無料登録</a>
-            </div>
-
-            <div class="plan">
-                <h2>💼 ベーシック</h2>
-                <div class="price">¥980<small>/月</small></div>
-                <ul>
-                    <li>全銘柄HTMLレポート</li>
-                    <li>当日分のみ閲覧可能</li>
-                    <li>ソート・検索機能</li>
-                    <li>全指標スコア表示</li>
-                </ul>
-                <a href="{latest_report_path}" class="btn">最新レポートを見る</a>
-            </div>
-
-            <div class="plan">
-                <h2>👑 プレミアム</h2>
-                <div class="price">¥1,980<small>/月</small></div>
-                <ul>
-                    <li>30日分アーカイブ</li>
-                    <li>各銘柄チャート表示</li>
-                    <li>シグナル発生履歴</li>
-                    <li>勝率統計グラフ</li>
-                </ul>
-                <a href="#" class="btn">プレミアム登録</a>
-            </div>
-        </div>
-
-        <div class="latest">
-            <h3>📄 最新スクリーニング結果</h3>
-            <p style="color: #6c757d; margin-bottom: 20px;">
-                本日 {total_stocks}銘柄が条件に合致しました
-            </p>
-            <a href="{latest_report_path}" class="btn">レポートを見る</a>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-        filepath.write_text(html, encoding='utf-8')
-        print(f"✅ トップページ生成: {filepath}")
-        return "index.html"
-
 
 class AdvancedStockScreener:
     """
@@ -1478,6 +1240,7 @@ class AdvancedNotifier:
 
         Args:
             results: 全スクリーニング結果
+            sector_report: セクター統計
             html_path: HTMLレポートのパス
         """
         today = datetime.now().strftime('%Y年%m月%d日')
@@ -1493,31 +1256,75 @@ class AdvancedNotifier:
         msg = (
             f"📊 日本株スクリーニング結果 v3.0\n"
             f"📅 {today}  |  {plan_label}\n\n"
-            f"🎯 {len(results)}銘柄が条件に合致しました\n\n"
-            f"【Top 5 サマリー】\n"
+            f"🎯 本日 {len(results)}銘柄が条件に合致しました\n\n"
+            f"【Top 5 ハイライト】\n"
             f"{'─'*40}\n\n"
         )
 
         for i, r in enumerate(results[:5], 1):
+            # シグナル要約
+            signals = []
+            if r['bottom_cross'] == '●': signals.append('底値クロス')
+            if r['golden_cross'] == '●': signals.append('GC')
+            if r['bb_reversal'] == '●': signals.append('BB反発')
+            if r['bb_breakout'] == '●': signals.append('BBブレイク')
+            if r['volume_surge'] == '●': signals.append('出来高急増')
+            if r['obv_trend_up'] == '●': signals.append('OBV↑')
+            if r['ichimoku_bullish'] != '－': signals.append(r['ichimoku_label'])
+
+            signal_str = " | ".join(signals) if signals else "－"
+
+            # スコア内訳を表示
+            score_detail = r.get('score_detail', {})
+            detail_parts = []
+            if score_detail.get('ma_trend', 0) > 0:
+                detail_parts.append(f"MA200↑")
+            if score_detail.get('golden_cross', 0) > 0:
+                detail_parts.append(f"GC")
+            if score_detail.get('bb_signal', 0) > 0:
+                detail_parts.append(f"BB")
+            if score_detail.get('ichimoku', 0) > 0:
+                detail_parts.append(f"一目")
+            if score_detail.get('obv_trend', 0) > 0:
+                detail_parts.append(f"OBV")
+            if score_detail.get('volume_surge', 0) > 0:
+                detail_parts.append(f"出来高")
+
+            score_breakdown = "（" + " + ".join(detail_parts) + "）" if detail_parts else ""
+
             msg += (
                 f"{i}. 【{r['code']}】{r['name']}\n"
-                f"   ⭐ {r['total_score']:.0f}点  |  {r['sector']}\n"
-                f"   💵 ¥{r['price']:,.0f}  |  {r['risk_tag']}\n\n"
+                f"   ⭐ スコア: {r['total_score']:.0f}点 {score_breakdown}\n"
+                f"   💵 株価: ¥{r['price']:,.0f}  |  {r['sector']}\n"
+                f"   📊 {signal_str}\n"
+                f"   🎲 {r['risk_tag']}  |  勝率: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
             )
 
         if len(results) > 5:
             msg += f"...他{len(results)-5}銘柄\n\n"
 
-        # HTMLリンク
+        # HTMLリンク（強調）
         msg += (
             f"{'─'*40}\n"
-            f"📄 全{len(results)}銘柄の詳細レポート\n"
-            f"   {self.base_url}/{html_path}\n\n"
+            f"📄 **全{len(results)}銘柄の詳細レポート**\n"
+            f"   👉 {self.base_url}/{html_path}\n\n"
+            f"   ✅ ソート・検索機能\n"
+            f"   ✅ 全指標のスコア内訳\n"
+            f"   ✅ セクター別集計\n\n"
         )
 
         # セクターレポート
         if sector_report:
-            msg += sector_report
+            msg += sector_report + "\n"
+
+        # プラン案内
+        if self.plan_mode == "basic":
+            msg += (
+                f"{'─'*40}\n"
+                f"💎 さらに詳しく分析したい方は\n"
+                f"   👑 プレミアムプラン ¥1,980/月\n"
+                f"   └ 30日分アーカイブ + チャート表示\n"
+            )
 
         return msg
 
@@ -1683,7 +1490,6 @@ def main():
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
-        html_gen.generate_index_page(html_path, len(results))
 
     elif plan_mode == "basic":
         # ベーシック：HTMLレポート生成（当日のみ）
@@ -1691,7 +1497,6 @@ def main():
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
-        html_gen.generate_index_page(html_path, len(results))
 
     elif plan_mode == "premium":
         # プレミアム：30日分アーカイブ + チャート生成（将来実装）
@@ -1699,7 +1504,6 @@ def main():
         html_gen = HTMLReportGenerator(output_dir=output_dir)
         today = datetime.now().strftime('%Y-%m-%d')
         html_path = html_gen.generate_basic_report(results, today, sector_report)
-        html_gen.generate_index_page(html_path, len(results))
 
     # ─── 通知送信 ─────────────────────────────────────────────
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
