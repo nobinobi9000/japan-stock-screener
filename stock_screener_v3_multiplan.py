@@ -1527,8 +1527,12 @@ def main():
                         html_path=html_path)
 	
 	# ベーシック版通知も追加（free_betaモードの場合のみ）
-        if plan_mode == "free_beta":
+         if plan_mode == "free_beta":
+            print(f"\n📤 ベーシック版通知送信中 (plan_mode: basic)")
             notifier_basic = AdvancedNotifier(service=notification_service, plan_mode="basic")
+            print(f"   notifier_basic.plan_mode = {notifier_basic.plan_mode}")
+            print(f"   results数 = {len(results)}")
+            print(f"   html_path = {html_path}")
             notifier_basic.notify(results, sector_report=sector_report, html_path=html_path)
     else:
         notifier.notify(results, sector_report=sector_report, html_path=html_path)
