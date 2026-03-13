@@ -1228,7 +1228,7 @@ class AdvancedNotifier:
             f"{'─'*40}\n"
             f"💎 上位銘柄も見たい方は\n"
             f"   👉 ベーシックプラン ¥980/月\n"
-            f"   👉 プレミアムプラン ¥2,980/月（チャート付き）\n"
+            f"   👉 プレミアムプラン ¥1,980/月（チャート付き）\n"
         )
 
         return msg
@@ -1338,16 +1338,29 @@ class AdvancedNotifier:
               else f"❌ Slack失敗: {resp.status_code}")
 
     def send_discord(self, message: str):
-        """Discord送信（2000文字制限対応）"""
-        if not self.discord_webhook:
-            print("⚠️ DISCORD_WEBHOOK_URL が設定されていません")
+        """Discord送信（プラン別Webhook URL対応 + 2000文字制限対応）"""
+        
+        # プランに応じてWebhook URLを選択
+        if self.plan_mode == "premium":
+            webhook_url = self.discord_webhook_premium
+            plan_label = "プレミアム"
+        elif self.plan_mode == "basic":
+            webhook_url = self.discord_webhook_basic
+            plan_label = "ベーシック"
+        else:  # free または free_beta
+            webhook_url = self.discord_webhook
+            plan_label = "無料版"
+        
+        if not webhook_url:
+            print(f"⚠️ Discord Webhook URL が設定されていません (plan_mode: {self.plan_mode})")
             return
+        
         # 2000文字制限のため分割送信
         chunks = [message[i:i+1900] for i in range(0, len(message), 1900)]
         for chunk in chunks:
-            resp = requests.post(self.discord_webhook, json={"content": chunk})
-            print("✅ Discord送信完了" if resp.status_code == 204
-                  else f"❌ Discord失敗: {resp.status_code}")
+            resp = requests.post(webhook_url, json={"content": chunk})
+            print(f"✅ Discord送信完了 ({plan_label})" if resp.status_code == 204
+                  else f"❌ Discord送信失敗 ({plan_label}): {resp.status_code}")
             time.sleep(0.3)
 
     def notify(self, results: List[Dict], selected: List[Dict] = None,
@@ -1509,8 +1522,14 @@ def main():
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
 
     if plan_mode in ["free", "free_beta"]:
+	# 無料版通知
         notifier.notify(results, selected=selected, sector_report=sector_report,
                         html_path=html_path)
+	
+	# ベーシック版通知も追加（free_betaモードの場合のみ）
+        if plan_mode == "free_beta":
+            notifier_basic = AdvancedNotifier(service=notification_service, plan_mode="basic")
+            notifier_basic.notify(results, sector_report=sector_report, html_path=html_path)
     else:
         notifier.notify(results, sector_report=sector_report, html_path=html_path)
 
