@@ -1168,7 +1168,12 @@ class AdvancedNotifier:
         self.service         = service
         self.plan_mode       = plan_mode
         self.slack_webhook   = os.getenv("SLACK_WEBHOOK_URL")
-        self.discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        
+        # Discord Webhook URLs（プラン別）
+        self.discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")  # 無料版
+        self.discord_webhook_basic = os.getenv("DISCORD_BASIC_WEBHOOK_URL")  # ベーシック
+        self.discord_webhook_premium = os.getenv("DISCORD_PREMIUM_WEBHOOK_URL")  # プレミアム
+        
         self.base_url        = os.getenv("REPORT_BASE_URL",
                                          "https://[username].github.io/stock-screener-reports")
 
