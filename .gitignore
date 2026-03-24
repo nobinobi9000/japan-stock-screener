@@ -28,10 +28,6 @@ Thumbs.db
 # テスト結果
 test_results/
 
-# GitHub Pages自動生成ファイル（コンフリクト回避）
-docs/reports/*.html
-docs/index.html
-
 # データファイル（JPX CSVは除外しない）
 *.xlsx
 *.xls
