@@ -1302,7 +1302,7 @@ class AdvancedNotifier:
                 f"   ⭐ スコア: {r['total_score']:.0f}点 {score_breakdown}\n"
                 f"   💵 株価: ¥{r['price']:,.0f}  |  {r['sector']}\n"
                 f"   📊 {signal_str}\n"
-                f"   🎲 {r['risk_tag']}  |  勝率: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
+                f"   🎲 {r['risk_tag']}  |  BT参考: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
             )
 
         if len(results) > 5:
