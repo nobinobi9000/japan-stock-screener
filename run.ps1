@@ -25,12 +25,12 @@ python stock_screener_v3_multiplan.py
 if ($LASTEXITCODE -eq 0) {
     Write-Host "
 📤 GitHub にプッシュ中..." -ForegroundColor Yellow
-    git add docs/
+    git add -f docs/
     $date = Get-Date -Format "yyyy-MM-dd"
     git commit -m "Daily screening report $date"
     git push
-    
+
     Write-Host "
 ✅ 完了！" -ForegroundColor Green
-    Write-Host "📊 GitHub Pages: https://nobinobi9000.github.io/japan-stock-screener/" -ForegroundColor Cyan
+    Write-Host "📊 GitHub Pages: https://nobi-labo.com/japan-stock-screener/" -ForegroundColor Cyan
 }
