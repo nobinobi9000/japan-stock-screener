@@ -858,35 +858,47 @@ class HTMLReportGenerator:
         # BackLog順（win_rate降順）
         backlog_sorted = sorted(results, key=lambda x: x.get('win_rate', 0), reverse=True)
 
-        # セクター集計
+        # セクター集計（空・記号セクターを「ETF他」に統一）
         from collections import Counter
-        sector_counts = Counter(r['sector'] for r in results)
+        _BLANK = {'', '-', '－', '—', '―', 'N/A', 'n/a', 'nan', 'None'}
+        def _normalize_sec(r):
+            raw = str(r.get('sector', '') or '').strip()
+            return 'ETF他' if raw in _BLANK else raw
+        sector_counts = Counter(_normalize_sec(r) for r in results)
         top_sectors = sector_counts.most_common(8)
 
         # シグナル集計
         signal_defs = [
-            ('golden_cross', '●', 'ゴールデンクロス'),
-            ('bb_reversal',  '●', 'BB反発'),
-            ('bb_breakout',  '●', 'BBブレイク'),
-            ('volume_surge', '●', '出来高急増'),
-            ('obv_trend_up', '●', 'OBV上昇'),
+            ('golden_cross', 'ゴールデンクロス'),
+            ('bb_reversal',  'BB反発'),
+            ('bb_breakout',  'BBブレイク'),
+            ('volume_surge', '出来高急増'),
+            ('obv_trend_up', 'OBV上昇'),
         ]
         signal_rows = ""
-        for key, val, label in signal_defs:
-            cnt = sum(1 for r in results if r.get(key) == val)
+        for key, label in signal_defs:
+            cnt = sum(1 for r in results if r.get(key) == '✅')
             pct = cnt / len(results) * 100 if results else 0
             bar = "█" * min(int(pct / 5), 20)
             signal_rows += f"<tr><td>{label}</td><td>{cnt}銘柄</td><td>{pct:.0f}%</td><td style='color:#f59e0b;letter-spacing:-2px'>{bar}</td></tr>"
 
-        # 過去ログ一覧
-        archive_files = sorted(premium_dir.glob("*.html"), reverse=True)
-        archive_html = ""
-        for af in archive_files[:30]:
-            af_date = af.stem
-            if len(af_date) == 8:
-                af_label = f"{af_date[:4]}-{af_date[4:6]}-{af_date[6:]}"
-                is_current = "font-weight:bold;color:#f59e0b;" if af.stem == date_str else ""
-                archive_html += f'<li><a href="{af.name}" style="{is_current}">{af_label}</a></li>'
+        # 過去ログ一覧（Premium / Basic / Analysis 3種）
+        reports_dir  = self.output_dir / "reports"
+        analysis_dir = self.output_dir / "analysis"
+
+        def _build_archive(directory, rel_prefix, current_stem):
+            items = ""
+            if directory.exists():
+                for af in sorted(directory.glob("*.html"), reverse=True)[:30]:
+                    if len(af.stem) == 8:
+                        lbl = f"{af.stem[:4]}-{af.stem[4:6]}-{af.stem[6:]}"
+                        bold = "font-weight:bold;color:#f59e0b;" if af.stem == current_stem else ""
+                        items += f'<li><a href="{rel_prefix}{af.name}" style="{bold}">{lbl}</a></li>'
+            return items or '<li style="color:#adb5bd">まだありません</li>'
+
+        archive_premium  = _build_archive(premium_dir,  "",          date_str)
+        archive_basic    = _build_archive(reports_dir,  "../reports/",  date_str)
+        archive_analysis = _build_archive(analysis_dir, "../analysis/", date_str)
 
         INDICATORS = [
             ('ma_trend','MA200',15),('golden_cross','GC',10),('bottom_cross','底値',10),
@@ -918,11 +930,17 @@ class HTMLReportGenerator:
         .layout {{ display:grid; grid-template-columns:1fr 280px; gap:0; }}
         .main-content {{ padding:0; }}
         .sidebar {{ background:#faf5ff; border-left:2px solid #e9d5ff; padding:20px; }}
-        .sidebar h3 {{ color:#7c3aed; margin-bottom:12px; font-size:1em; }}
+        .sidebar h3 {{ color:#7c3aed; margin-bottom:8px; font-size:.95em; }}
+        .tab-nav {{ display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }}
+        .tab-btn {{ padding:5px 10px; border:1px solid #c4b5fd; border-radius:6px; font-size:.8em; cursor:pointer; background:white; color:#7c3aed; }}
+        .tab-btn.active {{ background:#7c3aed; color:white; border-color:#7c3aed; }}
+        .tab-panel {{ display:none; }}
+        .tab-panel.active {{ display:block; }}
         .sidebar ul {{ list-style:none; }}
-        .sidebar ul li {{ margin:6px 0; }}
-        .sidebar ul li a {{ color:#7c3aed; text-decoration:none; font-size:.9em; }}
+        .sidebar ul li {{ margin:5px 0; }}
+        .sidebar ul li a {{ color:#7c3aed; text-decoration:none; font-size:.88em; }}
         .sidebar ul li a:hover {{ text-decoration:underline; }}
+        .coming-soon {{ color:#adb5bd; font-size:.85em; padding:8px; border:1px dashed #e9d5ff; border-radius:6px; text-align:center; margin-top:8px; }}
         .section-title {{ background:#7c3aed; color:white; padding:10px 20px; font-weight:bold; font-size:.95em; }}
         .summary-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:0; }}
         .summary-box {{ padding:20px; border-right:1px solid #e9ecef; border-bottom:1px solid #e9ecef; }}
@@ -1034,10 +1052,25 @@ class HTMLReportGenerator:
             </div>
         </div>
         <div class="sidebar">
-            <h3>📁 過去レポート</h3>
-            <ul>
-                {archive_html if archive_html else '<li style="color:#adb5bd">まだアーカイブがありません</li>'}
-            </ul>
+            <h3>📁 レポートアーカイブ</h3>
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('premium')">👑 Premium</button>
+                <button class="tab-btn" onclick="switchTab('basic')">📊 Basic</button>
+                <button class="tab-btn" onclick="switchTab('analysis')">🔬 Analysis</button>
+                <button class="tab-btn" onclick="switchTab('chart')" style="opacity:.5;cursor:not-allowed">📈 Chart</button>
+            </div>
+            <div id="tab-premium" class="tab-panel active">
+                <ul>{archive_premium}</ul>
+            </div>
+            <div id="tab-basic" class="tab-panel">
+                <ul>{archive_basic}</ul>
+            </div>
+            <div id="tab-analysis" class="tab-panel">
+                <ul>{archive_analysis}</ul>
+            </div>
+            <div id="tab-chart" class="tab-panel">
+                <div class="coming-soon">📈 チャート分析<br>準備中</div>
+            </div>
         </div>
     </div>
 
@@ -1073,6 +1106,12 @@ class HTMLReportGenerator:
             const text = rows[i].cells[1].textContent + rows[i].cells[2].textContent;
             rows[i].style.display = text.toUpperCase().includes(input) ? "" : "none";
         }}
+    }}
+    function switchTab(name) {{
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        event.target.classList.add('active');
     }}
 </script>
 </body>
@@ -1685,13 +1724,13 @@ class AdvancedNotifier:
         for i, r in enumerate(results[:5], 1):
             # シグナル要約
             signals = []
-            if r['bottom_cross'] == '●': signals.append('底値クロス')
-            if r['golden_cross'] == '●': signals.append('GC')
-            if r['bb_reversal'] == '●': signals.append('BB反発')
-            if r['bb_breakout'] == '●': signals.append('BBブレイク')
-            if r['volume_surge'] == '●': signals.append('出来高急増')
-            if r['obv_trend_up'] == '●': signals.append('OBV↑')
-            if r['ichimoku_bullish'] != '－': signals.append(r['ichimoku_label'])
+            if r['bottom_cross'] == '✅': signals.append('底値クロス')
+            if r['golden_cross'] == '✅': signals.append('GC')
+            if r['bb_reversal'] == '✅': signals.append('BB反発')
+            if r['bb_breakout'] == '✅': signals.append('BBブレイク')
+            if r['volume_surge'] == '✅': signals.append('出来高急増')
+            if r['obv_trend_up'] == '✅': signals.append('OBV↑')
+            if r['ichimoku_bullish'] != '—': signals.append(r['ichimoku_label'])
 
             signal_str = " | ".join(signals) if signals else "－"
 
@@ -1771,8 +1810,10 @@ class AdvancedNotifier:
         # セクター別集計
         sector_counts = {}
         sector_avg_scores = {}
+        _BLANK = {'', '-', '－', '—', '―', 'N/A', 'n/a', 'nan', 'None'}
         for r in filtered:
-            sec = r.get('sector', '') or 'その他'
+            raw = str(r.get('sector', '') or '').strip()
+            sec = 'ETF他' if raw in _BLANK else raw
             sector_counts[sec] = sector_counts.get(sec, 0) + 1
             sector_avg_scores.setdefault(sec, []).append(r['total_score'])
 
@@ -1788,17 +1829,17 @@ class AdvancedNotifier:
 
         # シグナル別集計
         signal_labels = [
-            ('golden_cross', '●', 'ゴールデンクロス'),
-            ('bb_reversal', '●', 'BB反発'),
-            ('bb_breakout', '●', 'BBブレイク'),
-            ('volume_surge', '●', '出来高急増'),
-            ('obv_trend_up', '●', 'OBV上昇'),
+            ('golden_cross', 'ゴールデンクロス'),
+            ('bb_reversal',  'BB反発'),
+            ('bb_breakout',  'BBブレイク'),
+            ('volume_surge', '出来高急増'),
+            ('obv_trend_up', 'OBV上昇'),
         ]
         msg += "【シグナル別 該当数】\n"
-        for key, val, label in signal_labels:
-            count = sum(1 for r in filtered if r.get(key) == val)
+        for key, label in signal_labels:
+            count = sum(1 for r in filtered if r.get(key) == '✅')
             pct = count / len(filtered) * 100 if filtered else 0
-            msg += f"  {label:<12} {count}銘柄 ({pct:.0f}%)\n"
+            msg += f"  {label:<12}  {count}銘柄 ({pct:.0f}%)\n"
 
         msg += f"\n{'─'*40}\n"
 
