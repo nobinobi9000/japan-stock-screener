@@ -37,7 +37,7 @@ jobs:
           DISCORD_PREMIUM_WEBHOOK_URL: ${{ secrets.DISCORD_PREMIUM_WEBHOOK_URL }}
           DISCORD_ANALYSIS_WEBHOOK_URL: ${{ secrets.DISCORD_ANALYSIS_WEBHOOK_URL }}
           NOTIFICATION_SERVICE: discord
-          PLAN_MODE: basic
+          PLAN_MODE: free_beta
           USE_SAMPLE: false
           ENABLE_EMAIL: false
           OUTPUT_DIR: docs
