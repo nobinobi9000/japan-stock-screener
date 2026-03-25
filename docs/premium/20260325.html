@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレミアムレポート - 2026-03-25</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#0d0d1a 100%); padding:10px; color:#333; }
+        .container { max-width:1700px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+        .header { background:linear-gradient(135deg,#7c3aed 0%,#db2777 100%); color:white; padding:30px 20px; text-align:center; }
+        .header h1 { font-size:1.9em; margin-bottom:8px; }
+        .badge { display:inline-block; background:rgba(255,255,255,.25); padding:4px 14px; border-radius:20px; font-size:.85em; margin-top:8px; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:15px; padding:20px; background:#faf5ff; border-bottom:2px solid #e9d5ff; }
+        .stat-box { text-align:center; padding:12px; }
+        .stat-box .number { font-size:1.8em; font-weight:bold; color:#7c3aed; }
+        .stat-box .label { color:#6c757d; margin-top:6px; font-size:.85em; }
+        .layout { display:grid; grid-template-columns:1fr 280px; gap:0; }
+        .main-content { padding:0; }
+        .sidebar { background:#faf5ff; border-left:2px solid #e9d5ff; padding:20px; }
+        .sidebar h3 { color:#7c3aed; margin-bottom:12px; font-size:1em; }
+        .sidebar ul { list-style:none; }
+        .sidebar ul li { margin:6px 0; }
+        .sidebar ul li a { color:#7c3aed; text-decoration:none; font-size:.9em; }
+        .sidebar ul li a:hover { text-decoration:underline; }
+        .section-title { background:#7c3aed; color:white; padding:10px 20px; font-weight:bold; font-size:.95em; }
+        .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+        .summary-box { padding:20px; border-right:1px solid #e9ecef; border-bottom:1px solid #e9ecef; }
+        .summary-box h4 { color:#7c3aed; margin-bottom:12px; font-size:.9em; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+        .summary-box table { width:100%; font-size:.85em; }
+        .summary-box td { padding:5px 8px; border-bottom:1px solid #f0e6ff; }
+        .controls { padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; }
+        .controls input { padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.9em; }
+        .table-container { overflow-x:auto; }
+        table.main { width:100%; border-collapse:collapse; min-width:1300px; }
+        table.main thead { background:#7c3aed; color:white; position:sticky; top:0; z-index:10; }
+        table.main th { padding:11px 7px; text-align:center; cursor:pointer; font-size:.82em; font-weight:600; user-select:none; }
+        table.main th:hover { background:#6d28d9; }
+        table.main th:after { content:' ↕'; opacity:.5; font-size:.7em; }
+        table.main td { padding:9px 7px; border-bottom:1px solid #f0e6ff; font-size:.85em; text-align:center; }
+        table.main td:nth-child(3) { text-align:left; }
+        table.main tr:hover { background:#faf5ff; }
+        .score-high { color:#28a745; font-weight:bold; }
+        .score-mid  { color:#d97706; font-weight:bold; }
+        .score-low  { color:#dc3545; font-weight:bold; }
+        .backlog-high { background:#fef3c7; color:#92400e; border-radius:4px; padding:2px 6px; font-weight:bold; }
+        .backlog-mid  { background:#ede9fe; color:#5b21b6; border-radius:4px; padding:2px 6px; }
+        .backlog-low  { color:#adb5bd; }
+        .hit  { background:#d4edda; color:#155724; border-radius:3px; padding:1px 5px; font-weight:600; font-size:.82em; }
+        .miss { color:#ced4da; font-size:.82em; }
+        .footer { padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }
+        .footer a { color:#7c3aed; text-decoration:none; margin:0 12px; font-weight:500; }
+        @media(max-width:900px) { .layout { grid-template-columns:1fr; } .sidebar { border-left:none; border-top:2px solid #e9d5ff; } .summary-grid { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👑 プレミアムレポート</h1>
+        <p>📅 2026-03-25  |  BackLog分析付き</p>
+        <span class="badge">Premium プラン限定</span>
+    </div>
+    <div class="stats">
+        <div class="stat-box"><div class="number">2</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">40</div><div class="label">最高スコア</div></div>
+        <div class="stat-box"><div class="number">100%</div><div class="label">BackLog最高値</div></div>
+        <div class="stat-box"><div class="number">75%</div><div class="label">BackLog平均</div></div>
+        <div class="stat-box"><div class="number">1</div><div class="label">セクター数</div></div>
+    </div>
+
+    <div class="layout">
+        <div class="main-content">
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <h4>📊 セクター別集計</h4>
+                    <table>
+                        <tr><th style="text-align:left">セクター</th><th>銘柄数</th></tr>
+                        <tr><td>-</td><td style="text-align:center"><strong>2</strong></td></tr>
+                    </table>
+                </div>
+                <div class="summary-box">
+                    <h4>🔔 シグナル分布</h4>
+                    <table>
+                        <tr><th style="text-align:left">シグナル</th><th>銘柄数</th><th>%</th><th>分布</th></tr>
+                        <tr><td>ゴールデンクロス</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>BB反発</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>BBブレイク</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>出来高急増</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>OBV上昇</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
+            <div class="controls">
+                <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+            </div>
+            <div class="table-container">
+            <table class="main" id="stockTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">順位</th>
+                        <th onclick="sortTable(1)">コード</th>
+                        <th onclick="sortTable(2)">銘柄名</th>
+                        <th onclick="sortTable(3)">セクター</th>
+                        <th onclick="sortTable(4)">スコア</th>
+                        <th onclick="sortTable(5)">BackLog</th>
+                        <th onclick="sortTable(6)">MA200<br><small>15pt</small></th><th onclick="sortTable(7)">GC<br><small>10pt</small></th><th onclick="sortTable(8)">底値<br><small>10pt</small></th><th onclick="sortTable(9)">BB<br><small>15pt</small></th><th onclick="sortTable(10)">OBV<br><small>10pt</small></th><th onclick="sortTable(11)">一目<br><small>20pt</small></th><th onclick="sortTable(12)">出来高<br><small>10pt</small></th><th onclick="sortTable(13)">信用倍率<br><small>10pt</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td><strong>1319</strong></td>
+                        <td style="text-align:left">ＮＥＸＴ　ＦＵＮＤＳ　日経３００株価指数連動型上場投信</td>
+                        <td><small>-</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-high">100.0%（2回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><strong>1309</strong></td>
+                        <td style="text-align:left">ＮＥＸＴ　ＦＵＮＤＳ　ＣｈｉｎａＡＭＣ・中国株式・上証５０連動型上場投信</td>
+                        <td><small>-</small></td>
+                        <td class="score-low">40</td>
+                        <td><span class="backlog-mid">50.0%（12回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅15pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h3>📁 過去レポート</h3>
+            <ul>
+                <li style="color:#adb5bd">まだアーカイブがありません</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>⚠️ BackLog値はバックテストの参考値です。将来の利益を保証するものではありません。</p>
+        <p style="margin-top:12px;">
+            <a href="../index.html">🏠 トップ</a> |
+            <a href="../reports/20260325.html">📊 Basicレポート</a> |
+            <a href="../analysis/20260325.html">🔬 Analysisレポート</a> |
+            <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+        </p>
+    </div>
+</div>
+<script>
+    function sortTable(col) {
+        const table = document.getElementById("stockTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+        rows.sort((a, b) => {
+            let aVal = a.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            let bVal = b.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            aVal = parseFloat(aVal) || aVal; bVal = parseFloat(bVal) || bVal;
+            return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+        table.dataset.sortCol = col;
+        table.dataset.sortDir = isAsc ? "desc" : "asc";
+    }
+    function filterTable() {
+        const input = document.getElementById("search").value.toUpperCase();
+        const rows = document.getElementById("stockTable").getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+            const text = rows[i].cells[1].textContent + rows[i].cells[2].textContent;
+            rows[i].style.display = text.toUpperCase().includes(input) ? "" : "none";
+        }
+    }
+</script>
+</body>
+</html>
