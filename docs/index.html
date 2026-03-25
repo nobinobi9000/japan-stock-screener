@@ -407,19 +407,51 @@
         .discord-section {
             background: #5865f2;
             color: white;
-            padding: 56px 20px;
-            text-align: center;
+            padding: 64px 20px;
         }
-        .discord-section h2 {
+        .discord-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 48px;
+            align-items: center;
+        }
+        .discord-text h2 {
             font-size: clamp(1.3em, 3vw, 1.9em);
             font-weight: 800;
             margin-bottom: 12px;
         }
-        .discord-section p {
+        .discord-text p {
             opacity: 0.85;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
             font-size: 0.95em;
+            line-height: 1.7;
         }
+        .discord-what {
+            background: rgba(255,255,255,0.12);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 0.88em;
+        }
+        .discord-what h3 {
+            font-size: 0.95em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            opacity: 0.95;
+        }
+        .discord-what ul {
+            list-style: none;
+            display: grid;
+            gap: 6px;
+        }
+        .discord-what ul li::before {
+            content: '✓ ';
+            font-weight: 700;
+            color: #a5f3d0;
+        }
+        .discord-what ul li { opacity: 0.9; }
         .btn-discord {
             display: inline-block;
             background: white;
@@ -432,6 +464,32 @@
             transition: opacity 0.15s, transform 0.1s;
         }
         .btn-discord:hover { opacity: 0.9; transform: translateY(-1px); }
+        .discord-qr {
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .discord-qr img {
+            width: 160px;
+            height: 160px;
+            border-radius: 12px;
+            background: white;
+            padding: 8px;
+            display: block;
+            margin: 0 auto 10px;
+        }
+        .discord-qr p {
+            font-size: 0.78em;
+            opacity: 0.7;
+            margin: 0;
+        }
+        @media (max-width: 640px) {
+            .discord-inner {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .discord-qr { order: -1; }
+            .discord-qr img { width: 120px; height: 120px; }
+        }
 
         /* ─── フッター ─── */
         footer {
@@ -569,8 +627,7 @@
                 <li class="disabled">全銘柄スコア一覧</li>
                 <li class="disabled">セクター別分析</li>
             </ul>
-            <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
-            <a href="#discord" class="btn btn-primary">Discordに参加する（無料）</a>
+            <a href="https://discord.gg/YV9UrV5jTH" target="_blank" rel="noopener" class="btn btn-primary">Discordに参加する（無料）</a>
         </div>
 
         <!-- BASIC -->
@@ -588,8 +645,7 @@
                 <li>セクター別集計レポート<span class="badge-new">NEW</span></li>
                 <li>Discord #full-report + #analysis</li>
             </ul>
-            <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
-            <a href="#discord" class="btn btn-featured">無料で今すぐ始める →</a>
+            <a href="https://discord.gg/YV9UrV5jTH" target="_blank" rel="noopener" class="btn btn-featured">無料で今すぐ始める →</a>
         </div>
 
         <!-- PREMIUM -->
@@ -721,10 +777,28 @@
 
 <!-- Discord CTA -->
 <div class="discord-section" id="discord">
-    <h2>🎮 まずは Discord で無料スタート</h2>
-    <p>毎日16時に厳選3銘柄が #daily-picks に届きます。<br>登録・解約はいつでも無料。</p>
-    <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
-    <a href="#" class="btn-discord">Discord サーバーに参加する（無料）</a>
+    <div class="discord-inner">
+        <div class="discord-text">
+            <h2>🎮 まずは Discord で無料スタート</h2>
+            <p>毎日16時に厳選3銘柄が <strong>#daily-picks</strong> に届きます。<br>登録・解約はいつでも無料。</p>
+
+            <div class="discord-what">
+                <h3>💬 Discord（ディスコード）とは？</h3>
+                <ul>
+                    <li>無料で使えるコミュニティアプリ（スマホ・PC対応）</li>
+                    <li>登録はメールアドレスのみ、1分で完了</li>
+                    <li>招待リンクを開くだけでサーバーに参加できます</li>
+                    <li>通知はチャンネルごとにON/OFFを設定可能</li>
+                </ul>
+            </div>
+
+            <a href="https://discord.gg/YV9UrV5jTH" target="_blank" rel="noopener" class="btn-discord">Discord サーバーに参加する（無料）</a>
+        </div>
+        <div class="discord-qr">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=https://discord.gg/YV9UrV5jTH" alt="Discord招待QRコード">
+            <p>カメラで読み取って<br>すぐ参加できます</p>
+        </div>
+    </div>
 </div>
 
 <!-- フッター -->
