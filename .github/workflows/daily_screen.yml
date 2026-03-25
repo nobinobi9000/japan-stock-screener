@@ -43,6 +43,7 @@ jobs:
           OUTPUT_DIR: docs
           MIN_SCORE: 30
           ENABLE_BACKTEST: true
+          MAX_STOCKS: 50
           REPORT_BASE_URL: https://nobi-labo.com/japan-stock-screener
         run: |
           python stock_screener_v3_multiplan.py
