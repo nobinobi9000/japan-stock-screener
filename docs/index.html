@@ -3,220 +3,790 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本株スクリーニング - Multi-Plan Service</title>
+    <title>日本株スクリーナー | 毎日シグナル配信 - nobi-labo</title>
+    <meta name="description" content="テクニカル分析×AIスコアリングで、毎日の日本株シグナル銘柄をDiscordで配信。無料プランから始められます。">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
-            color: #333;
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary: #7c3aed;
+            --accent: #10b981;
+            --warning: #f59e0b;
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --radius: 12px;
         }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+
+        body {
+            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ─── ヒーロー ─── */
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            color: white;
+            padding: 80px 20px 60px;
+            text-align: center;
+            position: relative;
             overflow: hidden;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(99,102,241,0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(139,92,246,0.2) 0%, transparent 50%);
+            pointer-events: none;
         }
-        .header h1 { font-size: 1.5em; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 1em; }
-        
-        .stats {
+        .hero-badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.2);
+            border: 1px solid rgba(16,185,129,0.5);
+            color: #34d399;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 16px;
+            letter-spacing: 0.05em;
+        }
+        .hero h1 {
+            font-size: clamp(1.8em, 4vw, 3em);
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        .hero h1 span { color: #a5b4fc; }
+        .hero p {
+            font-size: clamp(0.95em, 2vw, 1.2em);
+            opacity: 0.85;
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .hero-stat { text-align: center; }
+        .hero-stat .num {
+            display: block;
+            font-size: 2em;
+            font-weight: 800;
+            color: #a5b4fc;
+        }
+        .hero-stat .lbl {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        /* ─── セクション共通 ─── */
+        .section {
+            padding: 64px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .section-title h2 {
+            font-size: clamp(1.4em, 3vw, 2em);
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .section-title p {
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+
+        /* ─── 仕組み ─── */
+        .how-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
         }
-        .stat-box {
+        .how-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
             text-align: center;
-            padding: 10px;
         }
-        .stat-box .number {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
+        .how-icon {
+            font-size: 2.2em;
+            margin-bottom: 12px;
         }
-        .stat-box .label {
-            color: #6c757d;
-            margin-top: 5px;
-            font-size: 0.85em;
-        }
-        
-        .controls {
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .controls input {
-            padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            width: 100%;
+        .how-card h3 {
             font-size: 1em;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
-        
-        /* テーブル - モバイル最適化 */
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+        .how-card p {
+            color: var(--text-muted);
+            font-size: 0.88em;
         }
-        table {
+        .how-step {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 24px;
+            margin-bottom: 12px;
+        }
+
+        /* ─── プランカード ─── */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            align-items: start;
+        }
+        .plan-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            position: relative;
+            transition: box-shadow 0.2s;
+        }
+        .plan-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .plan-card.featured {
+            border-color: var(--primary);
+            box-shadow: 0 4px 24px rgba(79,70,229,0.15);
+        }
+        .plan-ribbon {
+            position: absolute;
+            top: -1px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            font-size: 0.72em;
+            font-weight: 700;
+            padding: 4px 12px 6px;
+            border-radius: 0 0 8px 8px;
+            letter-spacing: 0.05em;
+        }
+        .plan-ribbon.coming { background: var(--text-muted); }
+        .plan-name {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+        .plan-price {
+            font-size: 2.2em;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        .plan-price small {
+            font-size: 0.45em;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .plan-price-note {
+            font-size: 0.8em;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 20px;
+            min-height: 1.2em;
+        }
+        .plan-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 20px 0;
+        }
+        .plan-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+        .plan-features li {
+            font-size: 0.9em;
+            padding: 7px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .plan-features li::before {
+            content: '✓';
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .plan-features li.disabled {
+            color: var(--text-muted);
+        }
+        .plan-features li.disabled::before { content: '—'; color: var(--border); }
+        .plan-features .badge-new {
+            display: inline-block;
+            background: rgba(79,70,229,0.1);
+            color: var(--primary);
+            font-size: 0.72em;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
+        /* ─── ボタン ─── */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-featured {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-muted);
+            border: 2px solid var(--border);
+        }
+        .btn-disabled {
+            background: var(--bg);
+            color: var(--text-muted);
+            border: 2px solid var(--border);
+            cursor: not-allowed;
+        }
+        .btn-disabled:hover { opacity: 1; transform: none; }
+
+        /* ─── 機能比較 ─── */
+        .compare-wrap { overflow-x: auto; }
+        .compare-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 560px;
+            font-size: 0.9em;
         }
-        thead {
+        .compare-table th {
+            padding: 14px 16px;
+            text-align: center;
+            font-weight: 700;
+            background: #f3f4f6;
+            border-bottom: 2px solid var(--border);
+        }
+        .compare-table th:first-child { text-align: left; }
+        .compare-table td {
+            padding: 13px 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .compare-table td:first-child { text-align: left; font-size: 0.88em; }
+        .compare-table tr:hover td { background: #fafafa; }
+        .compare-table .chk { color: var(--accent); font-size: 1.1em; font-weight: 700; }
+        .compare-table .cross { color: #d1d5db; }
+        .compare-table .soon { color: var(--warning); font-size: 0.8em; font-weight: 600; }
+        .compare-table thead th:nth-child(2) { background: rgba(79,70,229,0.06); }
+        .compare-table td:nth-child(2) { background: rgba(79,70,229,0.03); }
+
+        /* ─── レポートプレビュー ─── */
+        .preview-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .preview-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 64px 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+        .preview-text h2 {
+            font-size: clamp(1.3em, 2.5vw, 1.8em);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+        .preview-text p {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 0.95em;
+        }
+        .preview-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+        .preview-features li {
+            font-size: 0.9em;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+        }
+        .preview-features li span { color: var(--primary); font-weight: 700; }
+        .preview-mockup {
+            background: white;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .mockup-header {
             background: #495057;
             color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            padding: 10px 14px;
+            font-size: 0.78em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        th {
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.9em;
+        .mockup-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
         }
-        th:hover { background: #343a40; }
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #e9ecef;
+        .mockup-body { padding: 14px; }
+        .mockup-row {
+            display: grid;
+            grid-template-columns: 30px 60px 1fr 50px 60px;
+            gap: 8px;
+            padding: 8px 6px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.78em;
+            align-items: center;
+        }
+        .mockup-row.header-row {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #495057;
+            border-radius: 4px;
+        }
+        .score-hi { color: #28a745; font-weight: 700; }
+        .score-md { color: #ffc107; font-weight: 700; }
+        .tag-mock {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-size: 0.85em;
         }
-        tr:hover { background: #f8f9fa; }
-        
-        .score-high { color: #28a745; font-weight: bold; }
-        .score-mid { color: #ffc107; font-weight: bold; }
-        .score-low { color: #dc3545; font-weight: bold; }
-        .signal-yes { color: #28a745; }
-        .signal-no { color: #6c757d; }
-        
-        .tag {
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .tag-safe { background: #d4edda; color: #155724; }
-        .tag-normal { background: #fff3cd; color: #856404; }
-        .tag-risky { background: #f8d7da; color: #721c24; }
-        
-        .footer {
-            padding: 20px;
+        .tag-s { background: #d4edda; color: #155724; }
+        .tag-n { background: #fff3cd; color: #856404; }
+
+        /* ─── Discord CTA ─── */
+        .discord-section {
+            background: #5865f2;
+            color: white;
+            padding: 56px 20px;
             text-align: center;
-            background: #f8f9fa;
-            color: #6c757d;
-            font-size: 0.9em;
         }
-        .footer a {
-            color: #667eea;
+        .discord-section h2 {
+            font-size: clamp(1.3em, 3vw, 1.9em);
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+        .discord-section p {
+            opacity: 0.85;
+            margin-bottom: 28px;
+            font-size: 0.95em;
+        }
+        .btn-discord {
+            display: inline-block;
+            background: white;
+            color: #5865f2;
+            font-weight: 700;
+            padding: 14px 36px;
+            border-radius: 8px;
             text-decoration: none;
-            margin: 0 10px;
+            font-size: 1em;
+            transition: opacity 0.15s, transform 0.1s;
         }
-        
-        /* スマホ対応 */
+        .btn-discord:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ─── フッター ─── */
+        footer {
+            background: #1f2937;
+            color: #9ca3af;
+            padding: 40px 20px 28px;
+        }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .footer-brand { color: white; font-weight: 700; font-size: 1em; }
+        .footer-brand small { display: block; color: #6b7280; font-weight: 400; font-size: 0.8em; margin-top: 4px; }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer-links a {
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 0.85em;
+            transition: color 0.15s;
+        }
+        .footer-links a:hover { color: white; }
+        .footer-bottom {
+            border-top: 1px solid #374151;
+            padding-top: 20px;
+            font-size: 0.8em;
+            color: #4b5563;
+        }
+        .disclaimer {
+            font-size: 0.78em;
+            color: #4b5563;
+            margin-top: 12px;
+            line-height: 1.7;
+        }
+
+        /* ─── レスポンシブ ─── */
         @media (max-width: 768px) {
-            body { padding: 5px; }
-            .container { border-radius: 8px; }
-            .header { padding: 15px; }
-            .header h1 { font-size: 1.3em; }
-            .header p { font-size: 0.9em; }
-            
-            .stats {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
-                padding: 10px;
+            .hero { padding: 56px 16px 40px; }
+            .hero-stats { gap: 24px; }
+            .section { padding: 48px 16px; }
+            .preview-inner {
+                grid-template-columns: 1fr;
+                gap: 28px;
             }
-            .stat-box { padding: 8px; }
-            .stat-box .number { font-size: 1.3em; }
-            .stat-box .label { font-size: 0.75em; }
-            
-            .controls { padding: 10px; }
-            .controls input { font-size: 16px; /* iOS zoom防止 */ }
-            
-            th { padding: 10px 6px; font-size: 0.8em; }
-            td { padding: 8px 6px; font-size: 0.8em; }
-            
-            .footer { padding: 15px 10px; font-size: 0.85em; }
-            .footer a { display: block; margin: 8px 0; }
-        }
-        
-        /* 極小スマホ対応 */
-        @media (max-width: 480px) {
-            .header h1 { font-size: 1.1em; }
-            .stats { grid-template-columns: repeat(3, 1fr); }
-            .stat-box .number { font-size: 1.2em; }
-            th, td { font-size: 0.75em; padding: 8px 4px; }
-            table { min-width: 500px; }
+            .plans-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="hero">
-            <h1>📊 日本株スクリーニング</h1>
-            <p>yfinanceベースのテクニカル分析で、毎日シグナル銘柄をお届け</p>
+
+<!-- ヒーロー -->
+<div class="hero">
+    <div class="hero-badge">📡 毎営業日 16:00 JST 自動配信</div>
+    <h1>日本株シグナルを<br><span>毎日 Discordへ</span></h1>
+    <p>テクニカル指標×スコアリングエンジンで3,700銘柄を自動スキャン。<br>上昇シグナルの出た銘柄をDiscordでお届けします。</p>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <span class="num">3,700+</span>
+            <span class="lbl">スキャン銘柄数</span>
         </div>
-
-        <div class="plans">
-            <div class="plan">
-                <h2>🆓 無償版</h2>
-                <div class="price">FREE</div>
-                <ul>
-                    <li>厳選3銘柄を毎日通知</li>
-                    <li>中位スコア×多様性戦略</li>
-                    <li>Slack/Discord対応</li>
-                </ul>
-                <a href="#" class="btn">無料登録</a>
-            </div>
-
-            <div class="plan">
-                <h2>💼 ベーシック</h2>
-                <div class="price">¥980<small>/月</small></div>
-                <ul>
-                    <li>全銘柄HTMLレポート</li>
-                    <li>当日分のみ閲覧可能</li>
-                    <li>ソート・検索機能</li>
-                    <li>全指標スコア表示</li>
-                </ul>
-                <a href="reports/20260311.html" class="btn">最新レポートを見る</a>
-            </div>
-
-            <div class="plan">
-                <h2>👑 プレミアム</h2>
-                <div class="price">¥1,980<small>/月</small></div>
-                <ul>
-                    <li>30日分アーカイブ</li>
-                    <li>各銘柄チャート表示</li>
-                    <li>シグナル発生履歴</li>
-                    <li>勝率統計グラフ</li>
-                </ul>
-                <a href="#" class="btn">プレミアム登録</a>
-            </div>
+        <div class="hero-stat">
+            <span class="num">8</span>
+            <span class="lbl">テクニカル指標</span>
         </div>
-
-        <div class="latest">
-            <h3>📄 最新スクリーニング結果</h3>
-            <p style="color: #6c757d; margin-bottom: 20px;">
-                本日 1850銘柄が条件に合致しました
-            </p>
-            <a href="reports/20260311.html" class="btn">レポートを見る</a>
+        <div class="hero-stat">
+            <span class="num">毎日</span>
+            <span class="lbl">自動更新</span>
+        </div>
+        <div class="hero-stat">
+            <span class="num">0円</span>
+            <span class="lbl">から始められる</span>
         </div>
     </div>
+</div>
+
+<!-- 仕組み -->
+<div class="section">
+    <div class="section-title">
+        <h2>📊 どうやって動いているの？</h2>
+        <p>毎日の自動スクリーニングから通知まで、すべて自動</p>
+    </div>
+    <div class="how-grid">
+        <div class="how-card">
+            <div class="how-step">1</div>
+            <div class="how-icon">🔍</div>
+            <h3>全銘柄スキャン</h3>
+            <p>東証上場の3,700銘柄を毎営業日自動取得。MA・ボリンジャーバンド・一目均衡表など8指標を計算します。</p>
+        </div>
+        <div class="how-card">
+            <div class="how-step">2</div>
+            <div class="how-icon">🧮</div>
+            <h3>スコアリング</h3>
+            <p>各シグナルを重み付けして0〜100点でスコア化。MA200上昇・一目三役好転など上位シグナルに高得点。</p>
+        </div>
+        <div class="how-card">
+            <div class="how-step">3</div>
+            <div class="how-icon">📣</div>
+            <h3>Discord通知</h3>
+            <p>プランに応じて #daily-picks / #full-report / #analysis に結果を自動投稿。</p>
+        </div>
+    </div>
+</div>
+
+<!-- プランカード -->
+<div style="background: #f3f4f6; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+<div class="section">
+    <div class="section-title">
+        <h2>💳 プランを選ぶ</h2>
+        <p>まずは無料から。いつでもアップグレードできます</p>
+    </div>
+    <div class="plans-grid">
+
+        <!-- FREE -->
+        <div class="plan-card">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">¥0</div>
+            <div class="plan-price-note">いつでも無料</div>
+            <hr class="plan-divider">
+            <ul class="plan-features">
+                <li>厳選3銘柄を毎日通知</li>
+                <li>中位スコア×多様性戦略で選定</li>
+                <li>Discord #daily-picks チャンネル</li>
+                <li class="disabled">HTMLレポート閲覧</li>
+                <li class="disabled">全銘柄スコア一覧</li>
+                <li class="disabled">セクター別分析</li>
+            </ul>
+            <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
+            <a href="#discord" class="btn btn-primary">Discordに参加する（無料）</a>
+        </div>
+
+        <!-- BASIC -->
+        <div class="plan-card featured">
+            <div class="plan-ribbon">🎁 期間限定 無料公開中</div>
+            <div class="plan-name">Basic</div>
+            <div class="plan-price">¥980<small>/月</small></div>
+            <div class="plan-price-note">※ 現在は無料で全機能をお試しいただけます</div>
+            <hr class="plan-divider">
+            <ul class="plan-features">
+                <li>厳選3銘柄を毎日通知</li>
+                <li>当日分の全銘柄HTMLレポート<span class="badge-new">NEW</span></li>
+                <li>ソート・検索・フィルター機能<span class="badge-new">NEW</span></li>
+                <li>全指標スコア内訳表示<span class="badge-new">NEW</span></li>
+                <li>セクター別集計レポート<span class="badge-new">NEW</span></li>
+                <li>Discord #full-report + #analysis</li>
+            </ul>
+            <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
+            <a href="#discord" class="btn btn-featured">無料で今すぐ始める →</a>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="plan-card">
+            <div class="plan-ribbon coming">準備中</div>
+            <div class="plan-name">Premium</div>
+            <div class="plan-price">¥1,980<small>/月</small></div>
+            <div class="plan-price-note">&nbsp;</div>
+            <hr class="plan-divider">
+            <ul class="plan-features">
+                <li>Basicプランの全機能</li>
+                <li class="disabled">30日分レポートアーカイブ</li>
+                <li class="disabled">シグナル発生履歴</li>
+                <li class="disabled">BT参考統計グラフ</li>
+                <li class="disabled">優先サポート</li>
+            </ul>
+            <span class="btn btn-disabled">近日公開（Stripe決済）</span>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<!-- 機能比較表 -->
+<div class="section">
+    <div class="section-title">
+        <h2>🔍 プラン機能比較</h2>
+    </div>
+    <div class="compare-wrap">
+        <table class="compare-table">
+            <thead>
+                <tr>
+                    <th>機能</th>
+                    <th>Free</th>
+                    <th>Basic</th>
+                    <th>Premium</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>毎日シグナル通知（厳選3銘柄）</td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                </tr>
+                <tr>
+                    <td>当日分 全銘柄HTMLレポート</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                </tr>
+                <tr>
+                    <td>ソート・検索・セクターフィルター</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                </tr>
+                <tr>
+                    <td>全指標スコア内訳（8指標）</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                </tr>
+                <tr>
+                    <td>セクター別集計・シグナル分布</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="chk">✓</span></td>
+                    <td><span class="chk">✓</span></td>
+                </tr>
+                <tr>
+                    <td>30日分レポートアーカイブ</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="soon">準備中</span></td>
+                </tr>
+                <tr>
+                    <td>BT参考統計グラフ</td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="cross">—</span></td>
+                    <td><span class="soon">準備中</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- レポートプレビュー -->
+<div class="preview-section">
+    <div class="preview-inner">
+        <div class="preview-text">
+            <h2>📄 最新レポートを今すぐ確認</h2>
+            <p>Basicプラン向けの本日分HTMLレポートは無料でご覧いただけます。全銘柄をソート・検索して、気になる銘柄をすぐに見つけられます。</p>
+            <ul class="preview-features">
+                <li><span>✓</span> 当日スキャン全銘柄を一覧表示</li>
+                <li><span>✓</span> スコア・指標でソート可能</li>
+                <li><span>✓</span> 銘柄名・コードで即時検索</li>
+                <li><span>✓</span> セクター・リスク区分でフィルター</li>
+            </ul>
+            <a href="#" id="latestReportBtn" class="btn btn-primary" style="max-width:260px;">最新レポートを見る →</a>
+        </div>
+        <div class="preview-mockup">
+            <div class="mockup-header">
+                <div class="mockup-dot" style="background:#ef4444"></div>
+                <div class="mockup-dot" style="background:#f59e0b"></div>
+                <div class="mockup-dot" style="background:#10b981"></div>
+                <span style="margin-left:8px; opacity:0.7;">日本株スクリーニング結果</span>
+            </div>
+            <div class="mockup-body">
+                <div class="mockup-row header-row">
+                    <span>#</span><span>コード</span><span>銘柄名</span><span>スコア</span><span>リスク</span>
+                </div>
+                <div class="mockup-row">
+                    <span>1</span><span>6758</span><span>ソニーG</span><span class="score-hi">85</span><span><span class="tag-mock tag-s">🟢安定</span></span>
+                </div>
+                <div class="mockup-row">
+                    <span>2</span><span>7203</span><span>トヨタ</span><span class="score-hi">78</span><span><span class="tag-mock tag-s">🟢安定</span></span>
+                </div>
+                <div class="mockup-row">
+                    <span>3</span><span>4063</span><span>信越化学</span><span class="score-md">65</span><span><span class="tag-mock tag-n">🟡標準</span></span>
+                </div>
+                <div class="mockup-row" style="opacity:0.4;">
+                    <span>4</span><span>6861</span><span>キーエンス</span><span class="score-md">62</span><span><span class="tag-mock tag-n">🟡標準</span></span>
+                </div>
+                <div style="text-align:center; padding:10px; font-size:0.75em; color:#aaa;">… 全銘柄を表示するにはログインが必要です</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Discord CTA -->
+<div class="discord-section" id="discord">
+    <h2>🎮 まずは Discord で無料スタート</h2>
+    <p>毎日16時に厳選3銘柄が #daily-picks に届きます。<br>登録・解約はいつでも無料。</p>
+    <!-- TODO: Discord招待リンクが決まったら href を差し替えてください -->
+    <a href="#" class="btn-discord">Discord サーバーに参加する（無料）</a>
+</div>
+
+<!-- フッター -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-top">
+            <div>
+                <div class="footer-brand">
+                    📊 日本株スクリーナー
+                    <small>by nobi-labo</small>
+                </div>
+            </div>
+            <div class="footer-links">
+                <a href="/japan-stock-screener/legal/terms.html">利用規約</a>
+                <a href="/japan-stock-screener/legal/disclaimer.html">免責事項</a>
+                <a href="/japan-stock-screener/legal/privacy.html">プライバシーポリシー</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 nobi-labo. All rights reserved.</p>
+            <p class="disclaimer">
+                本サービスが提供する情報は、投資の参考情報であり、特定の銘柄の売買を推奨するものではありません。
+                投資に関する最終的な判断はご自身の責任でお願いいたします。
+                過去のバックテスト結果は将来の運用成果を保証するものではありません。
+            </p>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // 最新レポートURLを自動設定（直近5営業日を試行）
+    (function() {
+        const base = '/japan-stock-screener/reports/';
+        const btn = document.getElementById('latestReportBtn');
+        const today = new Date();
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+        function toDateStr(d) {
+            return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+        }
+
+        async function findLatest() {
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const url = `${base}${toDateStr(d)}.html`;
+                try {
+                    const res = await fetch(url, { method: 'HEAD' });
+                    if (res.ok) {
+                        btn.href = url;
+                        btn.textContent = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} のレポートを見る →`;
+                        return;
+                    }
+                } catch(e) {}
+            }
+            btn.textContent = 'レポートは準備中です';
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+        }
+
+        findLatest();
+    })();
+</script>
 </body>
 </html>
