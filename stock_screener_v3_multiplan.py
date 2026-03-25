@@ -1173,6 +1173,7 @@ class AdvancedNotifier:
         self.discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")  # 無料版
         self.discord_webhook_basic = os.getenv("DISCORD_BASIC_WEBHOOK_URL")  # ベーシック
         self.discord_webhook_premium = os.getenv("DISCORD_PREMIUM_WEBHOOK_URL")  # プレミアム
+        self.discord_webhook_analysis = os.getenv("DISCORD_ANALYSIS_WEBHOOK_URL")  # #analysis
         
         self.base_url        = os.getenv("REPORT_BASE_URL",
                                          "https://[username].github.io/stock-screener-reports")
@@ -1332,6 +1333,73 @@ class AdvancedNotifier:
             )
 
         return msg
+
+    def format_message_analysis(self, results: List[Dict], sector_report: str = "",
+                                html_path: str = "") -> str:
+        """#analysis チャンネル向け：セクター別集計 + スコア内訳詳細"""
+        today = datetime.now().strftime('%Y年%m月%d日')
+
+        msg = (
+            f"📈 セクター別分析レポート\n"
+            f"📅 {today}  |  対象 {len(results)}銘柄\n"
+            f"{'─'*40}\n\n"
+        )
+
+        # セクター別集計
+        sector_counts = {}
+        sector_avg_scores = {}
+        for r in results:
+            sec = r.get('sector', '不明')
+            sector_counts[sec] = sector_counts.get(sec, 0) + 1
+            sector_avg_scores.setdefault(sec, []).append(r['total_score'])
+
+        sorted_sectors = sorted(sector_counts.items(), key=lambda x: x[1], reverse=True)
+
+        msg += "【セクター別 銘柄数】\n"
+        for sec, count in sorted_sectors[:8]:
+            avg = sum(sector_avg_scores[sec]) / len(sector_avg_scores[sec])
+            bar = "█" * min(count, 10)
+            msg += f"  {sec[:8]:<8} {bar} {count}銘柄（平均{avg:.0f}点）\n"
+
+        msg += f"\n{'─'*40}\n"
+
+        # シグナル別集計
+        signal_labels = [
+            ('golden_cross', '●', 'ゴールデンクロス'),
+            ('bb_reversal', '●', 'BB反発'),
+            ('bb_breakout', '●', 'BBブレイク'),
+            ('volume_surge', '●', '出来高急増'),
+            ('obv_trend_up', '●', 'OBV上昇'),
+        ]
+        msg += "【シグナル別 該当数】\n"
+        for key, val, label in signal_labels:
+            count = sum(1 for r in results if r.get(key) == val)
+            pct = count / len(results) * 100 if results else 0
+            msg += f"  {label:<12} {count}銘柄 ({pct:.0f}%)\n"
+
+        msg += f"\n{'─'*40}\n"
+
+        # 詳細レポートリンク
+        if html_path:
+            msg += (
+                f"📄 詳細レポート（ソート・検索対応）\n"
+                f"   👉 {self.base_url}/{html_path}\n\n"
+            )
+
+        return msg
+
+    def send_discord_analysis(self, message: str):
+        """#analysis チャンネルへ送信"""
+        webhook_url = self.discord_webhook_analysis
+        if not webhook_url:
+            print("⚠️ DISCORD_ANALYSIS_WEBHOOK_URL が設定されていません")
+            return
+        chunks = [message[i:i+1900] for i in range(0, len(message), 1900)]
+        for chunk in chunks:
+            resp = requests.post(webhook_url, json={"content": chunk})
+            print("✅ Discord送信完了 (#analysis)" if resp.status_code == 204
+                  else f"❌ Discord送信失敗 (#analysis): {resp.status_code}")
+            time.sleep(0.3)
 
     def send_slack(self, message: str):
         """Slack送信"""
@@ -1531,14 +1599,16 @@ def main():
         notifier.notify(results, selected=selected, sector_report=sector_report,
                         html_path=html_path)
 	
-	# ベーシック版通知も追加（free_betaモードの場合のみ）
+        # ベーシック版通知も追加（free_betaモードの場合のみ）
         if plan_mode == "free_beta":
-            print(f"\n📤 ベーシック版通知送信中 (plan_mode: basic)")
+            print(f"\n📤 ベーシック版通知送信中...")
             notifier_basic = AdvancedNotifier(service=notification_service, plan_mode="basic")
-            print(f"   notifier_basic.plan_mode = {notifier_basic.plan_mode}")
-            print(f"   results数 = {len(results)}")
-            print(f"   html_path = {html_path}")
             notifier_basic.notify(results, sector_report=sector_report, html_path=html_path)
+
+            # #analysis 通知
+            print(f"\n📤 セクター分析通知送信中 (#analysis)...")
+            analysis_msg = notifier_basic.format_message_analysis(results, sector_report, html_path)
+            notifier_basic.send_discord_analysis(analysis_msg)
     else:
         notifier.notify(results, sector_report=sector_report, html_path=html_path)
 
