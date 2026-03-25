@@ -74,14 +74,15 @@ MA_SHORT         = 25       # 短期MA（日本株標準）
 MA_MID           = 75       # 中期MA（日本株標準）
 MA_LONG          = 200      # 長期MA
 SCORE_WEIGHTS = {            # 総合スコア配点（合計100点）
-    'ma_trend'       : 15,   # MA200上昇
-    'golden_cross'   : 10,   # ゴールデンクロス
-    'bottom_cross'   : 10,   # 底値クロス
-    'bb_signal'      : 15,   # BB位置 (反発 or ブレイクアウト)
-    'obv_trend'      : 10,   # OBV上昇トレンド
-    'ichimoku'       : 20,   # 一目均衡表 (雲上・好転)
-    'volume_surge'   : 10,   # 出来高急増
-    'short_squeeze'  : 10,   # 信用倍率スコア
+    'ma_trend'        : 15,  # MA200上昇（価格>MA200 かつ上昇トレンド）
+    'golden_cross'    : 10,  # ゴールデンクロス
+    'bottom_cross'    : 10,  # 底値クロス
+    'bb_signal'       : 15,  # BB位置 (反発 or ブレイクアウト)
+    'obv_trend'       : 10,  # OBV上昇トレンド
+    'ichimoku_cloud'  : 10,  # 一目均衡表 雲の上
+    'ichimoku_sanryo' : 10,  # 一目均衡表 三役好転（+10追加）
+    'volume_surge'    : 10,  # 出来高急増
+    'pbr_value'       : 10,  # PBR割安（<1.0）
 }
 
 
@@ -656,6 +657,9 @@ class HTMLReportGenerator:
             }
         }
     </script>
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
+        title="トップへ戻る">↑</button>
 </body>
 </html>
 """
@@ -831,6 +835,9 @@ class HTMLReportGenerator:
         }
     }
 </script>
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
+        title="トップへ戻る">↑</button>
 </body>
 </html>"""
 
@@ -902,8 +909,9 @@ class HTMLReportGenerator:
 
         INDICATORS = [
             ('ma_trend','MA200',15),('golden_cross','GC',10),('bottom_cross','底値',10),
-            ('bb_signal','BB',15),('obv_trend','OBV',10),('ichimoku','一目',20),
-            ('volume_surge','出来高',10),('short_squeeze','信用倍率',10),
+            ('bb_signal','BB',15),('obv_trend','OBV',10),
+            ('ichimoku_cloud','雲上',10),('ichimoku_sanryo','三役好転',10),
+            ('volume_surge','出来高',10),('pbr_value','PBR',10),
         ]
         indicator_headers = "".join(
             f'<th onclick="sortTable({i+6})">{lbl}<br><small>{pts}pt</small></th>'
@@ -969,6 +977,11 @@ class HTMLReportGenerator:
         .footer {{ padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }}
         .footer a {{ color:#7c3aed; text-decoration:none; margin:0 12px; font-weight:500; }}
         @media(max-width:900px) {{ .layout {{ grid-template-columns:1fr; }} .sidebar {{ border-left:none; border-top:2px solid #e9d5ff; }} .summary-grid {{ grid-template-columns:1fr; }} }}
+        #nav-panel a {{ color: #93c5fd; text-decoration: none; font-size: 0.85em; display: block; padding: 2px 0; }}
+        #nav-panel a:hover {{ color: #f59e0b; }}
+        details > ul li a {{ color: #93c5fd; text-decoration: none; font-size: 0.85em; display: block; padding: 2px 0; }}
+        details > ul li a:hover {{ color: #f59e0b; }}
+        details summary::-webkit-details-marker {{ display: none; }}
     </style>
 </head>
 <body>
@@ -978,6 +991,41 @@ class HTMLReportGenerator:
         <p>📅 {date}  |  BackLog分析付き</p>
         <span class="badge">Premium プラン限定</span>
     </div>
+        <!-- ナビゲーションパネル -->
+        <div id="nav-panel" style="background:#1e293b;padding:16px 20px;border-bottom:2px solid #334155;">
+            <div style="max-width:1400px;margin:0 auto;display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+                <!-- Premium -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#f59e0b;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📊 Premiumレポート</div>
+                    <div style="color:#f0f0f0;font-size:0.9em;margin-bottom:6px;">📅 {date}（現在）</div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            {archive_premium}
+                        </ul>
+                    </details>
+                </div>
+                <!-- Analysis -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#60a5fa;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📈 Analysisレポート</div>
+                    <div style="font-size:0.9em;margin-bottom:6px;">
+                        {f'<a href="../analysis/{date_str}.html" style="color:#93c5fd;">📅 {date}</a>' if (analysis_dir / filename).exists() else f'<span style="color:#64748b;">📅 {date}（未生成）</span>'}
+                    </div>
+                    <div style="color:#64748b;font-size:0.8em;">※ 当日分のみ</div>
+                </div>
+                <!-- Basic -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#34d399;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📋 Basicレポート</div>
+                    <div style="color:#f0f0f0;font-size:0.9em;margin-bottom:6px;">📅 {date}（現在）</div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            {archive_basic}
+                        </ul>
+                    </details>
+                </div>
+            </div>
+        </div>
     <div class="stats">
         <div class="stat-box"><div class="number">{len(results)}</div><div class="label">対象銘柄数</div></div>
         <div class="stat-box"><div class="number">{results[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
@@ -1051,27 +1099,6 @@ class HTMLReportGenerator:
             </table>
             </div>
         </div>
-        <div class="sidebar">
-            <h3>📁 レポートアーカイブ</h3>
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="switchTab('premium')">👑 Premium</button>
-                <button class="tab-btn" onclick="switchTab('basic')">📊 Basic</button>
-                <button class="tab-btn" onclick="switchTab('analysis')">🔬 Analysis</button>
-                <button class="tab-btn" onclick="switchTab('chart')" style="opacity:.5;cursor:not-allowed">📈 Chart</button>
-            </div>
-            <div id="tab-premium" class="tab-panel active">
-                <ul>{archive_premium}</ul>
-            </div>
-            <div id="tab-basic" class="tab-panel">
-                <ul>{archive_basic}</ul>
-            </div>
-            <div id="tab-analysis" class="tab-panel">
-                <ul>{archive_analysis}</ul>
-            </div>
-            <div id="tab-chart" class="tab-panel">
-                <div class="coming-soon">📈 チャート分析<br>準備中</div>
-            </div>
-        </div>
     </div>
 
     <div class="footer">
@@ -1114,6 +1141,9 @@ class HTMLReportGenerator:
         event.target.classList.add('active');
     }}
 </script>
+<button onclick="window.scrollTo({{top:0,behavior:'smooth'}})"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
+        title="トップへ戻る">↑</button>
 </body>
 </html>"""
 
@@ -1304,48 +1334,27 @@ class AdvancedStockScreener:
         return returns.tail(window).std() * np.sqrt(252) * 100
 
     # ─────────────────────────────────────────────
-    #  信用倍率スコア（ticker.info から取得）
+    #  PBR割安判定（ticker.info から取得）
     # ─────────────────────────────────────────────
-    def get_short_score(self, info: Dict) -> Tuple[float, str]:
+    def get_pbr_score(self, info: Dict) -> Tuple[bool, str]:
         """
-        信用倍率・ショート比率からスコアを計算
-
-        - short_ratio     : 貸株残高 / 1日平均出来高（返済にかかる日数）
-          → 高いほど売り方の「しこり」が大きい（ショートスクイーズ候補）
-        - short_float_pct : Float株数に対するショート比率(%)
+        PBR割安判定（株価純資産倍率）
+        - PBR < 0.5: 超割安
+        - PBR 0.5〜1.0: 割安（シグナルON）
+        - PBR >= 1.0: 割安でない
 
         Returns:
-            (score 0〜1.0, 説明ラベル)
+            (is_cheap: bool, label: str)
         """
-        short_ratio = info.get('shortRatio')         # 例: 3.5 日
-        short_float = info.get('shortPercentOfFloat')  # 例: 0.12 = 12%
-
-        label_parts = []
-        score = 0.0
-
-        if short_ratio is not None:
-            label_parts.append(f"ShortRatio:{short_ratio:.1f}日")
-            # 5日以上 → しこり大 → スクイーズ期待
-            if short_ratio >= 10:
-                score += 1.0
-            elif short_ratio >= 5:
-                score += 0.6
-            elif short_ratio >= 2:
-                score += 0.3
-
-        if short_float is not None:
-            pct = short_float * 100 if short_float < 1 else short_float
-            label_parts.append(f"ShortFloat:{pct:.1f}%")
-            # 20%以上 → 高ショート → スクイーズ候補
-            if pct >= 20:
-                score = min(score + 1.0, 1.0)
-            elif pct >= 10:
-                score = min(score + 0.5, 1.0)
-
-        if not label_parts:
-            return 0.0, "N/A"
-
-        return min(score, 1.0), " / ".join(label_parts)
+        pbr = info.get('priceToBook')
+        if pbr is None or pbr <= 0:
+            return False, 'PBR:N/A'
+        if pbr < 0.5:
+            return True, f'PBR:{pbr:.2f}（超割安）'
+        elif pbr < 1.0:
+            return True, f'PBR:{pbr:.2f}（割安）'
+        else:
+            return False, f'PBR:{pbr:.2f}'
 
     # ─────────────────────────────────────────────
     #  メインスクリーニング
@@ -1398,7 +1407,8 @@ class AdvancedStockScreener:
             prev   = data.iloc[-2] if len(data) >= 2 else latest
 
             # ── 既存シグナル ──────────────────────────────────────────
-            ma200_trending = self.is_ma_trending_up(data['MA200'])
+            ma200_above    = bool(latest['Close'] > latest['MA200'])
+            ma200_trending = ma200_above and self.is_ma_trending_up(data['MA200'], lookback=20)
             bottom_cross   = bool(latest['Low'] <= latest['MA200'] < latest['Close'])
             golden_cross   = bool(prev['MA50'] < prev['MA100'] and
                                   latest['MA50'] >= latest['MA100'])
@@ -1458,20 +1468,20 @@ class AdvancedStockScreener:
             # ── VWAP ────────────────────────────────────────────────
             above_vwap = bool(latest.get('Above_VWAP', False))
 
-            # ── 信用倍率（ticker.info）───────────────────────────────
-            short_score_raw, short_label = self.get_short_score(info)
-            short_squeeze = short_score_raw >= 0.5  # 50%以上でシグナル扱い
+            # ── PBR割安（ticker.info）────────────────────────────────
+            pbr_cheap, pbr_label = self.get_pbr_score(info)
 
             # ── 総合スコア計算 ────────────────────────────────────────
             signals = {
-                'ma_trend'      : ma200_trending,
-                'golden_cross'  : golden_cross,
-                'bottom_cross'  : bottom_cross,
-                'bb_signal'     : bb_signal,
-                'obv_trend'     : obv_signal,
-                'ichimoku'      : ichimoku_bullish or above_cloud,
-                'volume_surge'  : volume_surge,
-                'short_squeeze' : short_squeeze,
+                'ma_trend'        : ma200_trending,
+                'golden_cross'    : golden_cross,
+                'bottom_cross'    : bottom_cross,
+                'bb_signal'       : bb_signal,
+                'obv_trend'       : obv_signal,
+                'ichimoku_cloud'  : above_cloud,
+                'ichimoku_sanryo' : ichimoku_bullish,
+                'volume_surge'    : volume_surge,
+                'pbr_value'       : pbr_cheap,
             }
             total_score, score_detail = self.scorer.score(latest, signals)
 
@@ -1543,11 +1553,12 @@ class AdvancedStockScreener:
                 # ── 一目均衡表 ────────────────────────────────────────
                 'ichimoku_label'    : ichi_label,
                 'ichimoku_bullish'  : '✅三役好転' if ichimoku_bullish else '—',
+                'ichimoku_cloud'    : '✅' if above_cloud else '—',
                 'cloud_thick_pct'   : round(cloud_thick, 2) if not np.isnan(cloud_thick) else None,
 
-                # ── 信用倍率（info）──────────────────────────────────
-                'short_info'        : short_label,
-                'short_squeeze'     : '✅' if short_squeeze else '—',
+                # ── PBR割安 ──────────────────────────────────────────
+                'pbr_info'          : pbr_label,
+                'pbr_value'         : '✅' if pbr_cheap else '—',
 
                 # ── リスク・バックテスト ──────────────────────────────
                 'volatility'        : volatility,
@@ -1829,11 +1840,14 @@ class AdvancedNotifier:
 
         # シグナル別集計
         signal_labels = [
-            ('golden_cross', 'ゴールデンクロス'),
-            ('bb_reversal',  'BB反発'),
-            ('bb_breakout',  'BBブレイク'),
-            ('volume_surge', '出来高急増'),
-            ('obv_trend_up', 'OBV上昇'),
+            ('golden_cross',    'ゴールデンクロス'),
+            ('bb_reversal',     'BB反発'),
+            ('bb_breakout',     'BBブレイク'),
+            ('volume_surge',    '出来高急増'),
+            ('obv_trend_up',    'OBV上昇'),
+            ('ichimoku_cloud',  '雲の上'),
+            ('ichimoku_bullish','三役好転'),
+            ('pbr_value',       'PBR割安'),
         ]
         msg += "【シグナル別 該当数】\n"
         for key, label in signal_labels:
