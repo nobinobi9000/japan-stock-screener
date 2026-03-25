@@ -659,6 +659,424 @@ class HTMLReportGenerator:
         print(f"✅ HTMLレポート生成: {filepath}")
         return f"reports/{filename}"
 
+    def generate_analysis_report(self, results: List[Dict], date: str) -> str:
+        """
+        #analysis 用HTMLレポート（8指標スコア内訳一覧）
+        ETFを除外して生成
+        """
+        if not results:
+            return ""
+
+        # ETF除外
+        def _is_etf(r):
+            try:
+                return 1300 <= int(r.get('code', '0')) <= 1699
+            except (ValueError, TypeError):
+                return False
+        filtered = [r for r in results if not _is_etf(r)]
+        if not filtered:
+            return ""
+
+        date_str = date.replace("-", "")
+        filename = f"{date_str}.html"
+        analysis_dir = self.output_dir / "analysis"
+        analysis_dir.mkdir(parents=True, exist_ok=True)
+        filepath = analysis_dir / filename
+
+        INDICATORS = [
+            ('ma_trend',      'MA200',   15),
+            ('golden_cross',  'GC',      10),
+            ('bottom_cross',  '底値',    10),
+            ('bb_signal',     'BB',      15),
+            ('obv_trend',     'OBV',     10),
+            ('ichimoku',      '一目',    20),
+            ('volume_surge',  '出来高',  10),
+            ('short_squeeze', '信用倍率', 10),
+        ]
+
+        header_cells = "".join(
+            f'<th onclick="sortTable({i+5})">{label}<br><small style="opacity:.7">{pts}点</small></th>'
+            for i, (_, label, pts) in enumerate(INDICATORS)
+        )
+
+        html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スコア内訳レポート - {date}</title>
+    <style>
+        * {{ margin:0; padding:0; box-sizing:border-box; }}
+        body {{ font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); padding:10px; color:#333; }}
+        .container {{ max-width:1600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.3); overflow:visible; }}
+        .header {{ background:linear-gradient(135deg,#0f3460 0%,#533483 100%); color:white; padding:30px 20px; text-align:center; }}
+        .header h1 {{ font-size:1.8em; margin-bottom:8px; }}
+        .header p {{ opacity:.9; }}
+        .badge {{ display:inline-block; background:rgba(255,255,255,.2); padding:4px 12px; border-radius:20px; font-size:.85em; margin-top:8px; }}
+        .stats {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:15px; padding:20px; background:#f8f9fa; border-bottom:2px solid #e9ecef; }}
+        .stat-box {{ text-align:center; padding:12px; }}
+        .stat-box .number {{ font-size:1.8em; font-weight:bold; color:#533483; }}
+        .stat-box .label {{ color:#6c757d; margin-top:6px; font-size:.85em; }}
+        .controls {{ padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }}
+        .controls input {{ padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.95em; }}
+        .table-container {{ overflow-x:auto; width:100%; }}
+        table {{ width:100%; border-collapse:collapse; min-width:1100px; }}
+        thead {{ background:#0f3460; color:white; position:sticky; top:0; z-index:10; }}
+        th {{ padding:12px 8px; text-align:center; font-weight:600; cursor:pointer; font-size:.85em; user-select:none; }}
+        th:hover {{ background:#1a4a80; }}
+        th:after {{ content:' ↕'; opacity:.5; font-size:.75em; }}
+        td {{ padding:10px 8px; border-bottom:1px solid #e9ecef; font-size:.88em; text-align:center; }}
+        td:nth-child(3) {{ text-align:left; }}
+        tr:hover {{ background:#f0f4ff; }}
+        .score-high {{ color:#28a745; font-weight:bold; font-size:1.05em; }}
+        .score-mid  {{ color:#ffc107; font-weight:bold; }}
+        .score-low  {{ color:#dc3545; font-weight:bold; }}
+        .hit  {{ background:#d4edda; color:#155724; border-radius:4px; padding:2px 6px; font-weight:600; }}
+        .miss {{ color:#adb5bd; }}
+        .footer {{ padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }}
+        .footer a {{ color:#533483; text-decoration:none; margin:0 12px; font-weight:500; }}
+        @media(max-width:768px) {{ .controls input {{ width:100%; }} }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔬 スコア内訳レポート</h1>
+        <p>📅 {date} | 全指標スコア内訳（8指標）</p>
+        <span class="badge">Basic / Premium プラン</span>
+    </div>
+    <div class="stats">
+        <div class="stat-box"><div class="number">{len(filtered)}</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">{filtered[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
+        <div class="stat-box"><div class="number">{sum(r['total_score'] for r in filtered)/len(filtered):.0f}</div><div class="label">平均スコア</div></div>
+        <div class="stat-box"><div class="number">{len(set(r['sector'] for r in filtered))}</div><div class="label">セクター数</div></div>
+    </div>
+    <div class="controls">
+        <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+    </div>
+    <div class="table-container">
+    <table id="stockTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">順位</th>
+                <th onclick="sortTable(1)">コード</th>
+                <th onclick="sortTable(2)">銘柄名</th>
+                <th onclick="sortTable(3)">セクター</th>
+                <th onclick="sortTable(4)">合計</th>
+                {header_cells}
+            </tr>
+        </thead>
+        <tbody>
+"""
+        for i, r in enumerate(filtered, 1):
+            sd = r.get('score_detail', {})
+            score_cls = ("score-high" if r['total_score'] >= 70
+                         else "score-mid" if r['total_score'] >= 50
+                         else "score-low")
+            indicator_cells = "".join(
+                f'<td><span class="{"hit" if sd.get(key,0)>0 else "miss"}">'
+                f'{"✅ "+str(int(sd.get(key,0)))+"pt" if sd.get(key,0)>0 else "—"}</span></td>'
+                for key, _, _ in INDICATORS
+            )
+            html += f"""
+            <tr>
+                <td>{i}</td>
+                <td><strong>{r['code']}</strong></td>
+                <td style="text-align:left">{r['name']}</td>
+                <td><small>{r['sector']}</small></td>
+                <td class="{score_cls}">{r['total_score']:.0f}</td>
+                {indicator_cells}
+            </tr>"""
+
+        html += """
+        </tbody>
+    </table>
+    </div>
+    <div class="footer">
+        <p>⚠️ このレポートは投資助言ではありません。投資判断は自己責任で行ってください。</p>
+        <p style="margin-top:12px;">
+            <a href="../index.html">🏠 トップ</a> |
+            <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+        </p>
+    </div>
+</div>
+<script>
+    function sortTable(col) {
+        const table = document.getElementById("stockTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+        rows.sort((a, b) => {
+            let aVal = a.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            let bVal = b.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            aVal = parseFloat(aVal) || aVal;
+            bVal = parseFloat(bVal) || bVal;
+            return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+        table.dataset.sortCol = col;
+        table.dataset.sortDir = isAsc ? "desc" : "asc";
+    }
+    function filterTable() {
+        const input = document.getElementById("search").value.toUpperCase();
+        const rows = document.getElementById("stockTable").getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+            const code = rows[i].cells[1].textContent;
+            const name = rows[i].cells[2].textContent;
+            rows[i].style.display = (code + name).toUpperCase().includes(input) ? "" : "none";
+        }
+    }
+</script>
+</body>
+</html>"""
+
+        filepath.write_text(html, encoding='utf-8')
+        print(f"✅ Analysisレポート生成: {filepath}")
+        return f"analysis/{filename}"
+
+    def generate_premium_report(self, results: List[Dict], date: str,
+                                 sector_report: str = "") -> str:
+        """
+        Premium用HTMLレポート
+        - BackLog一覧（win_rate降順）
+        - セクター別集計・シグナル分布
+        - 過去ログへのアーカイブリンク
+        """
+        if not results:
+            return ""
+
+        date_str = date.replace("-", "")
+        filename = f"{date_str}.html"
+        premium_dir = self.output_dir / "premium"
+        premium_dir.mkdir(parents=True, exist_ok=True)
+        filepath = premium_dir / filename
+
+        # BackLog順（win_rate降順）
+        backlog_sorted = sorted(results, key=lambda x: x.get('win_rate', 0), reverse=True)
+
+        # セクター集計
+        from collections import Counter
+        sector_counts = Counter(r['sector'] for r in results)
+        top_sectors = sector_counts.most_common(8)
+
+        # シグナル集計
+        signal_defs = [
+            ('golden_cross', '●', 'ゴールデンクロス'),
+            ('bb_reversal',  '●', 'BB反発'),
+            ('bb_breakout',  '●', 'BBブレイク'),
+            ('volume_surge', '●', '出来高急増'),
+            ('obv_trend_up', '●', 'OBV上昇'),
+        ]
+        signal_rows = ""
+        for key, val, label in signal_defs:
+            cnt = sum(1 for r in results if r.get(key) == val)
+            pct = cnt / len(results) * 100 if results else 0
+            bar = "█" * min(int(pct / 5), 20)
+            signal_rows += f"<tr><td>{label}</td><td>{cnt}銘柄</td><td>{pct:.0f}%</td><td style='color:#f59e0b;letter-spacing:-2px'>{bar}</td></tr>"
+
+        # 過去ログ一覧
+        archive_files = sorted(premium_dir.glob("*.html"), reverse=True)
+        archive_html = ""
+        for af in archive_files[:30]:
+            af_date = af.stem
+            if len(af_date) == 8:
+                af_label = f"{af_date[:4]}-{af_date[4:6]}-{af_date[6:]}"
+                is_current = "font-weight:bold;color:#f59e0b;" if af.stem == date_str else ""
+                archive_html += f'<li><a href="{af.name}" style="{is_current}">{af_label}</a></li>'
+
+        INDICATORS = [
+            ('ma_trend','MA200',15),('golden_cross','GC',10),('bottom_cross','底値',10),
+            ('bb_signal','BB',15),('obv_trend','OBV',10),('ichimoku','一目',20),
+            ('volume_surge','出来高',10),('short_squeeze','信用倍率',10),
+        ]
+        indicator_headers = "".join(
+            f'<th onclick="sortTable({i+6})">{lbl}<br><small>{pts}pt</small></th>'
+            for i,(key,lbl,pts) in enumerate(INDICATORS)
+        )
+
+        html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレミアムレポート - {date}</title>
+    <style>
+        * {{ margin:0; padding:0; box-sizing:border-box; }}
+        body {{ font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#0d0d1a 100%); padding:10px; color:#333; }}
+        .container {{ max-width:1700px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.4); }}
+        .header {{ background:linear-gradient(135deg,#7c3aed 0%,#db2777 100%); color:white; padding:30px 20px; text-align:center; }}
+        .header h1 {{ font-size:1.9em; margin-bottom:8px; }}
+        .badge {{ display:inline-block; background:rgba(255,255,255,.25); padding:4px 14px; border-radius:20px; font-size:.85em; margin-top:8px; }}
+        .stats {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:15px; padding:20px; background:#faf5ff; border-bottom:2px solid #e9d5ff; }}
+        .stat-box {{ text-align:center; padding:12px; }}
+        .stat-box .number {{ font-size:1.8em; font-weight:bold; color:#7c3aed; }}
+        .stat-box .label {{ color:#6c757d; margin-top:6px; font-size:.85em; }}
+        .layout {{ display:grid; grid-template-columns:1fr 280px; gap:0; }}
+        .main-content {{ padding:0; }}
+        .sidebar {{ background:#faf5ff; border-left:2px solid #e9d5ff; padding:20px; }}
+        .sidebar h3 {{ color:#7c3aed; margin-bottom:12px; font-size:1em; }}
+        .sidebar ul {{ list-style:none; }}
+        .sidebar ul li {{ margin:6px 0; }}
+        .sidebar ul li a {{ color:#7c3aed; text-decoration:none; font-size:.9em; }}
+        .sidebar ul li a:hover {{ text-decoration:underline; }}
+        .section-title {{ background:#7c3aed; color:white; padding:10px 20px; font-weight:bold; font-size:.95em; }}
+        .summary-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:0; }}
+        .summary-box {{ padding:20px; border-right:1px solid #e9ecef; border-bottom:1px solid #e9ecef; }}
+        .summary-box h4 {{ color:#7c3aed; margin-bottom:12px; font-size:.9em; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }}
+        .summary-box table {{ width:100%; font-size:.85em; }}
+        .summary-box td {{ padding:5px 8px; border-bottom:1px solid #f0e6ff; }}
+        .controls {{ padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; }}
+        .controls input {{ padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.9em; }}
+        .table-container {{ overflow-x:auto; }}
+        table.main {{ width:100%; border-collapse:collapse; min-width:1300px; }}
+        table.main thead {{ background:#7c3aed; color:white; position:sticky; top:0; z-index:10; }}
+        table.main th {{ padding:11px 7px; text-align:center; cursor:pointer; font-size:.82em; font-weight:600; user-select:none; }}
+        table.main th:hover {{ background:#6d28d9; }}
+        table.main th:after {{ content:' ↕'; opacity:.5; font-size:.7em; }}
+        table.main td {{ padding:9px 7px; border-bottom:1px solid #f0e6ff; font-size:.85em; text-align:center; }}
+        table.main td:nth-child(3) {{ text-align:left; }}
+        table.main tr:hover {{ background:#faf5ff; }}
+        .score-high {{ color:#28a745; font-weight:bold; }}
+        .score-mid  {{ color:#d97706; font-weight:bold; }}
+        .score-low  {{ color:#dc3545; font-weight:bold; }}
+        .backlog-high {{ background:#fef3c7; color:#92400e; border-radius:4px; padding:2px 6px; font-weight:bold; }}
+        .backlog-mid  {{ background:#ede9fe; color:#5b21b6; border-radius:4px; padding:2px 6px; }}
+        .backlog-low  {{ color:#adb5bd; }}
+        .hit  {{ background:#d4edda; color:#155724; border-radius:3px; padding:1px 5px; font-weight:600; font-size:.82em; }}
+        .miss {{ color:#ced4da; font-size:.82em; }}
+        .footer {{ padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }}
+        .footer a {{ color:#7c3aed; text-decoration:none; margin:0 12px; font-weight:500; }}
+        @media(max-width:900px) {{ .layout {{ grid-template-columns:1fr; }} .sidebar {{ border-left:none; border-top:2px solid #e9d5ff; }} .summary-grid {{ grid-template-columns:1fr; }} }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👑 プレミアムレポート</h1>
+        <p>📅 {date}  |  BackLog分析付き</p>
+        <span class="badge">Premium プラン限定</span>
+    </div>
+    <div class="stats">
+        <div class="stat-box"><div class="number">{len(results)}</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">{results[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
+        <div class="stat-box"><div class="number">{backlog_sorted[0]['win_rate']:.0f}%</div><div class="label">BackLog最高値</div></div>
+        <div class="stat-box"><div class="number">{sum(r['win_rate'] for r in results)/len(results):.0f}%</div><div class="label">BackLog平均</div></div>
+        <div class="stat-box"><div class="number">{len(set(r['sector'] for r in results))}</div><div class="label">セクター数</div></div>
+    </div>
+
+    <div class="layout">
+        <div class="main-content">
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <h4>📊 セクター別集計</h4>
+                    <table>
+                        <tr><th style="text-align:left">セクター</th><th>銘柄数</th></tr>
+                        {"".join(f'<tr><td>{sec}</td><td style="text-align:center"><strong>{cnt}</strong></td></tr>' for sec,cnt in top_sectors)}
+                    </table>
+                </div>
+                <div class="summary-box">
+                    <h4>🔔 シグナル分布</h4>
+                    <table>
+                        <tr><th style="text-align:left">シグナル</th><th>銘柄数</th><th>%</th><th>分布</th></tr>
+                        {signal_rows}
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
+            <div class="controls">
+                <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+            </div>
+            <div class="table-container">
+            <table class="main" id="stockTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">順位</th>
+                        <th onclick="sortTable(1)">コード</th>
+                        <th onclick="sortTable(2)">銘柄名</th>
+                        <th onclick="sortTable(3)">セクター</th>
+                        <th onclick="sortTable(4)">スコア</th>
+                        <th onclick="sortTable(5)">BackLog</th>
+                        {indicator_headers}
+                    </tr>
+                </thead>
+                <tbody>
+"""
+        for i, r in enumerate(backlog_sorted, 1):
+            sd = r.get('score_detail', {})
+            sc = r['total_score']
+            wr = r.get('win_rate', 0)
+            score_cls = "score-high" if sc >= 70 else "score-mid" if sc >= 50 else "score-low"
+            bt_cls = "backlog-high" if wr >= 60 else "backlog-mid" if wr >= 40 else "backlog-low"
+            indicator_cells = "".join(
+                f'<td><span class="{"hit" if sd.get(k,0)>0 else "miss"}">'
+                f'{"✅"+str(int(sd.get(k,0)))+"pt" if sd.get(k,0)>0 else "—"}</span></td>'
+                for k, _, _ in INDICATORS
+            )
+            html += f"""
+                    <tr>
+                        <td>{i}</td>
+                        <td><strong>{r['code']}</strong></td>
+                        <td style="text-align:left">{r['name']}</td>
+                        <td><small>{r['sector']}</small></td>
+                        <td class="{score_cls}">{sc:.0f}</td>
+                        <td><span class="{bt_cls}">{wr:.1f}%（{r['backtest_sample']}回）</span></td>
+                        {indicator_cells}
+                    </tr>"""
+
+        html += f"""
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h3>📁 過去レポート</h3>
+            <ul>
+                {archive_html if archive_html else '<li style="color:#adb5bd">まだアーカイブがありません</li>'}
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>⚠️ BackLog値はバックテストの参考値です。将来の利益を保証するものではありません。</p>
+        <p style="margin-top:12px;">
+            <a href="../index.html">🏠 トップ</a> |
+            <a href="../reports/{date_str}.html">📊 Basicレポート</a> |
+            <a href="../analysis/{date_str}.html">🔬 Analysisレポート</a> |
+            <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+        </p>
+    </div>
+</div>
+<script>
+    function sortTable(col) {{
+        const table = document.getElementById("stockTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+        rows.sort((a, b) => {{
+            let aVal = a.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            let bVal = b.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            aVal = parseFloat(aVal) || aVal; bVal = parseFloat(bVal) || bVal;
+            return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+        }});
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+        table.dataset.sortCol = col;
+        table.dataset.sortDir = isAsc ? "desc" : "asc";
+    }}
+    function filterTable() {{
+        const input = document.getElementById("search").value.toUpperCase();
+        const rows = document.getElementById("stockTable").getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {{
+            const text = rows[i].cells[1].textContent + rows[i].cells[2].textContent;
+            rows[i].style.display = text.toUpperCase().includes(input) ? "" : "none";
+        }}
+    }}
+</script>
+</body>
+</html>"""
+
+        filepath.write_text(html, encoding='utf-8')
+        print(f"✅ Premiumレポート生成: {filepath}")
+        return f"premium/{filename}"
+
 
 
 class AdvancedStockScreener:
@@ -1222,14 +1640,6 @@ class AdvancedNotifier:
                 f"   📊 {signal_str}\n\n"
             )
 
-        # free_betaモードの場合はHTMLリンクを追加
-        if self.plan_mode == "free_beta" and html_path:
-            msg += (
-                f"{'─'*40}\n"
-                f"📄 全{total_count}銘柄の詳細レポートはこちら\n"
-                f"   {self.base_url}/{html_path}\n\n"
-            )
-
         msg += (
             f"{'─'*40}\n"
             f"💎 上位銘柄も見たい方は\n"
@@ -1303,7 +1713,7 @@ class AdvancedNotifier:
                 f"   ⭐ スコア: {r['total_score']:.0f}点 {score_breakdown}\n"
                 f"   💵 株価: ¥{r['price']:,.0f}  |  {r['sector']}\n"
                 f"   📊 {signal_str}\n"
-                f"   🎲 {r['risk_tag']}  |  BT参考: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
+                f"   🎲 {r['risk_tag']}\n\n"
             )
 
         if len(results) > 5:
@@ -1341,14 +1751,22 @@ class AdvancedNotifier:
 
         msg = (
             f"📈 セクター別分析レポート\n"
-            f"📅 {today}  |  対象 {len(results)}銘柄\n"
+            f"📅 {today}  |  対象 {len(results)}銘柄（ETF除く）\n"
             f"{'─'*40}\n\n"
         )
+
+        # ETFを除外（コード1300-1699）
+        def _is_etf(r):
+            try:
+                return 1300 <= int(r.get('code', '0')) <= 1699
+            except (ValueError, TypeError):
+                return False
+        filtered = [r for r in results if not _is_etf(r)]
 
         # セクター別集計
         sector_counts = {}
         sector_avg_scores = {}
-        for r in results:
+        for r in filtered:
             sec = r.get('sector', '不明')
             sector_counts[sec] = sector_counts.get(sec, 0) + 1
             sector_avg_scores.setdefault(sec, []).append(r['total_score'])
@@ -1373,8 +1791,8 @@ class AdvancedNotifier:
         ]
         msg += "【シグナル別 該当数】\n"
         for key, val, label in signal_labels:
-            count = sum(1 for r in results if r.get(key) == val)
-            pct = count / len(results) * 100 if results else 0
+            count = sum(1 for r in filtered if r.get(key) == val)
+            pct = count / len(filtered) * 100 if filtered else 0
             msg += f"  {label:<12} {count}銘柄 ({pct:.0f}%)\n"
 
         msg += f"\n{'─'*40}\n"
@@ -1384,6 +1802,64 @@ class AdvancedNotifier:
             msg += (
                 f"📄 詳細レポート（ソート・検索対応）\n"
                 f"   👉 {self.base_url}/{html_path}\n\n"
+            )
+
+        return msg
+
+    def format_message_premium(self, results: List[Dict], sector_report: str = "",
+                               html_path: str = "") -> str:
+        """プレミアム用通知（BackLog上位＋全指標内訳）"""
+        today = datetime.now().strftime('%Y年%m月%d日')
+
+        if not results:
+            return (
+                f"👑 プレミアムレポート\n📅 {today}\n\n"
+                "🔇 本日は条件に合致する銘柄がありませんでした。\n"
+            )
+
+        # BackLog上位5（win_rate降順）
+        backlog_top = sorted(results, key=lambda x: x.get('win_rate', 0), reverse=True)[:5]
+
+        msg = (
+            f"👑 プレミアムレポート\n"
+            f"📅 {today}  |  対象 {len(results)}銘柄\n\n"
+            f"【🗂️ BackLog Top5】（バックテスト参考値 降順）\n"
+            f"{'─'*40}\n\n"
+        )
+
+        for i, r in enumerate(backlog_top, 1):
+            sd = r.get('score_detail', {})
+            hit_indicators = []
+            label_map = {
+                'ma_trend': 'MA200', 'golden_cross': 'GC', 'bottom_cross': '底値クロス',
+                'bb_signal': 'BB', 'obv_trend': 'OBV', 'ichimoku': '一目',
+                'volume_surge': '出来高', 'short_squeeze': '信用倍率'
+            }
+            for key, label in label_map.items():
+                if sd.get(key, 0) > 0:
+                    hit_indicators.append(f"{label}({int(sd[key])}pt)")
+
+            breakdown = " | ".join(hit_indicators) if hit_indicators else "－"
+            msg += (
+                f"{i}. 【{r['code']}】{r['name']}\n"
+                f"   ⭐ スコア: {r['total_score']:.0f}点\n"
+                f"   💵 株価: ¥{r['price']:,.0f}  |  {r['sector']}\n"
+                f"   📊 内訳: {breakdown}\n"
+                f"   📈 BackLog: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
+            )
+
+        msg += f"{'─'*40}\n"
+
+        # セクターサマリー
+        if sector_report:
+            msg += sector_report + "\n"
+
+        # レポートリンク
+        if html_path:
+            msg += (
+                f"{'─'*40}\n"
+                f"👑 プレミアムレポート（BackLog一覧＋アーカイブ）\n"
+                f"   👉 {self.base_url}/{html_path}\n"
             )
 
         return msg
@@ -1420,7 +1896,8 @@ class AdvancedNotifier:
             time.sleep(0.3)
 
     def notify_all_channels(self, results: List[Dict], selected: List[Dict],
-                            sector_report: str = "", html_path: str = ""):
+                            sector_report: str = "", html_path: str = "",
+                            analysis_html_path: str = "", premium_html_path: str = ""):
         """
         設定済みの全Webhookに通知を送る。
         Webhookが未設定のチャンネルはスキップ。
@@ -1429,7 +1906,7 @@ class AdvancedNotifier:
         # #daily-picks（無料版 3銘柄）
         if self.discord_webhook:
             print("\n📤 #daily-picks へ送信中...")
-            msg = self.format_message_free(selected, len(results), html_path)
+            msg = self.format_message_free(selected, len(results))
             print(msg)
             self._send_to_webhook(self.discord_webhook, msg, "#daily-picks")
         else:
@@ -1443,20 +1920,21 @@ class AdvancedNotifier:
         else:
             print("⚠️ DISCORD_BASIC_WEBHOOK_URL 未設定 → #full-report スキップ")
 
-        # #analysis（セクター別集計）
+        # #analysis（セクター別集計 + 8指標内訳レポートリンク）
         if self.discord_webhook_analysis:
             print("\n📤 #analysis へ送信中...")
-            msg = self.format_message_analysis(results, sector_report, html_path)
+            msg = self.format_message_analysis(results, sector_report, analysis_html_path)
             self._send_to_webhook(self.discord_webhook_analysis, msg, "#analysis")
         else:
             print("⚠️ DISCORD_ANALYSIS_WEBHOOK_URL 未設定 → #analysis スキップ")
 
-        # #premium（将来実装）
+        # #premium（BackLog付きレポート）
         if self.discord_webhook_premium:
             print("\n📤 #premium へ送信中...")
-            # TODO: format_message_premium() 実装時に差し替え
-            msg = self.format_message_full(results, sector_report, html_path)
+            msg = self.format_message_premium(results, sector_report, premium_html_path)
             self._send_to_webhook(self.discord_webhook_premium, msg, "#premium")
+        else:
+            print("⚠️ DISCORD_PREMIUM_WEBHOOK_URL 未設定 → #premium スキップ")
 
     def notify(self, results: List[Dict], selected: List[Dict] = None,
                sector_report: str = "", html_path: str = ""):
@@ -1557,41 +2035,29 @@ def main():
     # ─── セクターレポート生成 ─────────────────────────────────
     sector_report = screener.generate_sector_report()
 
-    # ─── プランに応じた処理 ───────────────────────────────────
-    html_path = ""
-    selected = []
-
-    # 無料版選抜（常に実行 - #daily-picks 用）
+    # ─── 全レポート生成（チャンネルごとに専用ファイル） ────────────────────────────────────
     selected = screener.select_free_tier_stocks(results, count=3)
     print(f"\n🎯 無料版選抜：{len(selected)}銘柄")
     for i, s in enumerate(selected, 1):
         print(f"  {i}. {s['code']} {s['name']} (スコア:{s['total_score']:.0f}点)")
 
-    if plan_mode == "free_beta":
-        # 暫定無償版：HTMLレポート生成
-        print("\n📄 HTMLレポート生成中（暫定無償版）...")
-        html_gen = HTMLReportGenerator(output_dir=output_dir)
-        today = datetime.now().strftime('%Y-%m-%d')
-        html_path = html_gen.generate_basic_report(results, today, sector_report)
+    html_gen = HTMLReportGenerator(output_dir=output_dir)
+    today_str = datetime.now().strftime('%Y-%m-%d')
 
-    elif plan_mode == "basic":
-        # ベーシック：HTMLレポート生成（当日のみ）
-        print("\n📄 HTMLレポート生成中（ベーシック版）...")
-        html_gen = HTMLReportGenerator(output_dir=output_dir)
-        today = datetime.now().strftime('%Y-%m-%d')
-        html_path = html_gen.generate_basic_report(results, today, sector_report)
-
-    elif plan_mode == "premium":
-        # プレミアム：30日分アーカイブ + チャート生成（将来実装）
-        print("\n👑 プレミアム版は将来実装予定です")
-        html_gen = HTMLReportGenerator(output_dir=output_dir)
-        today = datetime.now().strftime('%Y-%m-%d')
-        html_path = html_gen.generate_basic_report(results, today, sector_report)
+    print("\n📄 レポート生成中...")
+    html_path          = html_gen.generate_basic_report(results, today_str, sector_report)
+    analysis_html_path = html_gen.generate_analysis_report(results, today_str)
+    premium_html_path  = html_gen.generate_premium_report(results, today_str, sector_report)
 
     # ─── 通知送信 ─────────────────────────────────────────────
     # Webhookが設定されているチャンネルに一括送信
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
-    notifier.notify_all_channels(results, selected, sector_report, html_path)
+    notifier.notify_all_channels(
+        results, selected, sector_report,
+        html_path=html_path,
+        analysis_html_path=analysis_html_path,
+        premium_html_path=premium_html_path,
+    )
 
     print("\n✅ 処理完了")
 
