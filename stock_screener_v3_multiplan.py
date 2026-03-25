@@ -50,6 +50,11 @@ from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 from pathlib import Path
 import warnings
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # GitHub Actions では不要
 warnings.filterwarnings('ignore')
 import jpholiday
 import sys
@@ -1749,12 +1754,6 @@ class AdvancedNotifier:
         """#analysis チャンネル向け：セクター別集計 + スコア内訳詳細"""
         today = datetime.now().strftime('%Y年%m月%d日')
 
-        msg = (
-            f"📈 セクター別分析レポート\n"
-            f"📅 {today}  |  対象 {len(results)}銘柄（ETF除く）\n"
-            f"{'─'*40}\n\n"
-        )
-
         # ETFを除外（コード1300-1699）
         def _is_etf(r):
             try:
@@ -1763,11 +1762,17 @@ class AdvancedNotifier:
                 return False
         filtered = [r for r in results if not _is_etf(r)]
 
+        msg = (
+            f"📈 セクター別分析レポート\n"
+            f"📅 {today}  |  対象 {len(filtered)}銘柄（ETF除く）\n"
+            f"{'─'*40}\n\n"
+        )
+
         # セクター別集計
         sector_counts = {}
         sector_avg_scores = {}
         for r in filtered:
-            sec = r.get('sector', '不明')
+            sec = r.get('sector', '') or 'その他'
             sector_counts[sec] = sector_counts.get(sec, 0) + 1
             sector_avg_scores.setdefault(sec, []).append(r['total_score'])
 
