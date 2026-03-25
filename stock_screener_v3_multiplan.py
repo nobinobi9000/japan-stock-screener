@@ -1410,62 +1410,60 @@ class AdvancedNotifier:
         print("✅ Slack送信完了" if resp.status_code == 200
               else f"❌ Slack失敗: {resp.status_code}")
 
-    def send_discord(self, message: str):
-        """Discord送信（プラン別Webhook URL対応 + 2000文字制限対応）"""
-        
-        # プランに応じてWebhook URLを選択
-        if self.plan_mode == "premium":
-            webhook_url = self.discord_webhook_premium
-            plan_label = "プレミアム"
-        elif self.plan_mode == "basic":
-            webhook_url = self.discord_webhook_basic
-            plan_label = "ベーシック"
-        else:  # free または free_beta
-            webhook_url = self.discord_webhook
-            plan_label = "無料版"
-        
-        if not webhook_url:
-            print(f"⚠️ Discord Webhook URL が設定されていません (plan_mode: {self.plan_mode})")
-            return
-        
-        # 2000文字制限のため分割送信
+    def _send_to_webhook(self, webhook_url: str, message: str, label: str):
+        """指定WebhookへDiscordメッセージを送信（2000文字制限対応）"""
         chunks = [message[i:i+1900] for i in range(0, len(message), 1900)]
         for chunk in chunks:
             resp = requests.post(webhook_url, json={"content": chunk})
-            print(f"✅ Discord送信完了 ({plan_label})" if resp.status_code == 204
-                  else f"❌ Discord送信失敗 ({plan_label}): {resp.status_code}")
+            print(f"✅ Discord送信完了 ({label})" if resp.status_code == 204
+                  else f"❌ Discord送信失敗 ({label}): {resp.status_code}")
             time.sleep(0.3)
+
+    def notify_all_channels(self, results: List[Dict], selected: List[Dict],
+                            sector_report: str = "", html_path: str = ""):
+        """
+        設定済みの全Webhookに通知を送る。
+        Webhookが未設定のチャンネルはスキップ。
+        プランの増減に関わらずこのメソッド1つで完結する。
+        """
+        # #daily-picks（無料版 3銘柄）
+        if self.discord_webhook:
+            print("\n📤 #daily-picks へ送信中...")
+            msg = self.format_message_free(selected, len(results), html_path)
+            print(msg)
+            self._send_to_webhook(self.discord_webhook, msg, "#daily-picks")
+        else:
+            print("⚠️ DISCORD_WEBHOOK_URL 未設定 → #daily-picks スキップ")
+
+        # #full-report（ベーシック Top5）
+        if self.discord_webhook_basic:
+            print("\n📤 #full-report へ送信中...")
+            msg = self.format_message_full(results, sector_report, html_path)
+            self._send_to_webhook(self.discord_webhook_basic, msg, "#full-report")
+        else:
+            print("⚠️ DISCORD_BASIC_WEBHOOK_URL 未設定 → #full-report スキップ")
+
+        # #analysis（セクター別集計）
+        if self.discord_webhook_analysis:
+            print("\n📤 #analysis へ送信中...")
+            msg = self.format_message_analysis(results, sector_report, html_path)
+            self._send_to_webhook(self.discord_webhook_analysis, msg, "#analysis")
+        else:
+            print("⚠️ DISCORD_ANALYSIS_WEBHOOK_URL 未設定 → #analysis スキップ")
+
+        # #premium（将来実装）
+        if self.discord_webhook_premium:
+            print("\n📤 #premium へ送信中...")
+            # TODO: format_message_premium() 実装時に差し替え
+            msg = self.format_message_full(results, sector_report, html_path)
+            self._send_to_webhook(self.discord_webhook_premium, msg, "#premium")
 
     def notify(self, results: List[Dict], selected: List[Dict] = None,
                sector_report: str = "", html_path: str = ""):
-        """
-        通知を送信（プランに応じて切り替え）
-
-        Args:
-            results: 全スクリーニング結果
-            selected: 無料版選抜銘柄（free/free_betaモードのみ）
-            sector_report: セクター統計
-            html_path: HTMLレポートのパス
-        """
-        # メッセージ生成
-        if self.plan_mode in ["free", "free_beta"]:
-            if selected is None:
-                print("❌ エラー: 無料版モードでは selected が必要です")
-                return
-            message = self.format_message_free(selected, len(results), html_path)
-        else:
-            message = self.format_message_full(results, sector_report, html_path)
-
-        # コンソール出力
-        print("\n" + "=" * 50)
-        print(message)
-        print("=" * 50 + "\n")
-
-        # Webhook送信
-        if self.service == "slack":
-            self.send_slack(message)
-        elif self.service == "discord":
-            self.send_discord(message)
+        """後方互換用（notify_all_channels を推奨）"""
+        if selected is None:
+            selected = []
+        self.notify_all_channels(results, selected, sector_report, html_path)
 
 def is_market_open() -> tuple:
     """
@@ -1563,12 +1561,11 @@ def main():
     html_path = ""
     selected = []
 
-    if plan_mode in ["free", "free_beta"]:
-        # 無料版：中位3件を選抜
-        selected = screener.select_free_tier_stocks(results, count=3)
-        print(f"\n🎯 無料版：{len(selected)}銘柄を選抜しました")
-        for i, s in enumerate(selected, 1):
-            print(f"  {i}. {s['code']} {s['name']} (スコア:{s['total_score']:.0f}点)")
+    # 無料版選抜（常に実行 - #daily-picks 用）
+    selected = screener.select_free_tier_stocks(results, count=3)
+    print(f"\n🎯 無料版選抜：{len(selected)}銘柄")
+    for i, s in enumerate(selected, 1):
+        print(f"  {i}. {s['code']} {s['name']} (スコア:{s['total_score']:.0f}点)")
 
     if plan_mode == "free_beta":
         # 暫定無償版：HTMLレポート生成
@@ -1592,25 +1589,9 @@ def main():
         html_path = html_gen.generate_basic_report(results, today, sector_report)
 
     # ─── 通知送信 ─────────────────────────────────────────────
+    # Webhookが設定されているチャンネルに一括送信
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
-
-    if plan_mode in ["free", "free_beta"]:
-	# 無料版通知
-        notifier.notify(results, selected=selected, sector_report=sector_report,
-                        html_path=html_path)
-	
-        # ベーシック版通知も追加（free_betaモードの場合のみ）
-        if plan_mode == "free_beta":
-            print(f"\n📤 ベーシック版通知送信中...")
-            notifier_basic = AdvancedNotifier(service=notification_service, plan_mode="basic")
-            notifier_basic.notify(results, sector_report=sector_report, html_path=html_path)
-
-            # #analysis 通知
-            print(f"\n📤 セクター分析通知送信中 (#analysis)...")
-            analysis_msg = notifier_basic.format_message_analysis(results, sector_report, html_path)
-            notifier_basic.send_discord_analysis(analysis_msg)
-    else:
-        notifier.notify(results, sector_report=sector_report, html_path=html_path)
+    notifier.notify_all_channels(results, selected, sector_report, html_path)
 
     print("\n✅ 処理完了")
 
