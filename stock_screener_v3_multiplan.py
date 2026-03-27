@@ -311,9 +311,148 @@ class HTMLReportGenerator:
         self.premium_dir = self.output_dir / "premium"
         self.assets_dir = self.output_dir / "assets"
 
+        self.charts_dir = self.output_dir / "charts"
         # ディレクトリ作成
-        for d in [self.reports_dir, self.premium_dir, self.assets_dir]:
+        for d in [self.reports_dir, self.premium_dir, self.assets_dir, self.charts_dir]:
             d.mkdir(parents=True, exist_ok=True)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # チャート生成（Premium Step1）
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def generate_stock_chart(self, code: str, name: str, date_str: str) -> Optional[str]:
+        """
+        単一銘柄のローソク足チャートを生成。
+        Returns: 相対パス 'charts/YYYYMMDD/CODE.png'、失敗時は None
+        """
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import mplfinance as mpf
+
+            # Windows 日本語フォント
+            plt.rcParams['font.family'] = ['Yu Gothic', 'Meiryo', 'DejaVu Sans']
+
+            ticker_obj = yf.Ticker(f"{code}.T")
+            data = ticker_obj.history(period='3mo')
+
+            if data.empty or len(data) < 20:
+                return None
+
+            data.index = pd.to_datetime(data.index).tz_localize(None)
+
+            # 移動平均
+            data['MA25']  = data['Close'].rolling(25, min_periods=1).mean()
+            data['MA75']  = data['Close'].rolling(75, min_periods=1).mean()
+            data['MA200'] = data['Close'].rolling(200, min_periods=20).mean()
+
+            # ボリンジャーバンド（20日）
+            ma20            = data['Close'].rolling(20, min_periods=1).mean()
+            std20           = data['Close'].rolling(20, min_periods=1).std()
+            data['BB_upper'] = ma20 + 2 * std20
+            data['BB_lower'] = ma20 - 2 * std20
+
+            # スタイル設定（ダーク）
+            mc    = mpf.make_marketcolors(
+                up='#22c55e', down='#ef4444',
+                wick={'up': '#22c55e', 'down': '#ef4444'},
+                edge={'up': '#22c55e', 'down': '#ef4444'},
+                volume={'up': '#22c55e80', 'down': '#ef444480'},
+            )
+            style = mpf.make_mpf_style(
+                marketcolors=mc,
+                facecolor='#1a1a2e',
+                figcolor='#0d0d1a',
+                gridcolor='#334155',
+                gridstyle='-',
+                y_on_right=False,
+                rc={
+                    'axes.labelcolor' : '#94a3b8',
+                    'xtick.color'     : '#94a3b8',
+                    'ytick.color'     : '#94a3b8',
+                    'axes.edgecolor'  : '#334155',
+                },
+            )
+
+            addplots = [
+                mpf.make_addplot(data['MA25'],     color='#60a5fa', width=1.0),
+                mpf.make_addplot(data['MA75'],     color='#fbbf24', width=1.0),
+                mpf.make_addplot(data['BB_upper'], color='#a78bfa', width=0.8, linestyle='--'),
+                mpf.make_addplot(data['BB_lower'], color='#a78bfa', width=0.8, linestyle='--'),
+            ]
+            if data['MA200'].dropna().shape[0] >= 5:
+                addplots.append(mpf.make_addplot(data['MA200'], color='#f87171', width=1.5))
+
+            chart_dir  = self.output_dir / "charts" / date_str
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            filepath   = chart_dir / f"{code}.png"
+
+            mpf.plot(
+                data, type='candle', style=style,
+                title=f'{code} {name}',
+                volume=True,
+                addplot=addplots,
+                figsize=(10, 6),
+                savefig=dict(fname=str(filepath), dpi=100,
+                             bbox_inches='tight', facecolor='#0d0d1a'),
+            )
+            plt.close('all')
+            return f"charts/{date_str}/{code}.png"
+
+        except Exception as e:
+            print(f"  ⚠️ チャート生成エラー ({code}): {e}")
+            return None
+
+    def _render_chart_section(self, top5: List[Dict], chart_paths: Dict[str, str],
+                               date_str: str) -> str:
+        """Top5チャートセクションのHTMLを生成"""
+        if not chart_paths:
+            return ""
+
+        cards = ""
+        for r in top5:
+            code = r['code']
+            path = chart_paths.get(code)
+            if not path:
+                continue
+            sc = r['total_score']
+            sc_color = '#22c55e' if sc >= 70 else '#f59e0b' if sc >= 50 else '#ef4444'
+            cards += f"""
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">{code} {r['name']}</span>
+                    <span style="color:{sc_color};font-weight:bold;font-size:.9em;">▶ {sc:.0f}pt</span>
+                </div>
+                <img src="../{path}" alt="{code}チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>"""
+
+        return f"""
+            <div class="section-title">📈 Top5 スコアチャート（ローソク足 3ヶ月 / MA25・MA75・MA200・BB）</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+                        gap:12px;padding:16px;background:#0f172a;">
+                {cards}
+            </div>"""
+
+    def generate_charts_for_top5(self, results: List[Dict], date_str: str) -> Dict[str, str]:
+        """
+        スコア上位5銘柄のチャートを生成。
+        Returns: {code: relative_path}
+        """
+        top5       = results[:5]
+        chart_paths: Dict[str, str] = {}
+        print(f"\n📈 Top5チャート生成中...")
+        for r in top5:
+            code, name = r['code'], r['name']
+            print(f"  {code} {name}...", end='', flush=True)
+            path = self.generate_stock_chart(code, name, date_str)
+            if path:
+                chart_paths[code] = path
+                print(" ✅")
+            else:
+                print(" ⚠️ スキップ")
+        return chart_paths
 
     def generate_basic_report(self, results: List[Dict], date: str,
                                sector_report: str = "") -> str:
@@ -852,9 +991,11 @@ class HTMLReportGenerator:
         return f"analysis/{filename}"
 
     def generate_premium_report(self, results: List[Dict], date: str,
-                                 sector_report: str = "") -> str:
+                                 sector_report: str = "",
+                                 chart_paths: Dict[str, str] = None) -> str:
         """
         Premium用HTMLレポート
+        - Top5チャート（ローソク足 + MA + BB）
         - BackLog一覧（win_rate降順）
         - セクター別集計・シグナル分布
         - 過去ログへのアーカイブリンク
@@ -1063,6 +1204,7 @@ class HTMLReportGenerator:
                 </div>
             </div>
 
+            {self._render_chart_section(results[:5], chart_paths or {}, date_str)}
             <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
             <div class="controls">
                 <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
@@ -2120,7 +2262,13 @@ def main():
     print("\n📄 レポート生成中...")
     html_path          = html_gen.generate_basic_report(results, today_str, sector_report)
     analysis_html_path = html_gen.generate_analysis_report(results, today_str)
-    premium_html_path  = html_gen.generate_premium_report(results, today_str, sector_report)
+
+    # Top5チャート生成（Premium Step1）
+    chart_paths = html_gen.generate_charts_for_top5(results, today_str)
+
+    premium_html_path  = html_gen.generate_premium_report(
+        results, today_str, sector_report, chart_paths=chart_paths
+    )
 
     # ─── 通知送信 ─────────────────────────────────────────────
     # Webhookが設定されているチャンネルに一括送信
