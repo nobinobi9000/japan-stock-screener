@@ -411,11 +411,13 @@ class HTMLReportGenerator:
             width: 100%;
             max-width: 100%;
             display: block;
+            background: white;
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
             min-width: 800px;
+            background: white;
         }}
         thead {{
             background: #495057;
@@ -442,8 +444,10 @@ class HTMLReportGenerator:
             padding: 12px 10px;
             border-bottom: 1px solid #e9ecef;
             font-size: 0.9em;
+            background: white;
         }}
-        tr:hover {{ background: #f8f9fa; }}
+        tr:hover td {{ background: #f8f9fa; }}
+        @media(max-width:600px) {{ th, td {{ padding: 8px 6px; font-size: 0.82em; }} }}
         
         .score-high {{ color: #28a745; font-weight: bold; }}
         .score-mid {{ color: #ffc107; font-weight: bold; }}
@@ -728,15 +732,16 @@ class HTMLReportGenerator:
         .stat-box .label {{ color:#6c757d; margin-top:6px; font-size:.85em; }}
         .controls {{ padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }}
         .controls input {{ padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.95em; }}
-        .table-container {{ overflow-x:auto; width:100%; }}
-        table {{ width:100%; border-collapse:collapse; min-width:1100px; }}
+        .table-container {{ overflow-x:auto; width:100%; background:white; }}
+        table {{ width:100%; border-collapse:collapse; min-width:1100px; background:white; }}
         thead {{ background:#0f3460; color:white; position:sticky; top:0; z-index:10; }}
         th {{ padding:12px 8px; text-align:center; font-weight:600; cursor:pointer; font-size:.85em; user-select:none; }}
         th:hover {{ background:#1a4a80; }}
         th:after {{ content:' ↕'; opacity:.5; font-size:.75em; }}
-        td {{ padding:10px 8px; border-bottom:1px solid #e9ecef; font-size:.88em; text-align:center; }}
+        td {{ padding:10px 8px; border-bottom:1px solid #e9ecef; font-size:.88em; text-align:center; background:white; }}
         td:nth-child(3) {{ text-align:left; }}
-        tr:hover {{ background:#f0f4ff; }}
+        tr:hover td {{ background:#f0f4ff; }}
+        @media(max-width:600px) {{ th, td {{ padding:7px 4px; font-size:.80em; }} }}
         .score-high {{ color:#28a745; font-weight:bold; font-size:1.05em; }}
         .score-mid  {{ color:#ffc107; font-weight:bold; }}
         .score-low  {{ color:#dc3545; font-weight:bold; }}
@@ -957,15 +962,19 @@ class HTMLReportGenerator:
         .summary-box td {{ padding:5px 8px; border-bottom:1px solid #f0e6ff; }}
         .controls {{ padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; }}
         .controls input {{ padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.9em; }}
-        .table-container {{ overflow-x:auto; }}
-        table.main {{ width:100%; border-collapse:collapse; min-width:1300px; }}
+        .table-container {{ overflow-x:auto; background:white; }}
+        table.main {{ width:100%; border-collapse:collapse; min-width:1300px; background:white; }}
         table.main thead {{ background:#7c3aed; color:white; position:sticky; top:0; z-index:10; }}
         table.main th {{ padding:11px 7px; text-align:center; cursor:pointer; font-size:.82em; font-weight:600; user-select:none; }}
         table.main th:hover {{ background:#6d28d9; }}
         table.main th:after {{ content:' ↕'; opacity:.5; font-size:.7em; }}
-        table.main td {{ padding:9px 7px; border-bottom:1px solid #f0e6ff; font-size:.85em; text-align:center; }}
+        table.main td {{ padding:9px 7px; border-bottom:1px solid #f0e6ff; font-size:.85em; text-align:center; background:white; }}
         table.main td:nth-child(3) {{ text-align:left; }}
-        table.main tr:hover {{ background:#faf5ff; }}
+        table.main tr:hover td {{ background:#faf5ff; }}
+        @media(max-width:600px) {{
+            table.main {{ font-size:.78em; }}
+            table.main th, table.main td {{ padding:7px 4px; }}
+        }}
         .score-high {{ color:#28a745; font-weight:bold; }}
         .score-mid  {{ color:#d97706; font-weight:bold; }}
         .score-low  {{ color:#dc3545; font-weight:bold; }}
