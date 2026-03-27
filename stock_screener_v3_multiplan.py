@@ -404,6 +404,27 @@ class HTMLReportGenerator:
             print(f"  ⚠️ チャート生成エラー ({code}): {e}")
             return None
 
+    def _render_stats_section(self, stats_paths: Dict[str, str]) -> str:
+        """統計グラフセクションのHTMLを生成"""
+        if not stats_paths:
+            return ""
+        sig_img = stats_paths.get('signals', '')
+        sec_img = stats_paths.get('sectors', '')
+        if not sig_img and not sec_img:
+            return ""
+
+        imgs = ""
+        if sig_img:
+            imgs += f'<div style="flex:1;min-width:280px;"><img src="../{sig_img}" alt="シグナルヒット率" style="width:100%;border-radius:8px;"></div>'
+        if sec_img:
+            imgs += f'<div style="flex:1;min-width:280px;"><img src="../{sec_img}" alt="セクター平均スコア" style="width:100%;border-radius:8px;"></div>'
+
+        return f"""
+            <div class="section-title">📊 シグナル統計グラフ（Step2）</div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;padding:16px;background:#0f172a;">
+                {imgs}
+            </div>"""
+
     def _render_chart_section(self, top5: List[Dict], chart_paths: Dict[str, str],
                                date_str: str) -> str:
         """Top5チャートセクションのHTMLを生成"""
@@ -434,6 +455,104 @@ class HTMLReportGenerator:
                         gap:12px;padding:16px;background:#0f172a;">
                 {cards}
             </div>"""
+
+    def generate_stats_charts(self, results: List[Dict], date_str: str) -> Dict[str, str]:
+        """
+        シグナル統計グラフ（Step2）を生成。
+        Returns: {'signals': path, 'sectors': path}
+        """
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+
+            plt.rcParams['font.family'] = ['Yu Gothic', 'Meiryo', 'DejaVu Sans']
+
+            chart_dir = self.output_dir / "charts" / date_str
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            paths: Dict[str, str] = {}
+            total = len(results)
+            if total == 0:
+                return paths
+
+            # ── ① 9指標ヒット率棒グラフ ──────────────────────────────────
+            indicator_defs = [
+                ('ma_trend',        'MA200上昇',  '#60a5fa'),
+                ('golden_cross',    'GC',          '#34d399'),
+                ('bottom_cross',    '底値クロス',  '#a78bfa'),
+                ('bb_signal',       'BB',          '#f472b6'),
+                ('obv_trend',       'OBV',         '#38bdf8'),
+                ('ichimoku_cloud',  '雲の上',      '#fb923c'),
+                ('ichimoku_sanryo', '三役好転',    '#fbbf24'),
+                ('volume_surge',    '出来高急増',  '#4ade80'),
+                ('pbr_value',       'PBR割安',     '#c084fc'),
+            ]
+            labels   = [d[1] for d in indicator_defs]
+            hit_rates = []
+            for key, _, _ in indicator_defs:
+                cnt = sum(1 for r in results if r.get(key) == '✅')
+                hit_rates.append(cnt / total * 100)
+
+            fig, ax = plt.subplots(figsize=(9, 5), facecolor='#0d0d1a')
+            ax.set_facecolor('#1a1a2e')
+            colors = [d[2] for d in indicator_defs]
+            bars = ax.barh(labels, hit_rates, color=colors, alpha=0.85, height=0.6)
+            for bar, val in zip(bars, hit_rates):
+                ax.text(val + 0.5, bar.get_y() + bar.get_height() / 2,
+                        f'{val:.1f}%', va='center', ha='left',
+                        color='#e2e8f0', fontsize=9)
+            ax.set_xlabel('ヒット率 (%)', color='#94a3b8', fontsize=9)
+            ax.set_title(f'9指標ヒット率  |  対象 {total} 銘柄', color='#f0f0f0', fontsize=11, pad=10)
+            ax.tick_params(colors='#94a3b8', labelsize=9)
+            ax.spines[:].set_color('#334155')
+            ax.set_xlim(0, max(hit_rates) * 1.2 + 5 if hit_rates else 100)
+            ax.grid(axis='x', color='#334155', linestyle='--', alpha=0.5)
+            plt.tight_layout()
+            sig_path = chart_dir / 'stats_signals.png'
+            plt.savefig(sig_path, dpi=100, bbox_inches='tight', facecolor='#0d0d1a')
+            plt.close(fig)
+            paths['signals'] = f"charts/{date_str}/stats_signals.png"
+
+            # ── ② セクター別平均スコア横棒グラフ（上位15） ───────────────
+            from collections import defaultdict
+            sec_scores: Dict[str, list] = defaultdict(list)
+            for r in results:
+                sec = r.get('sector') or 'ETF他'
+                if sec in ('-', '—', '－', ''):
+                    sec = 'ETF他'
+                sec_scores[sec].append(r['total_score'])
+            sec_avgs = {s: sum(v)/len(v) for s, v in sec_scores.items() if len(v) >= 2}
+            sorted_secs = sorted(sec_avgs.items(), key=lambda x: x[1], reverse=True)[:15]
+            sec_labels = [s[0] for s in sorted_secs]
+            sec_vals   = [s[1] for s in sorted_secs]
+            norm_vals  = [(v - min(sec_vals)) / (max(sec_vals) - min(sec_vals) + 0.1)
+                          for v in sec_vals]
+            bar_colors = [plt.cm.RdYlGn(0.2 + n * 0.6) for n in norm_vals]  # type: ignore
+
+            fig2, ax2 = plt.subplots(figsize=(9, max(4, len(sec_labels) * 0.45)), facecolor='#0d0d1a')
+            ax2.set_facecolor('#1a1a2e')
+            bars2 = ax2.barh(sec_labels, sec_vals, color=bar_colors, alpha=0.85, height=0.6)
+            for bar, val in zip(bars2, sec_vals):
+                ax2.text(val + 0.3, bar.get_y() + bar.get_height() / 2,
+                         f'{val:.1f}', va='center', ha='left',
+                         color='#e2e8f0', fontsize=8)
+            ax2.set_xlabel('平均スコア (pt)', color='#94a3b8', fontsize=9)
+            ax2.set_title('セクター別 平均スコア TOP15', color='#f0f0f0', fontsize=11, pad=10)
+            ax2.tick_params(colors='#94a3b8', labelsize=8)
+            ax2.spines[:].set_color('#334155')
+            ax2.grid(axis='x', color='#334155', linestyle='--', alpha=0.5)
+            plt.tight_layout()
+            sec_path = chart_dir / 'stats_sectors.png'
+            plt.savefig(sec_path, dpi=100, bbox_inches='tight', facecolor='#0d0d1a')
+            plt.close(fig2)
+            paths['sectors'] = f"charts/{date_str}/stats_sectors.png"
+
+            print(f"  ✅ 統計グラフ生成完了（シグナル + セクター）")
+            return paths
+
+        except Exception as e:
+            print(f"  ⚠️ 統計グラフ生成エラー: {e}")
+            return {}
 
     def generate_charts_for_top5(self, results: List[Dict], date_str: str) -> Dict[str, str]:
         """
@@ -992,7 +1111,8 @@ class HTMLReportGenerator:
 
     def generate_premium_report(self, results: List[Dict], date: str,
                                  sector_report: str = "",
-                                 chart_paths: Dict[str, str] = None) -> str:
+                                 chart_paths: Dict[str, str] = None,
+                                 stats_paths: Dict[str, str] = None) -> str:
         """
         Premium用HTMLレポート
         - Top5チャート（ローソク足 + MA + BB）
@@ -1203,6 +1323,7 @@ class HTMLReportGenerator:
                     </table>
                 </div>
             </div>
+            {self._render_stats_section(stats_paths or {})}
 
             {self._render_chart_section(results[:5], chart_paths or {}, date_str)}
             <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
@@ -2266,8 +2387,13 @@ def main():
     # Top5チャート生成（Premium Step1）
     chart_paths = html_gen.generate_charts_for_top5(results, today_str)
 
+    # 統計グラフ生成（Premium Step2）
+    print("\n📊 統計グラフ生成中...")
+    stats_paths = html_gen.generate_stats_charts(results, today_str)
+
     premium_html_path  = html_gen.generate_premium_report(
-        results, today_str, sector_report, chart_paths=chart_paths
+        results, today_str, sector_report,
+        chart_paths=chart_paths, stats_paths=stats_paths
     )
 
     # ─── 通知送信 ─────────────────────────────────────────────
