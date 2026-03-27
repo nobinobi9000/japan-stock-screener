@@ -1280,14 +1280,21 @@ class HTMLReportGenerator:
                 <div style="flex:1;min-width:200px;">
                     <div style="color:#60a5fa;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📈 Analysisレポート</div>
                     <div style="font-size:0.9em;margin-bottom:6px;">
-                        {f'<a href="../analysis/{date_str}.html" style="color:#93c5fd;">📅 {date}</a>' if (analysis_dir / filename).exists() else f'<span style="color:#64748b;">📅 {date}（未生成）</span>'}
+                        {f'<a href="../analysis/{date_str}.html" style="color:#93c5fd;">📅 {date}（当日）</a>' if (analysis_dir / filename).exists() else f'<span style="color:#64748b;">📅 {date}（未生成）</span>'}
                     </div>
-                    <div style="color:#64748b;font-size:0.8em;">※ 当日分のみ</div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            {archive_analysis}
+                        </ul>
+                    </details>
                 </div>
                 <!-- Basic -->
                 <div style="flex:1;min-width:200px;">
                     <div style="color:#34d399;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📋 Basicレポート</div>
-                    <div style="color:#f0f0f0;font-size:0.9em;margin-bottom:6px;">📅 {date}（現在）</div>
+                    <div style="font-size:0.9em;margin-bottom:6px;">
+                        <a href="../reports/{date_str}.html" style="color:#6ee7b7;">📅 {date}（当日）</a>
+                    </div>
                     <details style="cursor:pointer;">
                         <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
                         <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
