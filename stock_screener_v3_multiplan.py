@@ -697,14 +697,15 @@ class HTMLReportGenerator:
         filepath = analysis_dir / filename
 
         INDICATORS = [
-            ('ma_trend',      'MA200',   15),
-            ('golden_cross',  'GC',      10),
-            ('bottom_cross',  '底値',    10),
-            ('bb_signal',     'BB',      15),
-            ('obv_trend',     'OBV',     10),
-            ('ichimoku',      '一目',    20),
-            ('volume_surge',  '出来高',  10),
-            ('short_squeeze', '信用倍率', 10),
+            ('ma_trend',        'MA200',    15),
+            ('golden_cross',    'GC',       10),
+            ('bottom_cross',    '底値',     10),
+            ('bb_signal',       'BB',       15),
+            ('obv_trend',       'OBV',      10),
+            ('ichimoku_cloud',  '雲の上',   10),
+            ('ichimoku_sanryo', '三役好転', 10),
+            ('volume_surge',    '出来高',   10),
+            ('pbr_value',       'PBR割安',  10),
         ]
 
         header_cells = "".join(
@@ -1763,8 +1764,10 @@ class AdvancedNotifier:
                 detail_parts.append(f"GC")
             if score_detail.get('bb_signal', 0) > 0:
                 detail_parts.append(f"BB")
-            if score_detail.get('ichimoku', 0) > 0:
-                detail_parts.append(f"一目")
+            if score_detail.get('ichimoku_cloud', 0) > 0:
+                detail_parts.append("雲上")
+            if score_detail.get('ichimoku_sanryo', 0) > 0:
+                detail_parts.append("三役好転")
             if score_detail.get('obv_trend', 0) > 0:
                 detail_parts.append(f"OBV")
             if score_detail.get('volume_surge', 0) > 0:
@@ -1901,8 +1904,9 @@ class AdvancedNotifier:
             hit_indicators = []
             label_map = {
                 'ma_trend': 'MA200', 'golden_cross': 'GC', 'bottom_cross': '底値クロス',
-                'bb_signal': 'BB', 'obv_trend': 'OBV', 'ichimoku': '一目',
-                'volume_surge': '出来高', 'short_squeeze': '信用倍率'
+                'bb_signal': 'BB', 'obv_trend': 'OBV',
+                'ichimoku_cloud': '雲上', 'ichimoku_sanryo': '三役好転',
+                'volume_surge': '出来高', 'pbr_value': 'PBR割安'
             }
             for key, label in label_map.items():
                 if sd.get(key, 0) > 0:
