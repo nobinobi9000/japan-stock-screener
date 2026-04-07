@@ -1109,6 +1109,132 @@ class HTMLReportGenerator:
         print(f"✅ Analysisレポート生成: {filepath}")
         return f"analysis/{filename}"
 
+    def generate_chart_analysis_page(self, results: List[Dict], date: str,
+                                     chart_paths: Dict[str, str] = None) -> str:
+        """
+        Top5 詳細チャート分析ページを生成。
+        各銘柄の大型チャート + 9指標バッジ + スコア詳細を1ページにまとめる。
+        Returns: 'chart-analysis/YYYYMMDD.html'
+        """
+        if not results:
+            return ""
+        chart_paths = chart_paths or {}
+        date_str  = date.replace("-", "")
+        filename  = f"{date_str}.html"
+        out_dir   = self.output_dir / "chart-analysis"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        filepath  = out_dir / filename
+        top5      = results[:5]
+
+        INDICATORS = [
+            ('ma_trend',        'MA200上昇',   '#60a5fa'),
+            ('golden_cross',    'GC',           '#34d399'),
+            ('bottom_cross',    '底値クロス',   '#a78bfa'),
+            ('bb_signal',       'BB',           '#f472b6'),
+            ('obv_trend',       'OBV',          '#38bdf8'),
+            ('ichimoku_cloud',  '雲の上',       '#fb923c'),
+            ('ichimoku_sanryo', '三役好転',     '#fbbf24'),
+            ('volume_surge',    '出来高急増',   '#4ade80'),
+            ('pbr_value',       'PBR割安',      '#c084fc'),
+        ]
+
+        cards_html = ""
+        for rank, r in enumerate(top5, 1):
+            code      = r['code']
+            name      = r['name']
+            sc        = r['total_score']
+            sc_color  = '#22c55e' if sc >= 70 else '#f59e0b' if sc >= 50 else '#ef4444'
+            chart_rel = chart_paths.get(code)
+            chart_tag = (
+                f'<img src="../{chart_rel}" alt="{code}チャート" '
+                f'style="width:100%;display:block;border-radius:0 0 6px 6px;background:#0d0d1a;">'
+                if chart_rel else
+                '<div style="height:200px;display:flex;align-items:center;justify-content:center;'
+                'color:#64748b;font-size:.9em;">チャート生成中…</div>'
+            )
+            badges = ""
+            for key, label, color in INDICATORS:
+                hit = r.get(key) == '✅'
+                bg  = color + '22' if hit else '#1e293b'
+                fg  = color       if hit else '#475569'
+                bdr = color       if hit else '#334155'
+                badges += (
+                    f'<span style="display:inline-block;padding:3px 8px;margin:3px;border-radius:4px;'
+                    f'font-size:.75em;font-weight:bold;background:{bg};color:{fg};border:1px solid {bdr};">'
+                    f'{"✅ " if hit else "— "}{label}</span>'
+                )
+            wr     = r.get('win_rate', 0)
+            wr_col = '#22c55e' if wr >= 60 else '#f59e0b' if wr >= 40 else '#94a3b8'
+            cards_html += f"""
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;
+                        border:1px solid #334155;margin-bottom:24px;">
+                <div style="padding:12px 16px;background:#0f172a;
+                            display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span style="font-size:1em;font-weight:bold;color:#f0f0f0;">
+                            #{rank} 【{code}】{name}
+                        </span>
+                        <span style="margin-left:10px;font-size:.8em;color:#94a3b8;">{r.get('sector','—')}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:1.2em;font-weight:bold;color:{sc_color};">{sc:.0f}pt</span>
+                        <span style="margin-left:8px;font-size:.8em;color:#94a3b8;">¥{r.get('price',0):,.0f}</span>
+                    </div>
+                </div>
+                {chart_tag}
+                <div style="padding:12px 16px;">
+                    <div style="margin-bottom:8px;">{badges}</div>
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:.8em;color:#94a3b8;">
+                        <span>📊 BackLog: <strong style="color:{wr_col};">{wr:.1f}%</strong>（{r.get('backtest_sample',0)}回）</span>
+                        <span>リスク: {r.get('risk_tag','—')}</span>
+                        <span>出来高比: {r.get('vol_ratio_avg', r.get('Volume_Ratio_Avg', 0)):.1f}x</span>
+                    </div>
+                </div>
+            </div>"""
+
+        html = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Top5 チャート分析 {date}</title>
+    <style>
+        * {{ margin:0; padding:0; box-sizing:border-box; }}
+        body {{ background:#0d0d1a; color:#e2e8f0; font-family:'Segoe UI',sans-serif; padding:16px; }}
+        .header {{ text-align:center; padding:20px 0 16px; border-bottom:1px solid #334155; margin-bottom:24px; }}
+        .header h1 {{ font-size:1.3em; color:#f0f0f0; }}
+        .header p  {{ font-size:.85em; color:#94a3b8; margin-top:6px; }}
+        .nav {{ text-align:center; margin-bottom:20px; font-size:.8em; }}
+        .nav a {{ color:#6ee7b7; text-decoration:none; margin:0 8px; }}
+        .nav a:hover {{ text-decoration:underline; }}
+        .container {{ max-width:900px; margin:0 auto; }}
+        .footer {{ text-align:center; padding:20px 0; font-size:.75em; color:#475569; border-top:1px solid #1e293b; margin-top:16px; }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📈 Top5 詳細チャート分析</h1>
+        <p>📅 {date} | スコア上位5銘柄のチャート＋指標内訳</p>
+    </div>
+    <div class="nav">
+        <a href="../index.html">🏠 トップ</a> |
+        <a href="../reports/{date_str}.html">📊 Basicレポート</a> |
+        <a href="../premium/{date_str}.html">👑 Premiumレポート</a> |
+        <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+    </div>
+    {cards_html}
+    <div class="footer">
+        ⚠️ 本ページはバックテスト参考値を含みます。将来の利益を保証するものではありません。
+    </div>
+</div>
+</body>
+</html>"""
+
+        filepath.write_text(html, encoding='utf-8')
+        print(f"✅ チャート分析ページ生成: {filepath}")
+        return f"chart-analysis/{filename}"
+
     def generate_premium_report(self, results: List[Dict], date: str,
                                  sector_report: str = "",
                                  chart_paths: Dict[str, str] = None,
@@ -1927,7 +2053,8 @@ class AdvancedNotifier:
         self.discord_webhook_basic = os.getenv("DISCORD_BASIC_WEBHOOK_URL")  # ベーシック
         self.discord_webhook_premium = os.getenv("DISCORD_PREMIUM_WEBHOOK_URL")  # プレミアム
         self.discord_webhook_analysis = os.getenv("DISCORD_ANALYSIS_WEBHOOK_URL")  # #analysis
-        
+        self.discord_webhook_chart    = os.getenv("DISCORD_CHART_WEBHOOK_URL")     # #chart-analysis
+
         self.base_url        = os.getenv("REPORT_BASE_URL",
                                          "https://[username].github.io/stock-screener-reports")
 
@@ -2207,6 +2334,43 @@ class AdvancedNotifier:
 
         return msg
 
+    def format_message_chart_analysis(self, results: List[Dict],
+                                       html_path: str = "") -> str:
+        """チャート分析ページ通知（Top5サマリー＋リンク）"""
+        today = datetime.now().strftime('%Y年%m月%d日')
+        top5  = results[:5]
+
+        msg = (
+            f"📈 Top5 詳細チャート分析\n"
+            f"📅 {today}\n\n"
+            f"【スコア上位5銘柄】\n"
+            f"{'─'*40}\n"
+        )
+        for i, r in enumerate(top5, 1):
+            sc     = r['total_score']
+            badges = []
+            for key, label in [
+                ('ma_trend','MA200'), ('golden_cross','GC'), ('bottom_cross','底値クロス'),
+                ('bb_signal','BB'), ('obv_trend','OBV'), ('ichimoku_cloud','雲上'),
+                ('ichimoku_sanryo','三役好転'), ('volume_surge','出来高'), ('pbr_value','PBR割安'),
+            ]:
+                if r.get(key) == '✅':
+                    badges.append(label)
+            badge_str = ' | '.join(badges) if badges else '—'
+            msg += (
+                f"{i}. 【{r['code']}】{r['name']}\n"
+                f"   ⭐ {sc:.0f}pt  |  {r.get('sector','—')}\n"
+                f"   📊 {badge_str}\n\n"
+            )
+
+        if html_path:
+            msg += (
+                f"{'─'*40}\n"
+                f"📊 チャート＋指標詳細はこちら\n"
+                f"   👉 {self.base_url}/{html_path}\n"
+            )
+        return msg
+
     def send_discord_analysis(self, message: str):
         """#analysis チャンネルへ送信"""
         webhook_url = self.discord_webhook_analysis
@@ -2240,7 +2404,8 @@ class AdvancedNotifier:
 
     def notify_all_channels(self, results: List[Dict], selected: List[Dict],
                             sector_report: str = "", html_path: str = "",
-                            analysis_html_path: str = "", premium_html_path: str = ""):
+                            analysis_html_path: str = "", premium_html_path: str = "",
+                            chart_html_path: str = ""):
         """
         設定済みの全Webhookに通知を送る。
         Webhookが未設定のチャンネルはスキップ。
@@ -2278,6 +2443,14 @@ class AdvancedNotifier:
             self._send_to_webhook(self.discord_webhook_premium, msg, "#premium")
         else:
             print("⚠️ DISCORD_PREMIUM_WEBHOOK_URL 未設定 → #premium スキップ")
+
+        # #chart-analysis（Top5チャート分析）
+        if self.discord_webhook_chart:
+            print("\n📤 #chart-analysis へ送信中...")
+            msg = self.format_message_chart_analysis(results, chart_html_path)
+            self._send_to_webhook(self.discord_webhook_chart, msg, "#chart-analysis")
+        else:
+            print("⚠️ DISCORD_CHART_WEBHOOK_URL 未設定 → #chart-analysis スキップ")
 
     def notify(self, results: List[Dict], selected: List[Dict] = None,
                sector_report: str = "", html_path: str = ""):
@@ -2403,6 +2576,12 @@ def main():
         chart_paths=chart_paths, stats_paths=stats_paths
     )
 
+    # チャート分析ページ生成
+    print("\n📈 チャート分析ページ生成中...")
+    chart_analysis_path = html_gen.generate_chart_analysis_page(
+        results, today_str, chart_paths=chart_paths
+    )
+
     # ─── 通知送信 ─────────────────────────────────────────────
     # Webhookが設定されているチャンネルに一括送信
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
@@ -2411,6 +2590,7 @@ def main():
         html_path=html_path,
         analysis_html_path=analysis_html_path,
         premium_html_path=premium_html_path,
+        chart_html_path=chart_analysis_path,
     )
 
     print("\n✅ 処理完了")
