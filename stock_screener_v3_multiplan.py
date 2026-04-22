@@ -2027,6 +2027,78 @@ class AdvancedStockScreener:
             report += f"  • {sector}: {count}銘柄\n"
         return report
 
+    # ─────────────────────────────────────────────
+    #  KabuNote連携用 JSON エクスポート
+    # ─────────────────────────────────────────────
+    def export_json(self, results: List[Dict], selected: List[Dict], output_dir: str) -> str:
+        """
+        KabuNote連携用 latest.json を出力する。
+
+        出力形式:
+          {
+            "date": "YYYY-MM-DD",
+            "top3": [
+              {"code": "7203", "name": "...", "score": 78.0,
+               "price": 2500, "risk_tag": "🟢安定", "sector": "輸送機器"}
+            ],
+            "sector_heatmap": [
+              {"name": "銀行業", "avg_score": 67.3, "stock_count": 45}
+            ]
+          }
+
+        Args:
+            results:    全スクリーニング結果（scan_all_stocks 戻り値）
+            selected:   無料版選抜3銘柄（select_free_tier_stocks 戻り値）
+            output_dir: 出力ディレクトリ（例: "docs"）
+
+        Returns:
+            出力ファイルパス
+        """
+        # セクター別 平均スコア・件数を集計
+        sector_map: Dict[str, List[float]] = defaultdict(list)
+        for r in results:
+            s = r.get('sector') or '未分類'
+            sector_map[s].append(float(r.get('total_score', 0)))
+
+        sector_heatmap = sorted(
+            [
+                {
+                    "name": sector,
+                    "avg_score": round(sum(scores) / len(scores), 1),
+                    "stock_count": len(scores),
+                }
+                for sector, scores in sector_map.items()
+            ],
+            key=lambda x: x["avg_score"],
+            reverse=True,
+        )
+
+        top3 = [
+            {
+                "code":     r["code"],
+                "name":     r["name"],
+                "score":    round(float(r["total_score"]), 1),
+                "price":    float(r["price"]) if r.get("price") is not None else None,
+                "risk_tag": r.get("risk_tag", ""),
+                "sector":   r.get("sector", ""),
+            }
+            for r in selected[:3]
+        ]
+
+        data = {
+            "date":           datetime.now().strftime("%Y-%m-%d"),
+            "top3":           top3,
+            "sector_heatmap": sector_heatmap,
+        }
+
+        os.makedirs(output_dir, exist_ok=True)
+        path = os.path.join(output_dir, "latest.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        print(f"✅ KabuNote用 JSON を出力: {path}")
+        return path
+
 
 class AdvancedNotifier:
     """
@@ -2581,6 +2653,9 @@ def main():
     chart_analysis_path = html_gen.generate_chart_analysis_page(
         results, today_str, chart_paths=chart_paths
     )
+
+    # ─── KabuNote連携用 JSON エクスポート ────────────────────────
+    screener.export_json(results, selected, output_dir)
 
     # ─── 通知送信 ─────────────────────────────────────────────
     # Webhookが設定されているチャンネルに一括送信

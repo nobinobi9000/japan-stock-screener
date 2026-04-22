@@ -1,0 +1,43 @@
+{
+  "date": "2026-04-22",
+  "top3": [
+    {
+      "code": "8306",
+      "name": "三菱UFJフィナンシャル・グループ",
+      "score": 68.5,
+      "price": 1520.0,
+      "risk_tag": "🟢安定",
+      "sector": "銀行業"
+    },
+    {
+      "code": "6758",
+      "name": "ソニーグループ",
+      "score": 65.0,
+      "price": 12300.0,
+      "risk_tag": "🟡注意",
+      "sector": "電気機器"
+    },
+    {
+      "code": "4063",
+      "name": "信越化学工業",
+      "score": 62.0,
+      "price": 5800.0,
+      "risk_tag": "🟢安定",
+      "sector": "化学"
+    }
+  ],
+  "sector_heatmap": [
+    { "name": "銀行業", "avg_score": 71.2, "stock_count": 38 },
+    { "name": "化学", "avg_score": 68.4, "stock_count": 52 },
+    { "name": "電気機器", "avg_score": 65.8, "stock_count": 67 },
+    { "name": "機械", "avg_score": 63.1, "stock_count": 45 },
+    { "name": "輸送機器", "avg_score": 61.5, "stock_count": 29 },
+    { "name": "情報・通信業", "avg_score": 59.3, "stock_count": 71 },
+    { "name": "卸売業", "avg_score": 57.8, "stock_count": 44 },
+    { "name": "小売業", "avg_score": 54.2, "stock_count": 56 },
+    { "name": "食料品", "avg_score": 52.0, "stock_count": 33 },
+    { "name": "不動産業", "avg_score": 48.5, "stock_count": 26 },
+    { "name": "建設業", "avg_score": 46.3, "stock_count": 41 },
+    { "name": "サービス業", "avg_score": 44.1, "stock_count": 58 }
+  ]
+}
