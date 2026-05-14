@@ -61,6 +61,95 @@ import sys
 
 
 # ─────────────────────────────────────────────
+#  キャッシュ設定
+# ─────────────────────────────────────────────
+CACHE_DIR = Path("cache")
+_INFO_CACHE: Optional[Dict[str, Dict]] = None
+
+
+def load_info_cache() -> Dict[str, Dict]:
+    """cache/_info.json を読み込む。2回目以降はメモリから返す。"""
+    global _INFO_CACHE
+    if _INFO_CACHE is not None:
+        return _INFO_CACHE
+    info_path = CACHE_DIR / "_info.json"
+    if not info_path.exists():
+        _INFO_CACHE = {}
+        return _INFO_CACHE
+    try:
+        with open(info_path, "r", encoding="utf-8") as f:
+            _INFO_CACHE = json.load(f)
+        print(f"  [info cache] {len(_INFO_CACHE)}銘柄分の info を読み込み完了")
+    except Exception as e:
+        print(f"  WARN: cache/_info.json 読み込みエラー ({e})")
+        _INFO_CACHE = {}
+    return _INFO_CACHE
+
+
+def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
+    """
+    キャッシュ対応データ取得。
+    キャッシュあり → 差分1行追加。
+    キャッシュなし or 破損 → 2年分フルDL（フォールバック）。
+    """
+    cache_path = CACHE_DIR / f"{code}.parquet"
+    ticker_symbol = f"{code}.T"
+    cached_df = None
+
+    if cache_path.exists():
+        try:
+            cached_df = pd.read_parquet(cache_path, engine="pyarrow")
+            if not isinstance(cached_df.index, pd.DatetimeIndex):
+                cached_df.index = pd.to_datetime(cached_df.index)
+        except Exception:
+            cached_df = None
+
+    ticker = yf.Ticker(ticker_symbol)
+
+    if cached_df is None or cached_df.empty:
+        data = ticker.history(period="2y")
+        if not data.empty:
+            CACHE_DIR.mkdir(exist_ok=True)
+            try:
+                data.to_parquet(cache_path, engine="pyarrow")
+            except Exception:
+                pass
+        return data if not data.empty else None
+
+    # 差分取得
+    last_date = cached_df.index[-1]
+    if hasattr(last_date, 'tz') and last_date.tz is not None:
+        last_date = last_date.tz_localize(None)
+    start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
+    today_str  = datetime.now().strftime('%Y-%m-%d')
+
+    if start_date > today_str:
+        return cached_df
+
+    try:
+        new_data = ticker.history(start=start_date, end=today_str)
+    except Exception:
+        return cached_df
+
+    if new_data.empty:
+        return cached_df
+
+    if hasattr(new_data.index, 'tz') and new_data.index.tz is not None:
+        new_data.index = new_data.index.tz_localize(None)
+
+    combined = pd.concat([cached_df, new_data])
+    combined = combined[~combined.index.duplicated(keep='last')]
+    combined.sort_index(inplace=True)
+
+    try:
+        combined.to_parquet(cache_path, engine="pyarrow")
+    except Exception:
+        pass
+
+    return combined
+
+
+# ─────────────────────────────────────────────
 #  定数定義
 # ─────────────────────────────────────────────
 BB_PERIOD        = 20       # ボリンジャーバンド期間
@@ -1765,30 +1854,34 @@ class AdvancedStockScreener:
     # ─────────────────────────────────────────────
     #  メインスクリーニング
     # ─────────────────────────────────────────────
-    def screen_stock(self, code: str, name: str, sector: str = "不明") -> Optional[Dict]:
+    def screen_stock(self, code: str, name: str, sector: str = "不明",
+                     info_cache: Optional[Dict] = None) -> Optional[Dict]:
         """個別銘柄スクリーニング（v2.0 全指標統合版）"""
         ticker_symbol = f"{code}.T"
 
         try:
-            ticker = yf.Ticker(ticker_symbol)
-            # バックテスト + 一目均衡表に十分なデータ確保（最低2年）
-            data = ticker.history(period="2y")
+            # キャッシュ対応データ取得（平日は差分1行、キャッシュなしはフルDL）
+            data = get_cached_stock_data(code)
 
-            if data.empty or len(data) < MA_LONG:
+            if data is None or data.empty or len(data) < MA_LONG:
                 return None
 
             # ── 銘柄名・セクター補完 ──────────────────────────────────
             info = {}
-            if name == code:
-                try:
-                    info = ticker.info
+            cached_info = (info_cache or {}).get(str(code), {})
+            if cached_info:
+                info = cached_info
+                if name == code:
                     name   = info.get('longName') or info.get('shortName') or code
                     sector = info.get('sector') or info.get('industry') or '不明'
-                except Exception:
-                    pass
             else:
+                # キャッシュにない場合のみ API 呼び出し
                 try:
+                    ticker = yf.Ticker(ticker_symbol)
                     info = ticker.info
+                    if name == code:
+                        name   = info.get('longName') or info.get('shortName') or code
+                        sector = info.get('sector') or info.get('industry') or '不明'
                 except Exception:
                     pass
 
@@ -1977,6 +2070,51 @@ class AdvancedStockScreener:
             return None
 
     # ─────────────────────────────────────────────
+    #  土曜キャッシュ更新
+    # ─────────────────────────────────────────────
+    def warm_cache_all_stocks(self) -> Dict[str, int]:
+        """土曜専用: 全銘柄2年分データをキャッシュ更新。スクリーニング・通知は行わない。"""
+        CACHE_DIR.mkdir(exist_ok=True)
+        stocks_df = self.get_jpx_stock_list()
+        total = len(stocks_df)
+        print(f"[土曜キャッシュ更新] {total}銘柄を開始...")
+
+        success, failed = 0, 0
+        info_all: Dict[str, Dict] = {}
+
+        for idx, row in stocks_df.iterrows():
+            code = str(row['code'])
+            try:
+                ticker = yf.Ticker(f"{code}.T")
+                data = ticker.history(period="2y")
+                if data.empty or len(data) < MA_LONG:
+                    failed += 1
+                    time.sleep(0.3)
+                    continue
+                data.to_parquet(CACHE_DIR / f"{code}.parquet", engine="pyarrow")
+                try:
+                    info = ticker.info
+                    info_all[code] = {
+                        k: v for k, v in info.items()
+                        if isinstance(v, (str, int, float, bool, type(None)))
+                    }
+                except Exception:
+                    info_all[code] = {}
+                success += 1
+                if (idx + 1) % 100 == 0:
+                    print(f"  進捗: {idx + 1}/{total} (成功:{success} 失敗:{failed})")
+            except Exception as e:
+                print(f"  FAIL {code}: {e}")
+                failed += 1
+            time.sleep(0.3)
+
+        with open(CACHE_DIR / "_info.json", "w", encoding="utf-8") as f:
+            json.dump(info_all, f, ensure_ascii=False)
+
+        print(f"[完了] 成功:{success} 失敗:{failed} / 全:{total}")
+        return {"success": success, "failed": failed, "total": total}
+
+    # ─────────────────────────────────────────────
     #  全銘柄スキャン
     # ─────────────────────────────────────────────
     def scan_all_stocks(self, max_stocks: Optional[int] = None,
@@ -1991,6 +2129,10 @@ class AdvancedStockScreener:
         total = len(stocks_df)
         print(f"🔍 {total}銘柄のスクリーニングを開始（最低スコア: {self.min_score}点）\n")
 
+        info_cache = load_info_cache()
+        has_cache  = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.parquet"))
+        sleep_sec  = 0.1 if has_cache else 0.5
+
         results = []
         for idx, row in stocks_df.iterrows():
             code   = row['code']
@@ -2000,13 +2142,13 @@ class AdvancedStockScreener:
             if (idx + 1) % 50 == 0:
                 print(f"進捗: {idx + 1}/{total} ({len(results)}銘柄合致)")
 
-            result = self.screen_stock(code, name, sector)
+            result = self.screen_stock(code, name, sector, info_cache=info_cache)
             if result:
                 results.append(result)
                 print(f"  ✅ {code} {result['name']} "
                       f"[{sector}] スコア:{result['total_score']}点")
 
-            time.sleep(0.5)
+            time.sleep(sleep_sec)
 
         print(f"\n✅ スキャン完了: {len(results)}銘柄が条件に合致")
 
@@ -2563,7 +2705,16 @@ def is_market_open() -> tuple:
 
 def main():
     """メイン実行関数 v3.0 Final（Discord）"""
-    
+
+    # ── 土曜日: キャッシュ更新のみ（スクリーニング・通知なし） ──
+    if datetime.now().weekday() == 5:
+        print(f"[土曜キャッシュモード] {datetime.now().strftime('%Y年%m月%d日')}")
+        print("スクリーニングは実行せず、キャッシュ更新のみ行います\n")
+        screener = AdvancedStockScreener(min_volume=1_000_000,
+                                         enable_backtest=False, min_score=30)
+        screener.warm_cache_all_stocks()
+        return
+
     # 市場休場日チェック
     is_open, reason = is_market_open()
     if not is_open:
