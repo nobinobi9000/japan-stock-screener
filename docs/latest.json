@@ -1,5 +1,5 @@
 {
-  "date": "2026-05-15",
+  "date": "2026-05-18",
   "top3": [
     {
       "code": "6954",
@@ -39,7 +39,7 @@
     },
     {
       "name": "陸運業",
-      "avg_score": 48.5,
+      "avg_score": 48.8,
       "stock_count": 34
     },
     {
@@ -58,14 +58,19 @@
       "stock_count": 24
     },
     {
-      "name": "電気機器",
-      "avg_score": 47.1,
-      "stock_count": 160
+      "name": "金属製品",
+      "avg_score": 47.3,
+      "stock_count": 46
     },
     {
-      "name": "金属製品",
+      "name": "電気機器",
       "avg_score": 47.1,
-      "stock_count": 46
+      "stock_count": 161
+    },
+    {
+      "name": "化学",
+      "avg_score": 46.7,
+      "stock_count": 136
     },
     {
       "name": "ゴム製品",
@@ -73,18 +78,13 @@
       "stock_count": 12
     },
     {
-      "name": "化学",
-      "avg_score": 46.6,
-      "stock_count": 135
-    },
-    {
       "name": "機械",
-      "avg_score": 46.4,
+      "avg_score": 46.6,
       "stock_count": 138
     },
     {
       "name": "電気・ガス業",
-      "avg_score": 45.8,
+      "avg_score": 46.5,
       "stock_count": 13
     },
     {
@@ -108,9 +108,14 @@
       "stock_count": 20
     },
     {
+      "name": "その他金融業",
+      "avg_score": 44.4,
+      "stock_count": 24
+    },
+    {
       "name": "卸売業",
       "avg_score": 44.3,
-      "stock_count": 151
+      "stock_count": 150
     },
     {
       "name": "その他製品",
@@ -118,13 +123,8 @@
       "stock_count": 44
     },
     {
-      "name": "その他金融業",
-      "avg_score": 43.8,
-      "stock_count": 25
-    },
-    {
       "name": "建設業",
-      "avg_score": 43.4,
+      "avg_score": 43.6,
       "stock_count": 69
     },
     {
@@ -170,7 +170,7 @@
     {
       "name": "小売業",
       "avg_score": 40.9,
-      "stock_count": 101
+      "stock_count": 102
     },
     {
       "name": "不動産業",
