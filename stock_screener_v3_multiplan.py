@@ -175,6 +175,51 @@ SCORE_WEIGHTS = {            # 総合スコア配点（合計100点）
 }
 
 
+# ─────────────────────────────────────────────
+#  シグナルパターン分類
+# ─────────────────────────────────────────────
+def classify_signal_pattern(
+    ma200_trending: bool,
+    golden_cross: bool,
+    bottom_cross: bool,
+    bb_reversal: bool,
+    bb_breakout: bool,
+    volume_surge: bool,
+    obv_trend_up: bool,
+    ichimoku_bullish: bool,
+    total_score: float,
+) -> str:
+    """
+    シグナルの組み合わせからパターンを分類する。
+    複数条件を満たす場合は優先度の高いものを返す。
+
+    返り値例:
+      "🚀強気ブレイク"   → GC + MA200上昇 + 出来高急増
+      "🎯底打ち反転"    → 底値クロス + GC + OBV上昇
+      "⛩一目好転"      → 一目三役好転
+      "⚡過熱注意"      → BBブレイク + 出来高急増 + スコア70以上
+      "💎安定上昇"      → MA200上昇 + OBV上昇 + BBブレイクなし
+      "📊シグナル点灯"  → 上記に該当しない複合シグナル
+    """
+    # 🚀強気ブレイク: ゴールデンクロス直後 + MA200上昇 + 出来高急増
+    if golden_cross and ma200_trending and volume_surge:
+        return "🚀強気ブレイク"
+    # 🎯底打ち反転: 底値クロス + GC + OBV資金流入
+    if bottom_cross and golden_cross and obv_trend_up:
+        return "🎯底打ち反転"
+    # ⛩一目好転: 一目三役好転（転換・基準・雲の3条件揃い）
+    if ichimoku_bullish:
+        return "⛩一目好転"
+    # ⚡過熱注意: BBブレイクアウト + 出来高急増 + 高スコア（押し目待ち）
+    if bb_breakout and volume_surge and total_score >= 70:
+        return "⚡過熱注意"
+    # 💎安定上昇: MA200上昇 + OBV継続流入 + BBブレイクなし（ゆっくり上昇）
+    if ma200_trending and obv_trend_up and not bb_breakout:
+        return "💎安定上昇"
+    # 📊シグナル点灯: デフォルト
+    return "📊シグナル点灯"
+
+
 class TechnicalIndicators:
     """
     テクニカル指標計算クラス（yfinanceデータのみで完結）
@@ -932,21 +977,28 @@ class HTMLReportGenerator:
                          else "tag-risky")
 
             signals = []
-            if r['bottom_cross'] == '●': signals.append('底値クロス')
-            if r['golden_cross'] == '●': signals.append('GC')
-            if r['bb_reversal'] == '●': signals.append('BB反発')
-            if r['bb_breakout'] == '●': signals.append('BBブレイク')
-            if r['volume_surge'] == '●': signals.append('出来高急増')
-            if r['obv_trend_up'] == '●': signals.append('OBV↑')
-            if r['ichimoku_bullish'] != '－': signals.append('一目好転')
+            if r['bottom_cross'] == '✅':        signals.append('📈底値反発')
+            if r['golden_cross'] == '✅':         signals.append('🔄上昇転換')
+            if r['bb_reversal'] == '✅':          signals.append('🎯下限反発')
+            if r['bb_breakout'] == '✅':          signals.append('🚀上限突破')
+            if r['volume_surge'] == '✅':         signals.append('📊出来高急増')
+            if r['obv_trend_up'] == '✅':         signals.append('💹資金流入')
+            if r['ichimoku_bullish'] == '✅三役好転': signals.append('⛩一目好転')
+            pattern = r.get('pattern', '')
 
-            signal_str = ", ".join(signals) if signals else "－"
+            signal_str = ", ".join(signals) if signals else "複合シグナル"
 
+            pattern_badge = (
+                f'<span style="display:inline-block;font-size:.78em;padding:1px 7px;'
+                f'border-radius:10px;background:rgba(99,102,241,.12);color:#6366f1;'
+                f'font-weight:600;margin-left:4px;">{pattern}</span>'
+                if pattern else ''
+            )
             html += f"""
                 <tr>
                     <td>{i}</td>
                     <td><strong>{r['code']}</strong></td>
-                    <td>{r['name']}</td>
+                    <td>{r['name']}{pattern_badge}</td>
                     <td><small>{r['sector']}</small></td>
                     <td class="{score_class}">{r['total_score']:.0f}</td>
                     <td>¥{r['price']:,.0f}</td>
@@ -1021,7 +1073,7 @@ class HTMLReportGenerator:
 
     def generate_analysis_report(self, results: List[Dict], date: str) -> str:
         """
-        #analysis 用HTMLレポート（8指標スコア内訳一覧）
+        #analysis 用HTMLレポート（9指標スコア内訳一覧）
         ETFを除外して生成
         """
         if not results:
@@ -1044,15 +1096,15 @@ class HTMLReportGenerator:
         filepath = analysis_dir / filename
 
         INDICATORS = [
-            ('ma_trend',        'MA200',    15),
-            ('golden_cross',    'GC',       10),
-            ('bottom_cross',    '底値',     10),
-            ('bb_signal',       'BB',       15),
-            ('obv_trend',       'OBV',      10),
-            ('ichimoku_cloud',  '雲の上',   10),
-            ('ichimoku_sanryo', '三役好転', 10),
-            ('volume_surge',    '出来高',   10),
-            ('pbr_value',       'PBR割安',  10),
+            ('ma_trend',        'MA200↑上昇トレンド',  15),
+            ('golden_cross',    '🔄上昇転換の初動(GC)', 10),
+            ('bottom_cross',    '📈底値反発クロス',     10),
+            ('bb_signal',       '🎯BB反発／突破',       15),
+            ('obv_trend',       '💹資金流入(OBV↑)',    10),
+            ('ichimoku_cloud',  '☁雲の上',              10),
+            ('ichimoku_sanryo', '⛩一目三役好転',        10),
+            ('volume_surge',    '📊出来高急増',          10),
+            ('pbr_value',       '💎PBR割安',            10),
         ]
 
         header_cells = "".join(
@@ -1104,7 +1156,7 @@ class HTMLReportGenerator:
 <div class="container">
     <div class="header">
         <h1>🔬 スコア内訳レポート</h1>
-        <p>📅 {date} | 全指標スコア内訳（8指標）</p>
+        <p>📅 {date} | 全指標スコア内訳（9指標）</p>
         <span class="badge">Basic / Premium プラン</span>
     </div>
     <div class="stats">
@@ -1984,6 +2036,19 @@ class AdvancedStockScreener:
             }
             total_score, score_detail = self.scorer.score(latest, signals)
 
+            # ── パターン分類 ─────────────────────────────────────────
+            pattern = classify_signal_pattern(
+                ma200_trending=ma200_trending,
+                golden_cross=golden_cross,
+                bottom_cross=bottom_cross,
+                bb_reversal=bb_reversal,
+                bb_breakout=bb_breakout,
+                volume_surge=volume_surge,
+                obv_trend_up=obv_trend_up,
+                ichimoku_bullish=ichimoku_bullish,
+                total_score=total_score,
+            )
+
             # ── スコアフィルタ ────────────────────────────────────────
             if total_score < self.min_score:
                 return None
@@ -2064,6 +2129,9 @@ class AdvancedStockScreener:
                 'risk_tag'          : risk_tag,
                 'win_rate'          : win_rate,
                 'backtest_sample'   : backtest_sample,
+
+                # ── パターン分類 ──────────────────────────────────────
+                'pattern'           : pattern,
             }
 
         except Exception:
@@ -2223,14 +2291,60 @@ class AdvancedStockScreener:
                 "price":    float(r["price"]) if r.get("price") is not None else None,
                 "risk_tag": r.get("risk_tag", ""),
                 "sector":   r.get("sector", ""),
+                "pattern":  r.get("pattern", "📊シグナル点灯"),
+                "win_rate": round(float(r.get("win_rate", 0)), 1),
             }
             for r in selected[:3]
         ]
+
+        # ── マーケットサマリー ─────────────────────────────────────
+        total_count = len(results)
+        gc_count = sum(1 for r in results if r.get('golden_cross') == '✅')
+        volume_surge_count = sum(1 for r in results if r.get('volume_surge') == '✅')
+        ichimoku_count = sum(1 for r in results if r.get('ichimoku_bullish') == '✅三役好転')
+
+        # パターン分布集計
+        pattern_dist: Dict[str, int] = defaultdict(int)
+        for r in results:
+            pattern_dist[r.get('pattern', '📊シグナル点灯')] += 1
+
+        # 自動コメント生成
+        gc_rate = gc_count / max(total_count, 1)
+        vs_rate = volume_surge_count / max(total_count, 1)
+        if gc_rate > 0.15:
+            auto_comment = (
+                f"本日は全体の{gc_rate*100:.0f}%（{gc_count}銘柄）で"
+                f"上昇転換シグナルが点灯。トレンド転換の初動が多く見られます。"
+            )
+        elif vs_rate > 0.25:
+            auto_comment = (
+                f"出来高急増が{volume_surge_count}銘柄で発生。"
+                f"市場全体に動意が出ています。"
+            )
+        elif sector_heatmap:
+            top_sec = sector_heatmap[0]['name']
+            top_avg = sector_heatmap[0]['avg_score']
+            auto_comment = (
+                f"「{top_sec}」セクターの平均スコアが{top_avg:.0f}点で最高。"
+                f"このセクターに注目が集まっています。"
+            )
+        else:
+            auto_comment = "本日のスクリーニングが完了しました。シグナル銘柄をご確認ください。"
+
+        market_summary = {
+            "total_screened":      total_count,
+            "gc_count":            gc_count,
+            "volume_surge_count":  volume_surge_count,
+            "ichimoku_count":      ichimoku_count,
+            "pattern_distribution": dict(pattern_dist),
+            "auto_comment":        auto_comment,
+        }
 
         data = {
             "date":           datetime.now().strftime("%Y-%m-%d"),
             "top3":           top3,
             "sector_heatmap": sector_heatmap,
+            "market_summary": market_summary,
         }
 
         os.makedirs(output_dir, exist_ok=True)

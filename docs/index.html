@@ -562,8 +562,8 @@
             <span class="lbl">スキャン銘柄数</span>
         </div>
         <div class="hero-stat">
-            <span class="num">8</span>
-            <span class="lbl">テクニカル指標</span>
+            <span class="num">9</span>
+            <span class="lbl">スコア指標</span>
         </div>
         <div class="hero-stat">
             <span class="num">毎日</span>
@@ -573,6 +573,40 @@
             <span class="num">0円</span>
             <span class="lbl">から始められる</span>
         </div>
+    </div>
+</div>
+
+<!-- 今日の市場サマリー -->
+<div id="market-summary-section" style="display:none; background:#f0f4ff; border-top:2px solid #e5e7eb; border-bottom:2px solid #e5e7eb; padding:28px 20px;">
+    <div style="max-width:1100px; margin:0 auto;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+            <span style="font-size:1.3em;">📡</span>
+            <div>
+                <h2 style="font-size:1.05em; font-weight:800; color:#111827; margin:0;" id="summary-title">今日のスクリーニング結果</h2>
+                <span id="summary-date" style="font-size:0.8em; color:#6b7280;"></span>
+            </div>
+        </div>
+        <div id="summary-comment" style="background:white; border-left:3px solid #4f46e5; padding:10px 16px; border-radius:0 8px 8px 0; font-size:0.92em; color:#374151; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.06);"></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+            <div style="background:white; border-radius:10px; padding:14px 20px; flex:1; min-width:140px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                <div id="stat-screened" style="font-size:1.6em; font-weight:800; color:#4f46e5;">—</div>
+                <div style="font-size:0.78em; color:#6b7280; margin-top:2px;">スキャン結果 件数</div>
+            </div>
+            <div style="background:white; border-radius:10px; padding:14px 20px; flex:1; min-width:140px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                <div id="stat-gc" style="font-size:1.6em; font-weight:800; color:#10b981;">—</div>
+                <div style="font-size:0.78em; color:#6b7280; margin-top:2px;">🔄 上昇転換シグナル</div>
+            </div>
+            <div style="background:white; border-radius:10px; padding:14px 20px; flex:1; min-width:140px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                <div id="stat-volume" style="font-size:1.6em; font-weight:800; color:#f59e0b;">—</div>
+                <div style="font-size:0.78em; color:#6b7280; margin-top:2px;">📊 出来高急増</div>
+            </div>
+            <div style="background:white; border-radius:10px; padding:14px 20px; flex:1; min-width:140px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                <div id="stat-ichimoku" style="font-size:1.6em; font-weight:800; color:#8b5cf6;">—</div>
+                <div style="font-size:0.78em; color:#6b7280; margin-top:2px;">⛩ 一目三役好転</div>
+            </div>
+        </div>
+        <!-- Top3 -->
+        <div id="top3-cards" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;"></div>
     </div>
 </div>
 
@@ -587,7 +621,7 @@
             <div class="how-step">1</div>
             <div class="how-icon">🔍</div>
             <h3>全銘柄スキャン</h3>
-            <p>東証上場の3,700銘柄を毎営業日自動取得。MA・ボリンジャーバンド・一目均衡表など8指標を計算します。</p>
+            <p>東証上場の3,700銘柄を毎営業日自動取得。MA・ボリンジャーバンド・一目均衡表など9指標でスコアリングします。</p>
         </div>
         <div class="how-card">
             <div class="how-step">2</div>
@@ -632,10 +666,10 @@
 
         <!-- BASIC -->
         <div class="plan-card featured">
-            <div class="plan-ribbon">🎁 期間限定 無料公開中</div>
+            <div class="plan-ribbon">🎁 β公開中 全機能無料</div>
             <div class="plan-name">Basic</div>
             <div class="plan-price">¥980<small>/月</small></div>
-            <div class="plan-price-note">※ 現在は無料で全機能をお試しいただけます</div>
+            <div class="plan-price-note">※ βテスト期間中は全機能を無料提供中（正式リリース後 ¥980/月）</div>
             <hr class="plan-divider">
             <ul class="plan-features">
                 <li>厳選3銘柄を毎日通知</li>
@@ -704,7 +738,7 @@
                     <td><span class="chk">✓</span></td>
                 </tr>
                 <tr>
-                    <td>全指標スコア内訳（8指標）</td>
+                    <td>全指標スコア内訳（9指標）</td>
                     <td><span class="cross">—</span></td>
                     <td><span class="chk">✓</span></td>
                     <td><span class="chk">✓</span></td>
@@ -829,7 +863,7 @@
 </footer>
 
 <script>
-    // 最新レポートURLを自動設定（直近5営業日を試行）
+    // ── 最新レポートURLを自動設定 ──────────────────────────────────
     (function() {
         const base = '/japan-stock-screener/reports/';
         const btn = document.getElementById('latestReportBtn');
@@ -860,6 +894,66 @@
         }
 
         findLatest();
+    })();
+
+    // ── 市場サマリーを latest.json から動的表示 ──────────────────────
+    (async function() {
+        const section = document.getElementById('market-summary-section');
+        try {
+            const res = await fetch('/japan-stock-screener/latest.json?t=' + Date.now());
+            if (!res.ok) return;
+            const data = await res.json();
+
+            // 日付表示
+            const dateEl = document.getElementById('summary-date');
+            if (data.date) dateEl.textContent = data.date + ' 更新';
+
+            const ms = data.market_summary;
+            if (ms) {
+                // 自動コメント
+                const commentEl = document.getElementById('summary-comment');
+                commentEl.textContent = ms.auto_comment || '';
+
+                // 数値カード
+                if (ms.total_screened != null)
+                    document.getElementById('stat-screened').textContent = ms.total_screened + '銘柄';
+                if (ms.gc_count != null)
+                    document.getElementById('stat-gc').textContent = ms.gc_count + '銘柄';
+                if (ms.volume_surge_count != null)
+                    document.getElementById('stat-volume').textContent = ms.volume_surge_count + '銘柄';
+                if (ms.ichimoku_count != null)
+                    document.getElementById('stat-ichimoku').textContent = ms.ichimoku_count + '銘柄';
+            }
+
+            // Top3 カード
+            const top3 = data.top3 || [];
+            if (top3.length > 0) {
+                const container = document.getElementById('top3-cards');
+                const riskColor = { '🟢安定': '#10b981', '🟡標準': '#f59e0b', '🔴冒険': '#ef4444' };
+                container.innerHTML = top3.map((r, i) => {
+                    const sc = r.score || 0;
+                    const scColor = sc >= 70 ? '#10b981' : sc >= 50 ? '#f59e0b' : '#ef4444';
+                    const wr = r.win_rate != null ? r.win_rate.toFixed(1) + '%' : '';
+                    const wrStr = wr ? `<span style="font-size:.75em;color:#6b7280;margin-left:4px;">BT:${wr}</span>` : '';
+                    return `
+                    <div style="background:white;border-radius:10px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-top:3px solid ${scColor};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                            <span style="font-size:.72em;font-weight:700;color:#6b7280;letter-spacing:.05em;">第${i+1}位</span>
+                            <span style="font-size:1.1em;font-weight:800;color:${scColor};">${sc}pt${wrStr}</span>
+                        </div>
+                        <div style="font-weight:700;font-size:.95em;color:#111827;margin-bottom:4px;">${r.name}</div>
+                        <div style="font-size:.78em;color:#6b7280;margin-bottom:6px;">${r.code} | ${r.sector || '—'}</div>
+                        ${r.pattern ? `<span style="display:inline-block;font-size:.72em;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.1);color:#6366f1;font-weight:600;">${r.pattern}</span>` : ''}
+                    </div>`;
+                }).join('');
+            }
+
+            // セクションを表示
+            section.style.display = 'block';
+
+        } catch (e) {
+            // latest.json がない場合はセクション非表示のまま
+        }
     })();
 </script>
 </body>
