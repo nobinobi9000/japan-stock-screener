@@ -727,342 +727,435 @@ class HTMLReportGenerator:
         filename = f"{date_str}.html"
         filepath = self.reports_dir / filename
 
-        # ソート可能なテーブルHTML
+        # 統計計算
+        gc_count     = sum(1 for r in results if r.get('golden_cross') == '✅')
+        vol_count    = sum(1 for r in results if r.get('volume_surge') == '✅')
+        sector_count = len(set(r['sector'] for r in results))
+        max_score    = results[0]['total_score'] if results else 0
+
+        # 行HTML生成
+        rows_html = ""
+        for i, r in enumerate(results, 1):
+            sc = r['total_score']
+            sc_cls = "high" if sc >= 70 else "mid" if sc >= 50 else "low"
+            sc_pct = min(sc, 100)
+
+            risk_cls = ("safe"   if "安定" in r['risk_tag']
+                        else "normal" if "標準" in r['risk_tag']
+                        else "risky")
+
+            signals = []
+            if r.get('bottom_cross')  == '✅':            signals.append('📈底値反発')
+            if r.get('golden_cross')  == '✅':            signals.append('🔄上昇転換')
+            if r.get('bb_reversal')   == '✅':            signals.append('🎯下限反発')
+            if r.get('bb_breakout')   == '✅':            signals.append('🚀上限突破')
+            if r.get('volume_surge')  == '✅':            signals.append('📊出来高急増')
+            if r.get('obv_trend_up')  == '✅':            signals.append('💹資金流入')
+            if r.get('ichimoku_bullish') == '✅三役好転': signals.append('⛩一目好転')
+            signal_str = "、".join(signals) if signals else "—"
+
+            pattern = r.get('pattern', '')
+            pattern_badge = (
+                f'<span class="pattern-badge">{pattern}</span>'
+                if pattern else ''
+            )
+
+            rows_html += f"""
+      <tr data-code="{r['code']}" data-name="{r['name']}" data-pattern="{pattern}">
+        <td class="td-rank">{i}</td>
+        <td class="td-code">{r['code']}</td>
+        <td class="td-name">{r['name']}{pattern_badge}</td>
+        <td class="td-sector">{r['sector']}</td>
+        <td class="td-score">
+          <div class="score-wrap">
+            <div class="score-bar"><div class="score-fill {sc_cls}" style="width:{sc_pct:.0f}%"></div></div>
+            <span class="score-num {sc_cls}">{sc:.0f}</span>
+          </div>
+        </td>
+        <td class="td-price" data-val="{r['price']:.0f}">¥{r['price']:,.0f}</td>
+        <td class="td-signal">{signal_str}</td>
+        <td class="td-risk"><span class="risk-tag risk-{risk_cls}">{r['risk_tag']}</span></td>
+      </tr>"""
+
         html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スクリーニング結果 - {date}</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
-            color: #333;
-        }}
-        .container {{
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            overflow: visible;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }}
-        .header h1 {{ font-size: 2em; margin-bottom: 10px; }}
-        .header p {{ opacity: 0.9; font-size: 1.1em; }}
-        
-        .stats {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-        }}
-        .stat-box {{
-            text-align: center;
-            padding: 15px;
-        }}
-        .stat-box .number {{
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
-        }}
-        .stat-box .label {{
-            color: #6c757d;
-            margin-top: 8px;
-            font-size: 0.9em;
-        }}
-        
-        .controls {{
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }}
-        .controls input {{
-            padding: 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            width: 100%;
-            max-width: 400px;
-            font-size: 1em;
-        }}
-        
-        /* テーブル - モバイル最適化 */
-        .table-container {{
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            width: 100%;
-            max-width: 100%;
-            display: block;
-            background: white;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-            background: white;
-        }}
-        thead {{
-            background: #495057;
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }}
-        th {{
-            padding: 15px 10px;
-            text-align: left;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.95em;
-        }}
-        th:hover {{ background: #343a40; }}
-        th:after {{
-            content: ' ↕';
-            opacity: 0.5;
-            font-size: 0.8em;
-        }}
-        td {{
-            padding: 12px 10px;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 0.9em;
-            background: white;
-        }}
-        tr:hover td {{ background: #f8f9fa; }}
-        @media(max-width:600px) {{ th, td {{ padding: 8px 6px; font-size: 0.82em; }} }}
-        
-        .score-high {{ color: #28a745; font-weight: bold; }}
-        .score-mid {{ color: #ffc107; font-weight: bold; }}
-        .score-low {{ color: #dc3545; font-weight: bold; }}
-        
-        .tag {{
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: 600;
-            white-space: nowrap;
-        }}
-        .tag-safe {{ background: #d4edda; color: #155724; }}
-        .tag-normal {{ background: #fff3cd; color: #856404; }}
-        .tag-risky {{ background: #f8d7da; color: #721c24; }}
-        
-        .footer {{
-            padding: 30px 20px;
-            text-align: center;
-            background: #f8f9fa;
-            color: #6c757d;
-            border-top: 2px solid #e9ecef;
-        }}
-        .footer a {{
-            color: #667eea;
-            text-decoration: none;
-            margin: 0 15px;
-            font-weight: 500;
-        }}
-        .footer a:hover {{ text-decoration: underline; }}
-        
-        /* スマホ対応（768px以下） */
-        @media (max-width: 768px) {{
-            body {{ padding: 5px; }}
-            .container {{ border-radius: 8px; }}
-            
-            .header {{ padding: 20px 15px; }}
-            .header h1 {{ font-size: 1.4em; }}
-            .header p {{ font-size: 0.95em; }}
-            
-            .stats {{
-                grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
-                padding: 15px 10px;
-            }}
-            .stat-box {{ padding: 10px 5px; }}
-            .stat-box .number {{ font-size: 1.5em; }}
-            .stat-box .label {{ font-size: 0.8em; }}
-            
-            .controls {{ padding: 15px 10px; }}
-            .controls input {{ 
-                font-size: 16px; /* iOS zoom防止 */
-                max-width: 100%;
-            }}
-            
-            .table-container {{ padding: 0 5px; }}
-            th {{ padding: 12px 6px; font-size: 0.85em; }}
-            td {{ padding: 10px 6px; font-size: 0.85em; }}
-            
-            .footer {{ padding: 20px 15px; }}
-            .footer a {{ 
-                display: block; 
-                margin: 10px 0;
-            }}
-        }}
-        
-        /* 極小スマホ対応（480px以下） */
-        @media (max-width: 480px) {{
-            .header h1 {{ font-size: 1.2em; }}
-            .header p {{ font-size: 0.85em; }}
-            
-            .stats {{ grid-template-columns: repeat(3, 1fr); gap: 8px; }}
-            .stat-box .number {{ font-size: 1.3em; }}
-            .stat-box .label {{ font-size: 0.75em; }}
-            
-            th {{ padding: 10px 4px; font-size: 0.75em; }}
-            td {{ padding: 8px 4px; font-size: 0.75em; }}
-            table {{ min-width: 800px; }}
-            
-            .tag {{ font-size: 0.7em; padding: 3px 6px; }}
-        }}
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スクリーニング結果 — {date} | nobi-labo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    :root {{
+      --bg:      #04080f;
+      --panel:   #080f1a;
+      --panel2:  #0c1525;
+      --border:  rgba(16,185,129,0.12);
+      --border2: rgba(255,255,255,0.06);
+      --green:   #10b981;
+      --green2:  #34d399;
+      --amber:   #f59e0b;
+      --red:     #ef4444;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --mono:    'JetBrains Mono', 'Courier New', monospace;
+    }}
+    html {{ scroll-behavior: smooth; }}
+    body {{
+      font-family: 'Noto Sans JP', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }}
+    body::before {{
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }}
+    /* ─── NAV ─── */
+    nav {{
+      position: sticky; top: 0; z-index: 100;
+      height: 52px; display: flex; align-items: center;
+      padding: 0 24px; gap: 10px;
+      background: rgba(4,8,15,0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }}
+    .nav-logo {{ font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--green); text-decoration: none; }}
+    .nav-sep {{ color: var(--muted); font-size: 12px; }}
+    .nav-crumb {{ font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; }}
+    .nav-crumb:hover {{ color: var(--green); }}
+    .nav-crumb.active {{ color: var(--text); }}
+    .nav-badge {{
+      margin-left: auto; display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; color: var(--green);
+    }}
+    .nav-dot {{
+      width: 6px; height: 6px; background: var(--green); border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }}
+    @keyframes pulse {{
+      0%, 100% {{ opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }}
+      50%       {{ opacity: 0.7; transform: scale(1.2); box-shadow: 0 0 0 4px rgba(16,185,129,0); }}
+    }}
+    /* ─── HEADER ─── */
+    .report-head {{
+      position: relative; z-index: 1;
+      padding: 28px 24px 20px;
+      max-width: 1440px; margin: 0 auto;
+      border-bottom: 1px solid var(--border2);
+    }}
+    .report-label {{
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 3px; color: var(--green); text-transform: uppercase;
+      margin-bottom: 6px;
+    }}
+    .report-title-row {{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
+    .report-title {{ font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }}
+    .report-plan {{
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 2px; color: var(--green);
+      border: 1px solid var(--border); padding: 3px 10px;
+      background: rgba(16,185,129,0.05);
+    }}
+    .report-date {{
+      font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px;
+    }}
+    /* ─── STATS ─── */
+    .stats-wrap {{
+      position: relative; z-index: 1;
+      max-width: 1440px; margin: 0 auto;
+      padding: 20px 24px 0;
+    }}
+    .stats-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border2);
+      border: 1px solid var(--border2);
+    }}
+    .stat-card {{ background: var(--panel); padding: 18px 22px; }}
+    .stat-num {{
+      font-family: var(--mono); font-size: 26px; font-weight: 700;
+      color: var(--green); line-height: 1; margin-bottom: 5px;
+    }}
+    .stat-lbl {{ font-size: 11px; color: var(--muted); }}
+    /* ─── CONTROLS ─── */
+    .controls-wrap {{
+      position: relative; z-index: 1;
+      max-width: 1440px; margin: 0 auto;
+      padding: 16px 24px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }}
+    .search-input {{
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono); font-size: 12px;
+      padding: 8px 14px; outline: none; width: 220px;
+      transition: border-color .15s;
+    }}
+    .search-input::placeholder {{ color: var(--muted); }}
+    .search-input:focus {{ border-color: var(--green); }}
+    .filter-pills {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+    .pill {{
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 5px 11px; cursor: pointer;
+      border: 1px solid var(--border2); color: var(--muted);
+      background: transparent; transition: all .15s; letter-spacing: 0.5px;
+    }}
+    .pill:hover {{ border-color: var(--border); color: var(--text); }}
+    .pill.active {{ border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.08); }}
+    .result-count {{ margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--muted); }}
+    /* ─── TABLE ─── */
+    .table-wrap {{
+      position: relative; z-index: 1;
+      max-width: 1440px; margin: 0 auto;
+      padding: 0 24px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }}
+    table {{ width: 100%; border-collapse: collapse; min-width: 860px; }}
+    thead {{ background: var(--panel2); border-bottom: 1px solid var(--border); }}
+    th {{
+      padding: 11px 13px; text-align: left;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      border-right: 1px solid var(--border2);
+      transition: color .15s;
+    }}
+    th:last-child {{ border-right: none; }}
+    th:hover {{ color: var(--green); }}
+    th.sorted {{ color: var(--green); }}
+    th.sorted::after {{ content: ' ↓'; }}
+    th.sorted.asc::after {{ content: ' ↑'; }}
+    tbody tr {{ border-bottom: 1px solid var(--border2); transition: background .1s; }}
+    tbody tr:hover {{ background: var(--panel); }}
+    tbody tr.hidden {{ display: none; }}
+    td {{
+      padding: 10px 13px; font-size: 13px;
+      border-right: 1px solid var(--border2);
+      vertical-align: middle;
+    }}
+    td:last-child {{ border-right: none; }}
+    .td-rank  {{ font-family: var(--mono); font-size: 11px; color: var(--muted); width: 44px; text-align: right; }}
+    .td-code  {{ font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--green); width: 60px; }}
+    .td-name  {{ font-weight: 700; min-width: 160px; }}
+    .td-sector{{ font-size: 11px; color: var(--muted); min-width: 120px; }}
+    .td-score {{ width: 110px; }}
+    .td-price {{ font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap; width: 88px; }}
+    .td-signal{{ font-size: 11px; color: #94a3b8; min-width: 140px; }}
+    .td-risk  {{ width: 76px; }}
+    /* スコアバー */
+    .score-wrap {{ display: flex; align-items: center; gap: 8px; }}
+    .score-bar  {{ flex: 1; height: 3px; background: #1e293b; border-radius: 2px; overflow: hidden; }}
+    .score-fill {{ height: 100%; border-radius: 2px; }}
+    .score-fill.high {{ background: linear-gradient(90deg, var(--green), var(--green2)); }}
+    .score-fill.mid  {{ background: linear-gradient(90deg, var(--amber), #fcd34d); }}
+    .score-fill.low  {{ background: linear-gradient(90deg, var(--red), #f87171); }}
+    .score-num       {{ font-family: var(--mono); font-size: 13px; font-weight: 700; white-space: nowrap; }}
+    .score-num.high  {{ color: var(--green); }}
+    .score-num.mid   {{ color: var(--amber); }}
+    .score-num.low   {{ color: var(--red); }}
+    /* パターンバッジ */
+    .pattern-badge {{
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 2px 7px;
+      border: 1px solid var(--border); color: var(--green);
+      background: rgba(16,185,129,0.05);
+      margin-left: 6px; vertical-align: middle; white-space: nowrap;
+    }}
+    /* リスクタグ */
+    .risk-tag {{
+      display: inline-block; font-family: var(--mono); font-size: 10px;
+      font-weight: 700; padding: 3px 8px; letter-spacing: 0.5px; white-space: nowrap;
+    }}
+    .risk-safe  {{ border: 1px solid rgba(16,185,129,0.3);  color: var(--green); background: rgba(16,185,129,0.05); }}
+    .risk-normal{{ border: 1px solid rgba(245,158,11,0.3);  color: var(--amber); background: rgba(245,158,11,0.05); }}
+    .risk-risky {{ border: 1px solid rgba(239,68,68,0.3);   color: var(--red);   background: rgba(239,68,68,0.05); }}
+    /* ─── FOOTER ─── */
+    .report-footer {{
+      position: relative; z-index: 1;
+      max-width: 1440px; margin: 40px auto 0;
+      padding: 20px 24px 32px;
+      border-top: 1px solid var(--border2);
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    }}
+    .footer-note {{ font-size: 11px; color: var(--muted); }}
+    .footer-links {{ display: flex; gap: 18px; margin-left: auto; }}
+    .footer-links a {{ font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; transition: color .15s; }}
+    .footer-links a:hover {{ color: var(--green); }}
+    /* スクロールトップ */
+    .scroll-top {{
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      width: 44px; height: 44px;
+      background: var(--panel); border: 1px solid var(--border);
+      color: var(--green); font-family: var(--mono); font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }}
+    .scroll-top:hover {{ background: rgba(16,185,129,0.1); border-color: var(--green); }}
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {{
+      .stats-grid {{ grid-template-columns: repeat(2, 1fr); }}
+      .controls-wrap {{ padding: 12px 12px; }}
+      .table-wrap {{ padding: 0 8px; }}
+      .report-head, .stats-wrap {{ padding-left: 12px; padding-right: 12px; }}
+    }}
+    @media (max-width: 480px) {{
+      .stats-grid {{ grid-template-columns: repeat(2, 1fr); }}
+      th, td {{ padding: 8px 6px; }}
+      .td-sector {{ display: none; }}
+      .search-input {{ width: 100%; }}
+    }}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 日本株スクリーニング結果</h1>
-            <p>📅 {date} | ベーシックプラン</p>
-        </div>
 
-        <div class="stats">
-            <div class="stat-box">
-                <div class="number">{len(results)}</div>
-                <div class="label">該当銘柄数</div>
-            </div>
-            <div class="stat-box">
-                <div class="number">{results[0]['total_score']:.0f}</div>
-                <div class="label">最高スコア</div>
-            </div>
-            <div class="stat-box">
-                <div class="number">{len(set(r['sector'] for r in results))}</div>
-                <div class="label">セクター数</div>
-            </div>
-        </div>
+<nav>
+  <a href="../index.html" class="nav-logo">nobi-labo</a>
+  <span class="nav-sep">/</span>
+  <a href="../index.html" class="nav-crumb">japan-stock-screener</a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb active">{date}</span>
+  <div class="nav-badge">
+    <div class="nav-dot"></div>
+    ベーシックプラン
+  </div>
+</nav>
 
-        <div class="controls">
-            <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
-        </div>
+<div class="report-head">
+  <div class="report-label">Screening Results</div>
+  <div class="report-title-row">
+    <span class="report-title">スクリーニング結果</span>
+    <span class="report-plan">BASIC PLAN</span>
+  </div>
+  <div class="report-date">{date} &nbsp;|&nbsp; 東証全銘柄スキャン</div>
+</div>
 
-        <div class="table-container">
-        <table id="stockTable">
-            <thead>
-                <tr>
-                    <th onclick="sortTable(0)">順位</th>
-                    <th onclick="sortTable(1)">コード</th>
-                    <th onclick="sortTable(2)">銘柄名</th>
-                    <th onclick="sortTable(3)">セクター</th>
-                    <th onclick="sortTable(4)">スコア ⭐</th>
-                    <th onclick="sortTable(5)">株価</th>
-                    <th>シグナル</th>
-                    <th>リスク</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-
-        for i, r in enumerate(results, 1):
-            score_class = ("score-high" if r['total_score'] >= 70
-                          else "score-mid" if r['total_score'] >= 50
-                          else "score-low")
-
-            risk_class = ("tag-safe" if "安定" in r['risk_tag']
-                         else "tag-normal" if "標準" in r['risk_tag']
-                         else "tag-risky")
-
-            signals = []
-            if r['bottom_cross'] == '✅':        signals.append('📈底値反発')
-            if r['golden_cross'] == '✅':         signals.append('🔄上昇転換')
-            if r['bb_reversal'] == '✅':          signals.append('🎯下限反発')
-            if r['bb_breakout'] == '✅':          signals.append('🚀上限突破')
-            if r['volume_surge'] == '✅':         signals.append('📊出来高急増')
-            if r['obv_trend_up'] == '✅':         signals.append('💹資金流入')
-            if r['ichimoku_bullish'] == '✅三役好転': signals.append('⛩一目好転')
-            pattern = r.get('pattern', '')
-
-            signal_str = ", ".join(signals) if signals else "複合シグナル"
-
-            pattern_badge = (
-                f'<span style="display:inline-block;font-size:.78em;padding:1px 7px;'
-                f'border-radius:10px;background:rgba(99,102,241,.12);color:#6366f1;'
-                f'font-weight:600;margin-left:4px;">{pattern}</span>'
-                if pattern else ''
-            )
-            html += f"""
-                <tr>
-                    <td>{i}</td>
-                    <td><strong>{r['code']}</strong></td>
-                    <td>{r['name']}{pattern_badge}</td>
-                    <td><small>{r['sector']}</small></td>
-                    <td class="{score_class}">{r['total_score']:.0f}</td>
-                    <td>¥{r['price']:,.0f}</td>
-                    <td><small>{signal_str}</small></td>
-                    <td><span class="tag {risk_class}">{r['risk_tag']}</span></td>
-                </tr>
-"""
-
-        html += """
-            </tbody>
-        </table>
-        </div>
-
-        <div class="footer">
-            <p>⚠️ このレポートは当日限り有効です。翌日以降は最新版をご確認ください。</p>
-            <p style="margin-top: 15px;">
-                <a href="../index.html">🏠 トップページへ</a> |
-                <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
-            </p>
-            <p style="margin-top: 10px; font-size: 0.85em; color: #999;">
-                本サービスは投資助言ではありません。投資判断は自己責任で行ってください。
-            </p>
-        </div>
+<div class="stats-wrap">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">{len(results):,}</div>
+      <div class="stat-lbl">該当銘柄数</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-num">{max_score:.0f}</div>
+      <div class="stat-lbl">最高スコア</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{sector_count}</div>
+      <div class="stat-lbl">セクター数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{gc_count}</div>
+      <div class="stat-lbl">上昇転換(GC)数</div>
+    </div>
+  </div>
+</div>
 
-    <script>
-        function sortTable(col) {
-            const table = document.getElementById("stockTable");
-            const rows = Array.from(table.rows).slice(1);
-            const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+<div class="controls-wrap">
+  <input type="text" id="search" class="search-input" placeholder="🔍 コード / 銘柄名で検索" oninput="filterRows()">
+  <div class="filter-pills">
+    <button class="pill active" onclick="setFilter(this,'')" data-filter="">ALL</button>
+    <button class="pill" onclick="setFilter(this,'強気ブレイク')" data-filter="強気ブレイク">🚀 強気ブレイク</button>
+    <button class="pill" onclick="setFilter(this,'底打ち反転')" data-filter="底打ち反転">🎯 底打ち反転</button>
+    <button class="pill" onclick="setFilter(this,'一目好転')" data-filter="一目好転">⛩ 一目好転</button>
+    <button class="pill" onclick="setFilter(this,'安定上昇')" data-filter="安定上昇">💎 安定上昇</button>
+    <button class="pill" onclick="setFilter(this,'過熱注意')" data-filter="過熱注意">⚡ 過熱注意</button>
+  </div>
+  <div class="result-count" id="result-count">{len(results):,} 件</div>
+</div>
 
-            rows.sort((a, b) => {
-                let aVal = a.cells[col].textContent.trim();
-                let bVal = b.cells[col].textContent.trim();
+<div class="table-wrap">
+  <table id="stockTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">NO</th>
+        <th onclick="sortTable(1)">コード</th>
+        <th onclick="sortTable(2)">銘柄名</th>
+        <th onclick="sortTable(3)">セクター</th>
+        <th onclick="sortTable(4)">スコア</th>
+        <th onclick="sortTable(5)">株価</th>
+        <th>シグナル</th>
+        <th>リスク</th>
+      </tr>
+    </thead>
+    <tbody>
+{rows_html}
+    </tbody>
+  </table>
+</div>
 
-                // 数値列の判定
-                if (col === 0 || col === 4 || col === 5) {
-                    aVal = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
-                    bVal = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
-                }
+<div class="report-footer">
+  <span class="footer-note">⚠️ このレポートは当日限り有効。翌日以降は最新版をご確認ください。本情報は投資助言ではありません。</span>
+  <div class="footer-links">
+    <a href="../index.html">← トップへ</a>
+    <a href="../legal/disclaimer.html">免責事項</a>
+  </div>
+</div>
 
-                return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
-            });
+<button class="scroll-top" onclick="window.scrollTo({{top:0,behavior:'smooth'}})" title="トップへ">↑</button>
 
-            rows.forEach(row => table.tBodies[0].appendChild(row));
-            table.dataset.sortCol = col;
-            table.dataset.sortDir = isAsc ? "desc" : "asc";
-        }
+<script>
+  let currentFilter = '';
 
-        function filterTable() {
-            const input = document.getElementById("search").value.toUpperCase();
-            const table = document.getElementById("stockTable");
-            const rows = table.getElementsByTagName("tr");
+  function setFilter(btn, pattern) {{
+    currentFilter = pattern;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    filterRows();
+  }}
 
-            for (let i = 1; i < rows.length; i++) {
-                const code = rows[i].cells[1].textContent;
-                const name = rows[i].cells[2].textContent;
-                rows[i].style.display = (code + name).toUpperCase().includes(input) ? "" : "none";
-            }
-        }
-    </script>
-<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
-        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
-        title="トップへ戻る">↑</button>
+  function filterRows() {{
+    const q = document.getElementById('search').value.toUpperCase();
+    const rows = document.querySelectorAll('#stockTable tbody tr');
+    let count = 0;
+    rows.forEach(row => {{
+      const code    = (row.dataset.code    || '').toUpperCase();
+      const name    = (row.dataset.name    || '').toUpperCase();
+      const pattern =  row.dataset.pattern || '';
+      const matchSearch = (code + name).includes(q);
+      const matchFilter = !currentFilter || pattern.includes(currentFilter);
+      if (matchSearch && matchFilter) {{
+        row.classList.remove('hidden');
+        count++;
+      }} else {{
+        row.classList.add('hidden');
+      }}
+    }});
+    document.getElementById('result-count').textContent = count.toLocaleString() + ' 件';
+  }}
+
+  function sortTable(col) {{
+    const table   = document.getElementById('stockTable');
+    const headers = table.querySelectorAll('th');
+    const isAsc   = headers[col].classList.contains('sorted') && !headers[col].classList.contains('asc');
+    headers.forEach(h => h.classList.remove('sorted','asc'));
+    headers[col].classList.add('sorted');
+    if (isAsc) headers[col].classList.add('asc');
+
+    const rows = Array.from(table.tBodies[0].rows);
+    rows.sort((a, b) => {{
+      let av = a.cells[col].dataset.val ?? a.cells[col].textContent.trim();
+      let bv = b.cells[col].dataset.val ?? b.cells[col].textContent.trim();
+      if (col === 0 || col === 4 || col === 5) {{
+        av = parseFloat(String(av).replace(/[^0-9.-]/g,'')) || 0;
+        bv = parseFloat(String(bv).replace(/[^0-9.-]/g,'')) || 0;
+      }}
+      const cmp = av > bv ? 1 : av < bv ? -1 : 0;
+      return isAsc ? -cmp : cmp;
+    }});
+    rows.forEach(r => table.tBodies[0].appendChild(r));
+  }}
+</script>
 </body>
 </html>
 """
