@@ -1228,6 +1228,18 @@
     const dateEl = document.getElementById('summary-date');
     if (data.date && dateEl) dateEl.textContent = data.date;
 
+    // 最新レポートボタンを latest.json の date で更新（HEAD探索より確実）
+    if (data.date) {
+      const reportBtn = document.getElementById('latestReportBtn');
+      if (reportBtn) {
+        const reportFile = data.date.replace(/-/g, '') + '.html';
+        reportBtn.href = '/japan-stock-screener/reports/' + reportFile;
+        reportBtn.textContent = '📄 最新レポートを見る';
+        reportBtn.style.opacity = '';
+        reportBtn.style.pointerEvents = '';
+      }
+    }
+
     // 市場サマリー
     const ms = data.market_summary;
     if (ms) {
