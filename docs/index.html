@@ -836,8 +836,9 @@
   <script>
     /* フラッシュ防止: ページ表示前にテーマを適用 */
     (function(){
-      if (localStorage.getItem('screener-theme') === 'light')
-        document.documentElement.classList.add('light');
+      var saved = localStorage.getItem('screener-theme');
+      var light = saved ? saved === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
+      if (light) document.documentElement.classList.add('light');
     })();
   </script>
 </head>

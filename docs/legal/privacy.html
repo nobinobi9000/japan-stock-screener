@@ -229,7 +229,7 @@
     }
   </style>
   <script>
-    (function(){ if (localStorage.getItem('screener-theme') === 'light') document.documentElement.classList.add('light'); })();
+    (function(){ var s=localStorage.getItem('screener-theme'); var l=s?s==='light':window.matchMedia('(prefers-color-scheme: light)').matches; if(l)document.documentElement.classList.add('light'); })();
   </script>
 </head>
 <body>
