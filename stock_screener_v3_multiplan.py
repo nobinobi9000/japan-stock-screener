@@ -132,6 +132,19 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
         return cached_df
 
     if new_data.empty:
+        # キャッシュが7日以上古い場合は2年分フルリフレッシュ（stale cache 自動修復）
+        days_stale = (datetime.now() - last_date).days
+        if days_stale > 7:
+            try:
+                fresh_data = ticker.history(period="2y")
+                if not fresh_data.empty:
+                    try:
+                        fresh_data.to_parquet(cache_path, engine="pyarrow")
+                    except Exception:
+                        pass
+                    return fresh_data
+            except Exception:
+                pass
         return cached_df
 
     if hasattr(new_data.index, 'tz') and new_data.index.tz is not None:
