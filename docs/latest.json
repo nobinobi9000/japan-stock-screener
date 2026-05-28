@@ -1,6 +1,16 @@
 {
-  "date": "2026-05-27",
+  "date": "2026-05-28",
   "top3": [
+    {
+      "code": "7350",
+      "name": "おきなわフィナンシャルグループ",
+      "score": 65.0,
+      "price": 6150.0,
+      "risk_tag": "🟢安定",
+      "sector": "銀行業",
+      "pattern": "⛩一目好転",
+      "win_rate": 100.0
+    },
     {
       "code": "4690",
       "name": "日本パレットプール",
@@ -13,6 +23,11 @@
     }
   ],
   "sector_heatmap": [
+    {
+      "name": "銀行業",
+      "avg_score": 65.0,
+      "stock_count": 1
+    },
     {
       "name": "サービス業",
       "avg_score": 55.0,
@@ -29,6 +44,11 @@
       "stock_count": 2
     },
     {
+      "name": "その他金融業",
+      "avg_score": 35.0,
+      "stock_count": 1
+    },
+    {
       "name": "卸売業",
       "avg_score": 35.0,
       "stock_count": 2
@@ -42,18 +62,23 @@
       "name": "その他製品",
       "avg_score": 35.0,
       "stock_count": 1
+    },
+    {
+      "name": "-",
+      "avg_score": 30.0,
+      "stock_count": 1
     }
   ],
   "market_summary": {
-    "total_screened": 9,
+    "total_screened": 12,
     "gc_count": 0,
-    "volume_surge_count": 0,
-    "ichimoku_count": 2,
+    "volume_surge_count": 2,
+    "ichimoku_count": 5,
     "pattern_distribution": {
-      "⛩一目好転": 2,
+      "⛩一目好転": 5,
       "💎安定上昇": 4,
       "📊シグナル点灯": 3
     },
-    "auto_comment": "「サービス業」セクターの平均スコアが55点で最高。このセクターに注目が集まっています。"
+    "auto_comment": "「銀行業」セクターの平均スコアが65点で最高。このセクターに注目が集まっています。"
   }
 }

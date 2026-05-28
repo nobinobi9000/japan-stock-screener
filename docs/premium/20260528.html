@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレミアムレポート - 2026-05-28</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#0d0d1a 100%); padding:10px; color:#333; }
+        .container { max-width:1700px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+        .header { background:linear-gradient(135deg,#7c3aed 0%,#db2777 100%); color:white; padding:30px 20px; text-align:center; }
+        .header h1 { font-size:1.9em; margin-bottom:8px; }
+        .badge { display:inline-block; background:rgba(255,255,255,.25); padding:4px 14px; border-radius:20px; font-size:.85em; margin-top:8px; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:15px; padding:20px; background:#faf5ff; border-bottom:2px solid #e9d5ff; }
+        .stat-box { text-align:center; padding:12px; }
+        .stat-box .number { font-size:1.8em; font-weight:bold; color:#7c3aed; }
+        .stat-box .label { color:#6c757d; margin-top:6px; font-size:.85em; }
+        .layout { display:grid; grid-template-columns:1fr 280px; gap:0; }
+        .main-content { padding:0; }
+        .sidebar { background:#faf5ff; border-left:2px solid #e9d5ff; padding:20px; }
+        .sidebar h3 { color:#7c3aed; margin-bottom:8px; font-size:.95em; }
+        .tab-nav { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }
+        .tab-btn { padding:5px 10px; border:1px solid #c4b5fd; border-radius:6px; font-size:.8em; cursor:pointer; background:white; color:#7c3aed; }
+        .tab-btn.active { background:#7c3aed; color:white; border-color:#7c3aed; }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block; }
+        .sidebar ul { list-style:none; }
+        .sidebar ul li { margin:5px 0; }
+        .sidebar ul li a { color:#7c3aed; text-decoration:none; font-size:.88em; }
+        .sidebar ul li a:hover { text-decoration:underline; }
+        .coming-soon { color:#adb5bd; font-size:.85em; padding:8px; border:1px dashed #e9d5ff; border-radius:6px; text-align:center; margin-top:8px; }
+        .section-title { background:#7c3aed; color:white; padding:10px 20px; font-weight:bold; font-size:.95em; }
+        .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+        .summary-box { padding:20px; border-right:1px solid #e9ecef; border-bottom:1px solid #e9ecef; }
+        .summary-box h4 { color:#7c3aed; margin-bottom:12px; font-size:.9em; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+        .summary-box table { width:100%; font-size:.85em; }
+        .summary-box td { padding:5px 8px; border-bottom:1px solid #f0e6ff; }
+        .controls { padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; }
+        .controls input { padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.9em; }
+        .table-container { overflow-x:auto; background:white; }
+        table.main { width:100%; border-collapse:collapse; min-width:1300px; background:white; }
+        table.main thead { background:#7c3aed; color:white; position:sticky; top:0; z-index:10; }
+        table.main th { padding:11px 7px; text-align:center; cursor:pointer; font-size:.82em; font-weight:600; user-select:none; }
+        table.main th:hover { background:#6d28d9; }
+        table.main th:after { content:' ↕'; opacity:.5; font-size:.7em; }
+        table.main td { padding:9px 7px; border-bottom:1px solid #f0e6ff; font-size:.85em; text-align:center; background:white; }
+        table.main td:nth-child(3) { text-align:left; }
+        table.main tr:hover td { background:#faf5ff; }
+        @media(max-width:600px) {
+            table.main { font-size:.78em; }
+            table.main th, table.main td { padding:7px 4px; }
+        }
+        .score-high { color:#28a745; font-weight:bold; }
+        .score-mid  { color:#d97706; font-weight:bold; }
+        .score-low  { color:#dc3545; font-weight:bold; }
+        .backlog-high { background:#fef3c7; color:#92400e; border-radius:4px; padding:2px 6px; font-weight:bold; }
+        .backlog-mid  { background:#ede9fe; color:#5b21b6; border-radius:4px; padding:2px 6px; }
+        .backlog-low  { color:#adb5bd; }
+        .hit  { background:#d4edda; color:#155724; border-radius:3px; padding:1px 5px; font-weight:600; font-size:.82em; }
+        .miss { color:#ced4da; font-size:.82em; }
+        .footer { padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }
+        .footer a { color:#7c3aed; text-decoration:none; margin:0 12px; font-weight:500; }
+        @media(max-width:900px) { .layout { grid-template-columns:1fr; } .sidebar { border-left:none; border-top:2px solid #e9d5ff; } .summary-grid { grid-template-columns:1fr; } }
+        #nav-panel a { color: #93c5fd; text-decoration: none; font-size: 0.85em; display: block; padding: 2px 0; }
+        #nav-panel a:hover { color: #f59e0b; }
+        details > ul li a { color: #93c5fd; text-decoration: none; font-size: 0.85em; display: block; padding: 2px 0; }
+        details > ul li a:hover { color: #f59e0b; }
+        details summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👑 プレミアムレポート</h1>
+        <p>📅 2026-05-28  |  BackLog分析付き</p>
+        <span class="badge">Premium プラン限定</span>
+    </div>
+        <!-- ナビゲーションパネル -->
+        <div id="nav-panel" style="background:#1e293b;padding:16px 20px;border-bottom:2px solid #334155;">
+            <div style="max-width:1400px;margin:0 auto;display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+                <!-- Premium -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#f59e0b;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📊 Premiumレポート</div>
+                    <div style="color:#f0f0f0;font-size:0.9em;margin-bottom:6px;">📅 2026-05-28（現在）</div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            <li><a href="20260527.html" style="">2026-05-27</a></li><li><a href="20260526.html" style="">2026-05-26</a></li><li><a href="20260525.html" style="">2026-05-25</a></li><li><a href="20260522.html" style="">2026-05-22</a></li><li><a href="20260521.html" style="">2026-05-21</a></li><li><a href="20260520.html" style="">2026-05-20</a></li><li><a href="20260519.html" style="">2026-05-19</a></li><li><a href="20260518.html" style="">2026-05-18</a></li><li><a href="20260515.html" style="">2026-05-15</a></li><li><a href="20260514.html" style="">2026-05-14</a></li><li><a href="20260513.html" style="">2026-05-13</a></li><li><a href="20260512.html" style="">2026-05-12</a></li><li><a href="20260511.html" style="">2026-05-11</a></li><li><a href="20260508.html" style="">2026-05-08</a></li><li><a href="20260507.html" style="">2026-05-07</a></li><li><a href="20260501.html" style="">2026-05-01</a></li><li><a href="20260430.html" style="">2026-04-30</a></li><li><a href="20260428.html" style="">2026-04-28</a></li><li><a href="20260427.html" style="">2026-04-27</a></li><li><a href="20260424.html" style="">2026-04-24</a></li><li><a href="20260423.html" style="">2026-04-23</a></li><li><a href="20260422.html" style="">2026-04-22</a></li><li><a href="20260421.html" style="">2026-04-21</a></li><li><a href="20260420.html" style="">2026-04-20</a></li><li><a href="20260417.html" style="">2026-04-17</a></li><li><a href="20260416.html" style="">2026-04-16</a></li><li><a href="20260415.html" style="">2026-04-15</a></li><li><a href="20260414.html" style="">2026-04-14</a></li><li><a href="20260413.html" style="">2026-04-13</a></li><li><a href="20260410.html" style="">2026-04-10</a></li>
+                        </ul>
+                    </details>
+                </div>
+                <!-- Analysis -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#60a5fa;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📈 Analysisレポート</div>
+                    <div style="font-size:0.9em;margin-bottom:6px;">
+                        <a href="../analysis/20260528.html" style="color:#93c5fd;">📅 2026-05-28（当日）</a>
+                    </div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            <li><a href="../analysis/20260528.html" style="font-weight:bold;color:#f59e0b;">2026-05-28</a></li><li><a href="../analysis/20260527.html" style="">2026-05-27</a></li><li><a href="../analysis/20260526.html" style="">2026-05-26</a></li><li><a href="../analysis/20260525.html" style="">2026-05-25</a></li><li><a href="../analysis/20260522.html" style="">2026-05-22</a></li><li><a href="../analysis/20260521.html" style="">2026-05-21</a></li><li><a href="../analysis/20260520.html" style="">2026-05-20</a></li><li><a href="../analysis/20260519.html" style="">2026-05-19</a></li><li><a href="../analysis/20260518.html" style="">2026-05-18</a></li><li><a href="../analysis/20260515.html" style="">2026-05-15</a></li><li><a href="../analysis/20260514.html" style="">2026-05-14</a></li><li><a href="../analysis/20260513.html" style="">2026-05-13</a></li><li><a href="../analysis/20260512.html" style="">2026-05-12</a></li><li><a href="../analysis/20260511.html" style="">2026-05-11</a></li><li><a href="../analysis/20260508.html" style="">2026-05-08</a></li><li><a href="../analysis/20260507.html" style="">2026-05-07</a></li><li><a href="../analysis/20260501.html" style="">2026-05-01</a></li><li><a href="../analysis/20260430.html" style="">2026-04-30</a></li><li><a href="../analysis/20260428.html" style="">2026-04-28</a></li><li><a href="../analysis/20260427.html" style="">2026-04-27</a></li><li><a href="../analysis/20260424.html" style="">2026-04-24</a></li><li><a href="../analysis/20260423.html" style="">2026-04-23</a></li><li><a href="../analysis/20260422.html" style="">2026-04-22</a></li><li><a href="../analysis/20260421.html" style="">2026-04-21</a></li><li><a href="../analysis/20260420.html" style="">2026-04-20</a></li><li><a href="../analysis/20260417.html" style="">2026-04-17</a></li><li><a href="../analysis/20260416.html" style="">2026-04-16</a></li><li><a href="../analysis/20260415.html" style="">2026-04-15</a></li><li><a href="../analysis/20260414.html" style="">2026-04-14</a></li><li><a href="../analysis/20260413.html" style="">2026-04-13</a></li>
+                        </ul>
+                    </details>
+                </div>
+                <!-- Basic -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="color:#34d399;font-weight:bold;margin-bottom:8px;font-size:0.95em;">📋 Basicレポート</div>
+                    <div style="font-size:0.9em;margin-bottom:6px;">
+                        <a href="../reports/20260528.html" style="color:#6ee7b7;">📅 2026-05-28（当日）</a>
+                    </div>
+                    <details style="cursor:pointer;">
+                        <summary style="color:#94a3b8;font-size:0.85em;list-style:none;cursor:pointer;">📁 過去レポート ▼</summary>
+                        <ul style="list-style:none;margin-top:8px;padding-left:12px;max-height:200px;overflow-y:auto;">
+                            <li><a href="../reports/20260528.html" style="font-weight:bold;color:#f59e0b;">2026-05-28</a></li><li><a href="../reports/20260527.html" style="">2026-05-27</a></li><li><a href="../reports/20260526.html" style="">2026-05-26</a></li><li><a href="../reports/20260525.html" style="">2026-05-25</a></li><li><a href="../reports/20260522.html" style="">2026-05-22</a></li><li><a href="../reports/20260521.html" style="">2026-05-21</a></li><li><a href="../reports/20260520.html" style="">2026-05-20</a></li><li><a href="../reports/20260519.html" style="">2026-05-19</a></li><li><a href="../reports/20260518.html" style="">2026-05-18</a></li><li><a href="../reports/20260515.html" style="">2026-05-15</a></li><li><a href="../reports/20260514.html" style="">2026-05-14</a></li><li><a href="../reports/20260513.html" style="">2026-05-13</a></li><li><a href="../reports/20260512.html" style="">2026-05-12</a></li><li><a href="../reports/20260511.html" style="">2026-05-11</a></li><li><a href="../reports/20260508.html" style="">2026-05-08</a></li><li><a href="../reports/20260507.html" style="">2026-05-07</a></li><li><a href="../reports/20260501.html" style="">2026-05-01</a></li><li><a href="../reports/20260430.html" style="">2026-04-30</a></li><li><a href="../reports/20260428.html" style="">2026-04-28</a></li><li><a href="../reports/20260427.html" style="">2026-04-27</a></li><li><a href="../reports/20260424.html" style="">2026-04-24</a></li><li><a href="../reports/20260423.html" style="">2026-04-23</a></li><li><a href="../reports/20260422.html" style="">2026-04-22</a></li><li><a href="../reports/20260421.html" style="">2026-04-21</a></li><li><a href="../reports/20260420.html" style="">2026-04-20</a></li><li><a href="../reports/20260417.html" style="">2026-04-17</a></li><li><a href="../reports/20260416.html" style="">2026-04-16</a></li><li><a href="../reports/20260415.html" style="">2026-04-15</a></li><li><a href="../reports/20260414.html" style="">2026-04-14</a></li><li><a href="../reports/20260413.html" style="">2026-04-13</a></li>
+                        </ul>
+                    </details>
+                </div>
+            </div>
+        </div>
+    <div class="stats">
+        <div class="stat-box"><div class="number">12</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">65</div><div class="label">最高スコア</div></div>
+        <div class="stat-box"><div class="number">100%</div><div class="label">BackLog最高値</div></div>
+        <div class="stat-box"><div class="number">62%</div><div class="label">BackLog平均</div></div>
+        <div class="stat-box"><div class="number">9</div><div class="label">セクター数</div></div>
+    </div>
+
+    <div class="layout">
+        <div class="main-content">
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <h4>📊 セクター別集計</h4>
+                    <table>
+                        <tr><th style="text-align:left">セクター</th><th>銘柄数</th></tr>
+                        <tr><td>小売業</td><td style="text-align:center"><strong>2</strong></td></tr><tr><td>卸売業</td><td style="text-align:center"><strong>2</strong></td></tr><tr><td>機械</td><td style="text-align:center"><strong>2</strong></td></tr><tr><td>銀行業</td><td style="text-align:center"><strong>1</strong></td></tr><tr><td>サービス業</td><td style="text-align:center"><strong>1</strong></td></tr><tr><td>電気機器</td><td style="text-align:center"><strong>1</strong></td></tr><tr><td>その他金融業</td><td style="text-align:center"><strong>1</strong></td></tr><tr><td>その他製品</td><td style="text-align:center"><strong>1</strong></td></tr>
+                    </table>
+                </div>
+                <div class="summary-box">
+                    <h4>🔔 シグナル分布</h4>
+                    <table>
+                        <tr><th style="text-align:left">シグナル</th><th>銘柄数</th><th>%</th><th>分布</th></tr>
+                        <tr><td>ゴールデンクロス</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>BB反発</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>BBブレイク</td><td>0銘柄</td><td>0%</td><td style='color:#f59e0b;letter-spacing:-2px'></td></tr><tr><td>出来高急増</td><td>2銘柄</td><td>17%</td><td style='color:#f59e0b;letter-spacing:-2px'>███</td></tr><tr><td>OBV上昇</td><td>6銘柄</td><td>50%</td><td style='color:#f59e0b;letter-spacing:-2px'>██████████</td></tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section-title">📊 シグナル統計グラフ（Step2）</div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;padding:16px;background:#0f172a;">
+                <div style="flex:1;min-width:280px;"><img src="../charts/2026-05-28/stats_signals.png" alt="シグナルヒット率" style="width:100%;border-radius:8px;"></div><div style="flex:1;min-width:280px;"><img src="../charts/2026-05-28/stats_sectors.png" alt="セクター平均スコア" style="width:100%;border-radius:8px;"></div>
+            </div>
+
+            
+            <div class="section-title">📈 Top5 スコアチャート（ローソク足 3ヶ月 / MA25・MA75・MA200・BB）</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+                        gap:12px;padding:16px;background:#0f172a;">
+                
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">7350 おきなわフィナンシャルグループ</span>
+                    <span style="color:#f59e0b;font-weight:bold;font-size:.9em;">▶ 65pt</span>
+                </div>
+                <img src="../charts/2026-05-28/7350.png" alt="7350チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">4690 日本パレットプール</span>
+                    <span style="color:#f59e0b;font-weight:bold;font-size:.9em;">▶ 55pt</span>
+                </div>
+                <img src="../charts/2026-05-28/4690.png" alt="4690チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">6901 澤藤電機</span>
+                    <span style="color:#ef4444;font-weight:bold;font-size:.9em;">▶ 45pt</span>
+                </div>
+                <img src="../charts/2026-05-28/6901.png" alt="6901チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">7455 パリミキホールディングス</span>
+                    <span style="color:#ef4444;font-weight:bold;font-size:.9em;">▶ 45pt</span>
+                </div>
+                <img src="../charts/2026-05-28/7455.png" alt="7455チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>
+            <div style="background:#1e293b;border-radius:10px;overflow:hidden;border:1px solid #334155;">
+                <div style="padding:8px 12px;background:#0f172a;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#f0f0f0;font-weight:bold;font-size:.9em;">8511 日本証券金融</span>
+                    <span style="color:#ef4444;font-weight:bold;font-size:.9em;">▶ 35pt</span>
+                </div>
+                <img src="../charts/2026-05-28/8511.png" alt="8511チャート"
+                     style="width:100%;display:block;max-height:280px;object-fit:contain;background:#0d0d1a;">
+            </div>
+            </div>
+            <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
+            <div class="controls">
+                <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+            </div>
+            <div class="table-container">
+            <table class="main" id="stockTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">順位</th>
+                        <th onclick="sortTable(1)">コード</th>
+                        <th onclick="sortTable(2)">銘柄名</th>
+                        <th onclick="sortTable(3)">セクター</th>
+                        <th onclick="sortTable(4)">スコア</th>
+                        <th onclick="sortTable(5)">BackLog</th>
+                        <th onclick="sortTable(6)">MA200<br><small>15pt</small></th><th onclick="sortTable(7)">GC<br><small>10pt</small></th><th onclick="sortTable(8)">底値<br><small>10pt</small></th><th onclick="sortTable(9)">BB<br><small>15pt</small></th><th onclick="sortTable(10)">OBV<br><small>10pt</small></th><th onclick="sortTable(11)">雲上<br><small>10pt</small></th><th onclick="sortTable(12)">三役好転<br><small>10pt</small></th><th onclick="sortTable(13)">出来高<br><small>10pt</small></th><th onclick="sortTable(14)">PBR<br><small>10pt</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td><strong>7350</strong></td>
+                        <td style="text-align:left">おきなわフィナンシャルグループ</td>
+                        <td><small>銀行業</small></td>
+                        <td class="score-mid">65</td>
+                        <td><span class="backlog-high">100.0%（3回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><strong>4690</strong></td>
+                        <td style="text-align:left">日本パレットプール</td>
+                        <td><small>サービス業</small></td>
+                        <td class="score-mid">55</td>
+                        <td><span class="backlog-high">100.0%（4回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td><strong>6901</strong></td>
+                        <td style="text-align:left">澤藤電機</td>
+                        <td><small>電気機器</small></td>
+                        <td class="score-low">45</td>
+                        <td><span class="backlog-high">100.0%（2回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td><strong>7455</strong></td>
+                        <td style="text-align:left">パリミキホールディングス</td>
+                        <td><small>小売業</small></td>
+                        <td class="score-low">45</td>
+                        <td><span class="backlog-high">100.0%（3回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td><strong>8511</strong></td>
+                        <td style="text-align:left">日本証券金融</td>
+                        <td><small>その他金融業</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-high">80.0%（10回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td><strong>7420</strong></td>
+                        <td style="text-align:left">佐鳥電機</td>
+                        <td><small>卸売業</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-high">66.7%（3回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td><strong>6293</strong></td>
+                        <td style="text-align:left">日精樹脂工業</td>
+                        <td><small>機械</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-high">61.5%（13回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td><strong>6210</strong></td>
+                        <td style="text-align:left">ＴＯＹＯイノベックス</td>
+                        <td><small>機械</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-mid">42.9%（14回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td><strong>7450</strong></td>
+                        <td style="text-align:left">サンデー</td>
+                        <td><small>小売業</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-low">33.3%（3回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td><strong>7923</strong></td>
+                        <td style="text-align:left">トーイン</td>
+                        <td><small>その他製品</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-low">33.3%（3回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td><strong>7467</strong></td>
+                        <td style="text-align:left">萩原電気ホールディングス</td>
+                        <td><small>卸売業</small></td>
+                        <td class="score-low">35</td>
+                        <td><span class="backlog-low">27.3%（11回）</span></td>
+                        <td><span class="hit">✅15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td><strong>392A</strong></td>
+                        <td style="text-align:left">ｉシェアーズ　ＮＡＳＤＡＱ　トップ　３０　ＥＴＦ</td>
+                        <td><small>-</small></td>
+                        <td class="score-low">30</td>
+                        <td><span class="backlog-low">0.0%（0回）</span></td>
+                        <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="hit">✅10pt</span></td><td><span class="miss">—</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>⚠️ BackLog値はバックテストの参考値です。将来の利益を保証するものではありません。</p>
+        <p style="margin-top:12px;">
+            <a href="../index.html">🏠 トップ</a> |
+            <a href="../reports/20260528.html">📊 Basicレポート</a> |
+            <a href="../analysis/20260528.html">🔬 Analysisレポート</a> |
+            <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+        </p>
+    </div>
+</div>
+<script>
+    function sortTable(col) {
+        const table = document.getElementById("stockTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+        rows.sort((a, b) => {
+            let aVal = a.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            let bVal = b.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            aVal = parseFloat(aVal) || aVal; bVal = parseFloat(bVal) || bVal;
+            return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+        table.dataset.sortCol = col;
+        table.dataset.sortDir = isAsc ? "desc" : "asc";
+    }
+    function filterTable() {
+        const input = document.getElementById("search").value.toUpperCase();
+        const rows = document.getElementById("stockTable").getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+            const text = rows[i].cells[1].textContent + rows[i].cells[2].textContent;
+            rows[i].style.display = text.toUpperCase().includes(input) ? "" : "none";
+        }
+    }
+    function switchTab(name) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        event.target.classList.add('active');
+    }
+</script>
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
+        title="トップへ戻る">↑</button>
+</body>
+</html>
