@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-02",
+  "date": "2026-06-03",
   "top3": [
     {
       "code": "4690",
@@ -15,8 +15,8 @@
   "sector_heatmap": [
     {
       "name": "サービス業",
-      "avg_score": 45.0,
-      "stock_count": 2
+      "avg_score": 55.0,
+      "stock_count": 1
     },
     {
       "name": "電気機器",
@@ -45,12 +45,12 @@
     }
   ],
   "market_summary": {
-    "total_screened": 7,
+    "total_screened": 6,
     "gc_count": 0,
     "volume_surge_count": 2,
-    "ichimoku_count": 2,
+    "ichimoku_count": 1,
     "pattern_distribution": {
-      "⛩一目好転": 2,
+      "⛩一目好転": 1,
       "💎安定上昇": 4,
       "📊シグナル点灯": 1
     },
