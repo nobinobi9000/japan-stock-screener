@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-04",
+  "date": "2026-06-05",
   "top3": [
     {
       "code": "4690",
@@ -31,7 +31,7 @@
     {
       "name": "情報・通信業",
       "avg_score": 35.0,
-      "stock_count": 2
+      "stock_count": 1
     },
     {
       "name": "小売業",
@@ -45,15 +45,15 @@
     }
   ],
   "market_summary": {
-    "total_screened": 8,
+    "total_screened": 7,
     "gc_count": 0,
-    "volume_surge_count": 3,
+    "volume_surge_count": 2,
     "ichimoku_count": 2,
     "pattern_distribution": {
       "⛩一目好転": 2,
       "💎安定上昇": 4,
-      "📊シグナル点灯": 2
+      "📊シグナル点灯": 1
     },
-    "auto_comment": "出来高急増が3銘柄で発生。市場全体に動意が出ています。"
+    "auto_comment": "出来高急増が2銘柄で発生。市場全体に動意が出ています。"
   }
 }
