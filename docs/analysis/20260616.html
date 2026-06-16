@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スコア内訳レポート - 2026-06-16</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); padding:10px; color:#333; }
+        .container { max-width:1600px; margin:0 auto; background:white; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.3); overflow:visible; }
+        .header { background:linear-gradient(135deg,#0f3460 0%,#533483 100%); color:white; padding:30px 20px; text-align:center; }
+        .header h1 { font-size:1.8em; margin-bottom:8px; }
+        .header p { opacity:.9; }
+        .badge { display:inline-block; background:rgba(255,255,255,.2); padding:4px 12px; border-radius:20px; font-size:.85em; margin-top:8px; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:15px; padding:20px; background:#f8f9fa; border-bottom:2px solid #e9ecef; }
+        .stat-box { text-align:center; padding:12px; }
+        .stat-box .number { font-size:1.8em; font-weight:bold; color:#533483; }
+        .stat-box .label { color:#6c757d; margin-top:6px; font-size:.85em; }
+        .controls { padding:15px 20px; background:#f8f9fa; border-bottom:1px solid #dee2e6; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .controls input { padding:10px 14px; border:1px solid #ced4da; border-radius:6px; width:300px; font-size:.95em; }
+        .table-container { overflow-x:auto; width:100%; background:white; }
+        table { width:100%; border-collapse:collapse; min-width:1100px; background:white; }
+        thead { background:#0f3460; color:white; position:sticky; top:0; z-index:10; }
+        th { padding:12px 8px; text-align:center; font-weight:600; cursor:pointer; font-size:.85em; user-select:none; }
+        th:hover { background:#1a4a80; }
+        th:after { content:' ↕'; opacity:.5; font-size:.75em; }
+        td { padding:10px 8px; border-bottom:1px solid #e9ecef; font-size:.88em; text-align:center; background:white; }
+        td:nth-child(3) { text-align:left; }
+        tr:hover td { background:#f0f4ff; }
+        @media(max-width:600px) { th, td { padding:7px 4px; font-size:.80em; } }
+        .score-high { color:#28a745; font-weight:bold; font-size:1.05em; }
+        .score-mid  { color:#ffc107; font-weight:bold; }
+        .score-low  { color:#dc3545; font-weight:bold; }
+        .hit  { background:#d4edda; color:#155724; border-radius:4px; padding:2px 6px; font-weight:600; }
+        .miss { color:#adb5bd; }
+        .footer { padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }
+        .footer a { color:#533483; text-decoration:none; margin:0 12px; font-weight:500; }
+        @media(max-width:768px) { .controls input { width:100%; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔬 スコア内訳レポート</h1>
+        <p>📅 2026-06-16 | 全指標スコア内訳（9指標）</p>
+        <span class="badge">Basic / Premium プラン</span>
+    </div>
+    <div class="stats">
+        <div class="stat-box"><div class="number">65</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">70</div><div class="label">最高スコア</div></div>
+        <div class="stat-box"><div class="number">40</div><div class="label">平均スコア</div></div>
+        <div class="stat-box"><div class="number">18</div><div class="label">セクター数</div></div>
+    </div>
+    <div class="controls">
+        <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
+    </div>
+    <div class="table-container">
+    <table id="stockTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">順位</th>
+                <th onclick="sortTable(1)">コード</th>
+                <th onclick="sortTable(2)">銘柄名</th>
+                <th onclick="sortTable(3)">セクター</th>
+                <th onclick="sortTable(4)">合計</th>
+                <th onclick="sortTable(5)">MA200↑上昇トレンド<br><small style="opacity:.7">15点</small></th><th onclick="sortTable(6)">🔄上昇転換の初動(GC)<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(7)">📈底値反発クロス<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(8)">🎯BB反発／突破<br><small style="opacity:.7">15点</small></th><th onclick="sortTable(9)">💹資金流入(OBV↑)<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(10)">☁雲の上<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(11)">⛩一目三役好転<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(12)">📊出来高急増<br><small style="opacity:.7">10点</small></th><th onclick="sortTable(13)">💎PBR割安<br><small style="opacity:.7">10点</small></th>
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>1</td>
+                <td><strong>7350</strong></td>
+                <td style="text-align:left">おきなわフィナンシャルグループ</td>
+                <td><small>銀行業</small></td>
+                <td class="score-high">70</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td><strong>7371</strong></td>
+                <td style="text-align:left">Ｚｅｎｋｅｎ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-high">70</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td><strong>7140</strong></td>
+                <td style="text-align:left">ペットゴー</td>
+                <td><small>小売業</small></td>
+                <td class="score-high">70</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td><strong>7135</strong></td>
+                <td style="text-align:left">ジャパンクラフトホールディングス</td>
+                <td><small>小売業</small></td>
+                <td class="score-mid">65</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td><strong>4075</strong></td>
+                <td style="text-align:left">ブレインズテクノロジー</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-mid">60</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td><strong>7110</strong></td>
+                <td style="text-align:left">クラシコム</td>
+                <td><small>小売業</small></td>
+                <td class="score-mid">60</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td><strong>4690</strong></td>
+                <td style="text-align:left">日本パレットプール</td>
+                <td><small>サービス業</small></td>
+                <td class="score-mid">55</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td><strong>2999</strong></td>
+                <td style="text-align:left">ホームポジション</td>
+                <td><small>不動産業</small></td>
+                <td class="score-mid">55</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td><strong>9220</strong></td>
+                <td style="text-align:left">エフビー介護サービス</td>
+                <td><small>サービス業</small></td>
+                <td class="score-mid">50</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td><strong>6228</strong></td>
+                <td style="text-align:left">ジェイ・イー・ティ</td>
+                <td><small>機械</small></td>
+                <td class="score-mid">50</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td><strong>5076</strong></td>
+                <td style="text-align:left">インフロニア・ホールディングス</td>
+                <td><small>建設業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td><strong>6523</strong></td>
+                <td style="text-align:left">ＰＨＣホールディングス</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>13</td>
+                <td><strong>6901</strong></td>
+                <td style="text-align:left">澤藤電機</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>14</td>
+                <td><strong>7380</strong></td>
+                <td style="text-align:left">十六フィナンシャルグループ</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>15</td>
+                <td><strong>6613</strong></td>
+                <td style="text-align:left">ＱＤレーザ</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>16</td>
+                <td><strong>9249</strong></td>
+                <td style="text-align:left">日本エコシステム</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>17</td>
+                <td><strong>7999</strong></td>
+                <td style="text-align:left">ＭＵＴＯＨホールディングス</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>18</td>
+                <td><strong>9256</strong></td>
+                <td style="text-align:left">サクシード</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>19</td>
+                <td><strong>4196</strong></td>
+                <td style="text-align:left">ネオマーケティング</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>20</td>
+                <td><strong>5832</strong></td>
+                <td style="text-align:left">ちゅうぎんフィナンシャルグループ</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>21</td>
+                <td><strong>6227</strong></td>
+                <td style="text-align:left">ＡＩメカテック</td>
+                <td><small>機械</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>22</td>
+                <td><strong>4179</strong></td>
+                <td style="text-align:left">ジーネクスト</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>23</td>
+                <td><strong>5831</strong></td>
+                <td style="text-align:left">しずおかフィナンシャルグループ</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>24</td>
+                <td><strong>9240</strong></td>
+                <td style="text-align:left">デリバリーコンサルティング</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">45</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>25</td>
+                <td><strong>4886</strong></td>
+                <td style="text-align:left">あすか製薬ホールディングス</td>
+                <td><small>医薬品</small></td>
+                <td class="score-low">40</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>26</td>
+                <td><strong>9552</strong></td>
+                <td style="text-align:left">クオンツ総研ホールディングス</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">40</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>27</td>
+                <td><strong>7384</strong></td>
+                <td style="text-align:left">プロクレアホールディングス</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">40</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>28</td>
+                <td><strong>4415</strong></td>
+                <td style="text-align:left">ブロードエンタープライズ</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">40</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>29</td>
+                <td><strong>7318</strong></td>
+                <td style="text-align:left">セレンディップ・ホールディングス</td>
+                <td><small>輸送用機器</small></td>
+                <td class="score-low">40</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>30</td>
+                <td><strong>1776</strong></td>
+                <td style="text-align:left">三井住建道路</td>
+                <td><small>建設業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>31</td>
+                <td><strong>4255</strong></td>
+                <td style="text-align:left">ＴＨＥＣＯＯ</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>32</td>
+                <td><strong>5830</strong></td>
+                <td style="text-align:left">いよぎんホールディングス</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>33</td>
+                <td><strong>6201</strong></td>
+                <td style="text-align:left">豊田自動織機</td>
+                <td><small>輸送用機器</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>34</td>
+                <td><strong>9251</strong></td>
+                <td style="text-align:left">ＡＢ＆Ｃｏｍｐａｎｙ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>35</td>
+                <td><strong>5137</strong></td>
+                <td style="text-align:left">スマートドライブ</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>36</td>
+                <td><strong>9247</strong></td>
+                <td style="text-align:left">ＴＲＥホールディングス</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>37</td>
+                <td><strong>4071</strong></td>
+                <td style="text-align:left">プラスアルファ・コンサルティング</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>38</td>
+                <td><strong>9147</strong></td>
+                <td style="text-align:left">ＮＩＰＰＯＮ　ＥＸＰＲＥＳＳホールディングス</td>
+                <td><small>陸運業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>39</td>
+                <td><strong>7381</strong></td>
+                <td style="text-align:left">ＣＣＩグループ</td>
+                <td><small>銀行業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>40</td>
+                <td><strong>4125</strong></td>
+                <td style="text-align:left">三和油化工業</td>
+                <td><small>化学</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>41</td>
+                <td><strong>9225</strong></td>
+                <td style="text-align:left">ブリッジコンサルティンググループ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>42</td>
+                <td><strong>4384</strong></td>
+                <td style="text-align:left">ラクスル</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>43</td>
+                <td><strong>7366</strong></td>
+                <td style="text-align:left">ＬＩＴＡＬＩＣＯ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>44</td>
+                <td><strong>7985</strong></td>
+                <td style="text-align:left">ネポン</td>
+                <td><small>金属製品</small></td>
+                <td class="score-low">35</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>45</td>
+                <td><strong>9213</strong></td>
+                <td style="text-align:left">セイファート</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>46</td>
+                <td><strong>7131</strong></td>
+                <td style="text-align:left">のむら産業</td>
+                <td><small>卸売業</small></td>
+                <td class="score-low">35</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>47</td>
+                <td><strong>5074</strong></td>
+                <td style="text-align:left">テスホールディングス</td>
+                <td><small>建設業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>48</td>
+                <td><strong>7375</strong></td>
+                <td style="text-align:left">リファインバースグループ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>49</td>
+                <td><strong>6521</strong></td>
+                <td style="text-align:left">オキサイド</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>50</td>
+                <td><strong>7925</strong></td>
+                <td style="text-align:left">前澤化成工業</td>
+                <td><small>化学</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>51</td>
+                <td><strong>7791</strong></td>
+                <td style="text-align:left">ドリームベッド</td>
+                <td><small>その他製品</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>52</td>
+                <td><strong>6524</strong></td>
+                <td style="text-align:left">湖北工業</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>53</td>
+                <td><strong>7367</strong></td>
+                <td style="text-align:left">セルム</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>54</td>
+                <td><strong>7851</strong></td>
+                <td style="text-align:left">カワセコンピュータサプライ</td>
+                <td><small>その他製品</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>55</td>
+                <td><strong>7347</strong></td>
+                <td style="text-align:left">マーキュリアホールディングス</td>
+                <td><small>証券、商品先物取引業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>56</td>
+                <td><strong>4259</strong></td>
+                <td style="text-align:left">エクサウィザーズ</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>57</td>
+                <td><strong>4376</strong></td>
+                <td style="text-align:left">くふうカンパニーホールディングス</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>58</td>
+                <td><strong>4937</strong></td>
+                <td style="text-align:left">Ｗａｑｏｏ</td>
+                <td><small>化学</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>59</td>
+                <td><strong>7345</strong></td>
+                <td style="text-align:left">アイ・パートナーズフィナンシャル</td>
+                <td><small>その他金融業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>60</td>
+                <td><strong>2933</strong></td>
+                <td style="text-align:left">紀文食品</td>
+                <td><small>食料品</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>61</td>
+                <td><strong>2993</strong></td>
+                <td style="text-align:left">長栄</td>
+                <td><small>不動産業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td>
+            </tr>
+            <tr>
+                <td>62</td>
+                <td><strong>6522</strong></td>
+                <td style="text-align:left">アスタリスク</td>
+                <td><small>電気機器</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>63</td>
+                <td><strong>7376</strong></td>
+                <td style="text-align:left">ＢＣＣ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 15pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>64</td>
+                <td><strong>5139</strong></td>
+                <td style="text-align:left">オープンワーク</td>
+                <td><small>情報・通信業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+            <tr>
+                <td>65</td>
+                <td><strong>366A</strong></td>
+                <td style="text-align:left">ウェルネス・コミュニケーションズ</td>
+                <td><small>サービス業</small></td>
+                <td class="score-low">30</td>
+                <td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="hit">✅ 10pt</span></td><td><span class="miss">—</span></td><td><span class="miss">—</span></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    <div class="footer">
+        <p>⚠️ このレポートは投資助言ではありません。投資判断は自己責任で行ってください。</p>
+        <p style="margin-top:12px;">
+            <a href="../index.html">🏠 トップ</a> |
+            <a href="../legal/disclaimer.html">⚠️ 免責事項</a>
+        </p>
+    </div>
+</div>
+<script>
+    function sortTable(col) {
+        const table = document.getElementById("stockTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isAsc = table.dataset.sortCol == col && table.dataset.sortDir == "asc";
+        rows.sort((a, b) => {
+            let aVal = a.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            let bVal = b.cells[col].textContent.trim().replace(/[^0-9.-]/g,'');
+            aVal = parseFloat(aVal) || aVal;
+            bVal = parseFloat(bVal) || bVal;
+            return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+        table.dataset.sortCol = col;
+        table.dataset.sortDir = isAsc ? "desc" : "asc";
+    }
+    function filterTable() {
+        const input = document.getElementById("search").value.toUpperCase();
+        const rows = document.getElementById("stockTable").getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+            const code = rows[i].cells[1].textContent;
+            const name = rows[i].cells[2].textContent;
+            rows[i].style.display = (code + name).toUpperCase().includes(input) ? "" : "none";
+        }
+    }
+</script>
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#667eea;color:white;border:none;border-radius:50%;width:48px;height:48px;font-size:1.4em;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1;"
+        title="トップへ戻る">↑</button>
+</body>
+</html>
