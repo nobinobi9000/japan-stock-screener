@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-18",
+  "date": "2026-06-19",
   "top3": [
     {
       "code": "4690",
@@ -45,8 +45,8 @@
     },
     {
       "name": "-",
-      "avg_score": 31.2,
-      "stock_count": 4
+      "avg_score": 31.7,
+      "stock_count": 3
     },
     {
       "name": "化学",
@@ -60,15 +60,15 @@
     }
   ],
   "market_summary": {
-    "total_screened": 13,
+    "total_screened": 12,
     "gc_count": 0,
-    "volume_surge_count": 5,
+    "volume_surge_count": 4,
     "ichimoku_count": 2,
     "pattern_distribution": {
       "⛩一目好転": 2,
       "💎安定上昇": 5,
-      "📊シグナル点灯": 6
+      "📊シグナル点灯": 5
     },
-    "auto_comment": "出来高急増が5銘柄で発生。市場全体に動意が出ています。"
+    "auto_comment": "出来高急増が4銘柄で発生。市場全体に動意が出ています。"
   }
 }
