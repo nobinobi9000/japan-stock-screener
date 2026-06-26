@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-25",
+  "date": "2026-06-26",
   "top3": [
     {
       "code": "6201",
@@ -29,7 +29,7 @@
       "risk_tag": "🟡標準",
       "sector": "化学",
       "pattern": "📊シグナル点灯",
-      "win_rate": 60.0
+      "win_rate": 75.0
     }
   ],
   "sector_heatmap": [
