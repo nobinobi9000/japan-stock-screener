@@ -122,12 +122,14 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
         last_date = last_date.tz_localize(None)
     start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
     today_str  = datetime.now().strftime('%Y-%m-%d')
+    # end は +1日（exclusive なので today_str だと当日分が取れない）
+    end_str    = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 
     if start_date > today_str:
         return cached_df
 
     try:
-        new_data = ticker.history(start=start_date, end=today_str)
+        new_data = ticker.history(start=start_date, end=end_str)
     except Exception:
         return cached_df
 
@@ -175,6 +177,13 @@ ICHIMOKU_LAG     = 26       # 一目均衡表 遅行スパンずれ
 MA_SHORT         = 25       # 短期MA（日本株標準）
 MA_MID           = 75       # 中期MA（日本株標準）
 MA_LONG          = 200      # 長期MA
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  ⚠️  スコア配点テーブル — ユーザーの明示的な指示なしに変更・追加・削除禁止     ║
+# ║                                                                              ║
+# ║  ・配点値・キー名・合計（100点）を無断変更しないこと                            ║
+# ║  ・HTMLデザイン変更・UI改修の際も、この辞書には一切触れないこと                  ║
+# ║  ・指標の追加・削除もユーザー指示なしには行わないこと                            ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 SCORE_WEIGHTS = {            # 総合スコア配点（合計100点）
     'ma_trend'        : 15,  # MA200上昇（価格>MA200 かつ上昇トレンド）
     'golden_cross'    : 10,  # ゴールデンクロス
@@ -721,7 +730,8 @@ class HTMLReportGenerator:
         return chart_paths
 
     def generate_basic_report(self, results: List[Dict], date: str,
-                               sector_report: str = "") -> str:
+                               sector_report: str = "",
+                               total_scanned: int = 0) -> str:
         """
         ベーシック版HTMLレポートを生成（当日全銘柄）
 
@@ -899,6 +909,7 @@ class HTMLReportGenerator:
       color: var(--green); line-height: 1; margin-bottom: 5px;
     }}
     .stat-lbl {{ font-size: 11px; color: var(--muted); }}
+    .stat-of  {{ font-size: 10px; color: var(--muted); margin-top: 3px; opacity: 0.7; }}
     /* ─── CONTROLS ─── */
     .controls-wrap {{
       position: relative; z-index: 1;
@@ -1076,7 +1087,7 @@ class HTMLReportGenerator:
     <span class="report-title">スクリーニング結果</span>
     <span class="report-plan">BASIC PLAN</span>
   </div>
-  <div class="report-date">{date} &nbsp;|&nbsp; 東証全銘柄スキャン</div>
+  <div class="report-date">{date} &nbsp;|&nbsp; 東証全銘柄スキャン（ETF・REIT・優先株含む {total_scanned:,}件）</div>
 </div>
 
 <div class="stats-wrap">
@@ -1084,6 +1095,7 @@ class HTMLReportGenerator:
     <div class="stat-card">
       <div class="stat-num">{len(results):,}</div>
       <div class="stat-lbl">該当銘柄数</div>
+      <div class="stat-of">/ {total_scanned:,}銘柄をスキャン</div>
     </div>
     <div class="stat-card">
       <div class="stat-num">{max_score:.0f}</div>
@@ -1110,7 +1122,7 @@ class HTMLReportGenerator:
     <button class="pill" onclick="setFilter(this,'安定上昇')" data-filter="安定上昇">💎 安定上昇</button>
     <button class="pill" onclick="setFilter(this,'過熱注意')" data-filter="過熱注意">⚡ 過熱注意</button>
   </div>
-  <div class="result-count" id="result-count">{len(results):,} 件</div>
+  <div class="result-count" id="result-count">{len(results):,} / {total_scanned:,}件</div>
 </div>
 
 <div class="table-wrap">
@@ -1216,7 +1228,8 @@ class HTMLReportGenerator:
         print(f"✅ HTMLレポート生成: {filepath}")
         return f"reports/{filename}"
 
-    def generate_analysis_report(self, results: List[Dict], date: str) -> str:
+    def generate_analysis_report(self, results: List[Dict], date: str,
+                                 total_scanned: int = 0) -> str:
         """
         #analysis 用HTMLレポート（9指標スコア内訳一覧）
         ETFを除外して生成
@@ -1302,10 +1315,11 @@ class HTMLReportGenerator:
     <div class="header">
         <h1>🔬 スコア内訳レポート</h1>
         <p>📅 {date} | 全指標スコア内訳（9指標）</p>
+        <p style="font-size:0.8em;opacity:0.7;margin-top:4px;">スキャン対象：ETF・REIT・優先株含む東証全上場銘柄 {total_scanned:,}件</p>
         <span class="badge">Basic / Premium プラン</span>
     </div>
     <div class="stats">
-        <div class="stat-box"><div class="number">{len(filtered)}</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">{len(filtered)}</div><div class="label">該当銘柄数（{total_scanned:,}件中）</div></div>
         <div class="stat-box"><div class="number">{filtered[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
         <div class="stat-box"><div class="number">{sum(r['total_score'] for r in filtered)/len(filtered):.0f}</div><div class="label">平均スコア</div></div>
         <div class="stat-box"><div class="number">{len(set(r['sector'] for r in filtered))}</div><div class="label">セクター数</div></div>
@@ -1524,7 +1538,8 @@ class HTMLReportGenerator:
     def generate_premium_report(self, results: List[Dict], date: str,
                                  sector_report: str = "",
                                  chart_paths: Dict[str, str] = None,
-                                 stats_paths: Dict[str, str] = None) -> str:
+                                 stats_paths: Dict[str, str] = None,
+                                 total_scanned: int = 0) -> str:
         """
         Premium用HTMLレポート
         - Top5チャート（ローソク足 + MA + BB）
@@ -1717,7 +1732,7 @@ class HTMLReportGenerator:
             </div>
         </div>
     <div class="stats">
-        <div class="stat-box"><div class="number">{len(results)}</div><div class="label">対象銘柄数</div></div>
+        <div class="stat-box"><div class="number">{len(results)}</div><div class="label">該当銘柄数<br><small style="font-size:.75em;opacity:.7;">/ {total_scanned:,}件をスキャン</small></div></div>
         <div class="stat-box"><div class="number">{results[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
         <div class="stat-box"><div class="number">{backlog_sorted[0]['win_rate']:.0f}%</div><div class="label">BackLog最高値</div></div>
         <div class="stat-box"><div class="number">{sum(r['win_rate'] for r in results)/len(results):.0f}%</div><div class="label">BackLog平均</div></div>
@@ -1868,6 +1883,7 @@ class AdvancedStockScreener:
         self.sector_stats  = defaultdict(int)
         self.ti            = TechnicalIndicators()
         self.scorer        = ScoringEngine()
+        self.total_scanned = 0  # スキャンした全銘柄数（ETF等含む）
 
     def select_free_tier_stocks(self, results: List[Dict], count: int = 3) -> List[Dict]:
         """
@@ -2167,6 +2183,10 @@ class AdvancedStockScreener:
             # ── PBR割安（ticker.info）────────────────────────────────
             pbr_cheap, pbr_label = self.get_pbr_score(info)
 
+            # ╔══════════════════════════════════════════════════════════════════╗
+            # ║  ⚠️  スコア計算セクション — ユーザーの明示的な指示なしに変更禁止   ║
+            # ║  シグナルのキー名・ブール値の判定ロジックを無断変更しないこと       ║
+            # ╚══════════════════════════════════════════════════════════════════╝
             # ── 総合スコア計算 ────────────────────────────────────────
             signals = {
                 'ma_trend'        : ma200_trending,
@@ -2340,6 +2360,7 @@ class AdvancedStockScreener:
             stocks_df = stocks_df.head(max_stocks)
 
         total = len(stocks_df)
+        self.total_scanned = total  # ETF等を含む全対象銘柄数を記録
         print(f"🔍 {total}銘柄のスクリーニングを開始（最低スコア: {self.min_score}点）\n")
 
         info_cache = load_info_cache()
@@ -2477,7 +2498,8 @@ class AdvancedStockScreener:
             auto_comment = "本日のスクリーニングが完了しました。シグナル銘柄をご確認ください。"
 
         market_summary = {
-            "total_screened":      total_count,
+            "total_scanned":       self.total_scanned,   # ETF等含む全スキャン対象銘柄数
+            "total_screened":      total_count,           # 条件に合致した銘柄数
             "gc_count":            gc_count,
             "volume_surge_count":  volume_surge_count,
             "ichimoku_count":      ichimoku_count,
@@ -2532,7 +2554,8 @@ class AdvancedNotifier:
                                          "https://[username].github.io/stock-screener-reports")
 
     def format_message_free(self, selected: List[Dict], total_count: int,
-                             html_path: str = "") -> str:
+                             html_path: str = "",
+                             total_scanned: int = 0) -> str:
         """
         無料版通知メッセージ（選抜3件）
 
@@ -2540,8 +2563,10 @@ class AdvancedNotifier:
             selected: 選抜された3銘柄
             total_count: 全該当銘柄数
             html_path: HTMLレポートのパス（free_betaモードのみ）
+            total_scanned: 全スキャン対象銘柄数（ETF等含む）
         """
         today = datetime.now().strftime('%Y年%m月%d日')
+        scanned_str = f"{total_scanned:,}銘柄中" if total_scanned > 0 else ""
 
         if not selected:
             return (
@@ -2552,7 +2577,7 @@ class AdvancedNotifier:
         msg = (
             f"📊 日本株スクリーニング結果 v3.0\n"
             f"📅 {today}\n\n"
-            f"🎯 本日 {total_count}銘柄が条件に合致しました\n\n"
+            f"🎯 本日 {scanned_str}{total_count}銘柄が条件に合致しました\n\n"
             f"【今日の注目3銘柄】（中位×安定戦略）\n"
             f"{'─'*40}\n\n"
         )
@@ -2585,7 +2610,8 @@ class AdvancedNotifier:
         return msg
 
     def format_message_full(self, results: List[Dict], sector_report: str = "",
-                            html_path: str = "") -> str:
+                            html_path: str = "",
+                            total_scanned: int = 0) -> str:
         """
         ベーシック・プレミアム用通知（HTMLリンク重視）
 
@@ -2596,6 +2622,7 @@ class AdvancedNotifier:
         """
         today = datetime.now().strftime('%Y年%m月%d日')
         plan_label = "プレミアムプラン" if self.plan_mode == "premium" else "ベーシックプラン"
+        scanned_str = f"{total_scanned:,}銘柄中" if total_scanned > 0 else ""
 
         if not results:
             return (
@@ -2607,7 +2634,7 @@ class AdvancedNotifier:
         msg = (
             f"📊 日本株スクリーニング結果 v3.0\n"
             f"📅 {today}  |  {plan_label}\n\n"
-            f"🎯 本日 {len(results)}銘柄が条件に合致しました\n\n"
+            f"🎯 本日 {scanned_str}{len(results)}銘柄が条件に合致しました\n\n"
             f"【Top 5 ハイライト】\n"
             f"{'─'*40}\n\n"
         )
@@ -2878,7 +2905,8 @@ class AdvancedNotifier:
     def notify_all_channels(self, results: List[Dict], selected: List[Dict],
                             sector_report: str = "", html_path: str = "",
                             analysis_html_path: str = "", premium_html_path: str = "",
-                            chart_html_path: str = ""):
+                            chart_html_path: str = "",
+                            total_scanned: int = 0):
         """
         設定済みの全Webhookに通知を送る。
         Webhookが未設定のチャンネルはスキップ。
@@ -2887,7 +2915,8 @@ class AdvancedNotifier:
         # #daily-picks（無料版 3銘柄）
         if self.discord_webhook:
             print("\n📤 #daily-picks へ送信中...")
-            msg = self.format_message_free(selected, len(results))
+            msg = self.format_message_free(selected, len(results),
+                                           total_scanned=total_scanned)
             print(msg)
             self._send_to_webhook(self.discord_webhook, msg, "#daily-picks")
         else:
@@ -2896,7 +2925,8 @@ class AdvancedNotifier:
         # #full-report（ベーシック Top5）
         if self.discord_webhook_basic:
             print("\n📤 #full-report へ送信中...")
-            msg = self.format_message_full(results, sector_report, html_path)
+            msg = self.format_message_full(results, sector_report, html_path,
+                                           total_scanned=total_scanned)
             self._send_to_webhook(self.discord_webhook_basic, msg, "#full-report")
         else:
             print("⚠️ DISCORD_BASIC_WEBHOOK_URL 未設定 → #full-report スキップ")
@@ -3042,9 +3072,14 @@ def main():
     html_gen = HTMLReportGenerator(output_dir=output_dir)
     today_str = datetime.now().strftime('%Y-%m-%d')
 
+    total_scanned = screener.total_scanned
+    print(f"   ({total_scanned:,}銘柄をスキャン、{len(results)}銘柄が条件に合致)")
+
     print("\n📄 レポート生成中...")
-    html_path          = html_gen.generate_basic_report(results, today_str, sector_report)
-    analysis_html_path = html_gen.generate_analysis_report(results, today_str)
+    html_path          = html_gen.generate_basic_report(results, today_str, sector_report,
+                                                        total_scanned=total_scanned)
+    analysis_html_path = html_gen.generate_analysis_report(results, today_str,
+                                                            total_scanned=total_scanned)
 
     # Top5チャート生成（Premium Step1）
     chart_paths = html_gen.generate_charts_for_top5(results, today_str)
@@ -3055,7 +3090,8 @@ def main():
 
     premium_html_path  = html_gen.generate_premium_report(
         results, today_str, sector_report,
-        chart_paths=chart_paths, stats_paths=stats_paths
+        chart_paths=chart_paths, stats_paths=stats_paths,
+        total_scanned=total_scanned,
     )
 
     # チャート分析ページ生成
@@ -3076,6 +3112,7 @@ def main():
         analysis_html_path=analysis_html_path,
         premium_html_path=premium_html_path,
         chart_html_path=chart_analysis_path,
+        total_scanned=total_scanned,
     )
 
     print("\n✅ 処理完了")
