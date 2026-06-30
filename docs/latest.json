@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-29",
+  "date": "2026-06-30",
   "top3": [
     {
       "code": "6201",
@@ -22,14 +22,14 @@
       "win_rate": 50.0
     },
     {
-      "code": "2088",
-      "name": "ＮＺＡＭ　上場投信　ＮＹダウ３０（為替ヘッジあり）",
+      "code": "6901",
+      "name": "澤藤電機",
       "score": 45.0,
-      "price": 2600.0,
+      "price": 1296.0,
       "risk_tag": "🔴冒険",
-      "sector": "-",
-      "pattern": "⛩一目好転",
-      "win_rate": 33.3
+      "sector": "電気機器",
+      "pattern": "💎安定上昇",
+      "win_rate": 100.0
     }
   ],
   "sector_heatmap": [
@@ -39,30 +39,20 @@
       "stock_count": 2
     },
     {
-      "name": "-",
-      "avg_score": 45.0,
-      "stock_count": 1
-    },
-    {
       "name": "輸送用機器",
-      "avg_score": 35.0,
-      "stock_count": 1
-    },
-    {
-      "name": "倉庫・運輸関連業",
       "avg_score": 35.0,
       "stock_count": 1
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 5,
+    "total_screened": 3,
     "gc_count": 0,
     "volume_surge_count": 0,
-    "ichimoku_count": 2,
+    "ichimoku_count": 1,
     "pattern_distribution": {
-      "💎安定上昇": 3,
-      "⛩一目好転": 2
+      "💎安定上昇": 2,
+      "⛩一目好転": 1
     },
     "auto_comment": "「電気機器」セクターの平均スコアが45点で最高。このセクターに注目が集まっています。"
   }
