@@ -1,59 +1,43 @@
 {
-  "date": "2026-07-03",
+  "date": "2026-07-06",
   "top3": [
     {
-      "code": "6201",
-      "name": "豊田自動織機",
+      "code": "2071",
+      "name": "スマートＥＳＧ３０総合（ネットリターン）ＥＴＮ",
       "score": 35.0,
-      "price": 20450.0,
-      "risk_tag": "🟢安定",
-      "sector": "輸送用機器",
-      "pattern": "💎安定上昇",
+      "price": 19610.0,
+      "risk_tag": "🔴冒険",
+      "sector": "-",
+      "pattern": "⛩一目好転",
       "win_rate": 100.0
     },
     {
-      "code": "7999",
-      "name": "ＭＵＴＯＨホールディングス",
-      "score": 45.0,
-      "price": 7580.0,
-      "risk_tag": "🟡標準",
-      "sector": "電気機器",
-      "pattern": "⛩一目好転",
-      "win_rate": 50.0
-    },
-    {
-      "code": "6901",
-      "name": "澤藤電機",
-      "score": 45.0,
-      "price": 1296.0,
+      "code": "1654",
+      "name": "ｉＦｒｅｅＥＴＦ　ＦＴＳＥ　ＪＰＸ　Ｂｌｏｓｓｏｍ　Ｊａｐａｎ　Ｉｎｄｅｘ",
+      "score": 35.0,
+      "price": 3312.0,
       "risk_tag": "🔴冒険",
-      "sector": "電気機器",
-      "pattern": "💎安定上昇",
+      "sector": "-",
+      "pattern": "⛩一目好転",
       "win_rate": 100.0
     }
   ],
   "sector_heatmap": [
     {
-      "name": "電気機器",
-      "avg_score": 45.0,
-      "stock_count": 2
-    },
-    {
-      "name": "輸送用機器",
+      "name": "-",
       "avg_score": 35.0,
-      "stock_count": 1
+      "stock_count": 2
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 3,
+    "total_screened": 2,
     "gc_count": 0,
     "volume_surge_count": 0,
-    "ichimoku_count": 1,
+    "ichimoku_count": 2,
     "pattern_distribution": {
-      "💎安定上昇": 2,
-      "⛩一目好転": 1
+      "⛩一目好転": 2
     },
-    "auto_comment": "「電気機器」セクターの平均スコアが45点で最高。このセクターに注目が集まっています。"
+    "auto_comment": "「-」セクターの平均スコアが35点で最高。このセクターに注目が集まっています。"
   }
 }
