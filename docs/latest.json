@@ -1,43 +1,33 @@
 {
-  "date": "2026-07-06",
+  "date": "2026-07-09",
   "top3": [
     {
-      "code": "2071",
-      "name": "スマートＥＳＧ３０総合（ネットリターン）ＥＴＮ",
-      "score": 35.0,
-      "price": 19610.0,
-      "risk_tag": "🔴冒険",
-      "sector": "-",
+      "code": "7999",
+      "name": "ＭＵＴＯＨホールディングス",
+      "score": 45.0,
+      "price": 7580.0,
+      "risk_tag": "🟡標準",
+      "sector": "電気機器",
       "pattern": "⛩一目好転",
-      "win_rate": 100.0
-    },
-    {
-      "code": "1654",
-      "name": "ｉＦｒｅｅＥＴＦ　ＦＴＳＥ　ＪＰＸ　Ｂｌｏｓｓｏｍ　Ｊａｐａｎ　Ｉｎｄｅｘ",
-      "score": 35.0,
-      "price": 3312.0,
-      "risk_tag": "🔴冒険",
-      "sector": "-",
-      "pattern": "⛩一目好転",
-      "win_rate": 100.0
+      "win_rate": 50.0
     }
   ],
   "sector_heatmap": [
     {
-      "name": "-",
-      "avg_score": 35.0,
-      "stock_count": 2
+      "name": "電気機器",
+      "avg_score": 45.0,
+      "stock_count": 1
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 2,
+    "total_screened": 1,
     "gc_count": 0,
     "volume_surge_count": 0,
-    "ichimoku_count": 2,
+    "ichimoku_count": 1,
     "pattern_distribution": {
-      "⛩一目好転": 2
+      "⛩一目好転": 1
     },
-    "auto_comment": "「-」セクターの平均スコアが35点で最高。このセクターに注目が集まっています。"
+    "auto_comment": "「電気機器」セクターの平均スコアが45点で最高。このセクターに注目が集まっています。"
   }
 }
