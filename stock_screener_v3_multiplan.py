@@ -317,6 +317,69 @@ def classify_signal_pattern(
     return "📊シグナル点灯"
 
 
+def calc_jvqm(info: Dict, data: pd.DataFrame) -> Dict:
+    """JVQM(Value-Quality-Momentum)スコアを計算する。
+
+    kabu-signalが独自にyfinanceへ再取得していたファンダメンタル/モメンタム計算を
+    screenerパイプラインに集約するためのもの(原則2)。ロジックは
+    kabu-signal/screener/jvqm_screener.py の calc_jvqm_score()/check_momentum() と
+    同一の計算式を維持している。総合スコア(SCORE_WEIGHTS)とは独立した別軸のスコア。
+    """
+    pbr            = info.get('priceToBook')
+    roe_raw        = info.get('returnOnEquity')
+    roe            = round(roe_raw * 100, 1) if roe_raw is not None else None
+    free_cashflow  = info.get('freeCashflow')
+    market_cap     = info.get('marketCap')
+    fcf_yield      = (round(free_cashflow / market_cap * 100, 1)
+                       if free_cashflow and market_cap and market_cap > 0 else None)
+    beta           = round(info['beta'], 2) if info.get('beta') is not None else None
+    div_yield_raw  = info.get('dividendYield')
+    dividend_yield = round(div_yield_raw * 100, 1) if div_yield_raw else None
+
+    score = 0
+    if pbr is not None:
+        if pbr <= 0.5:   score += 2
+        elif pbr <= 1.0: score += 1
+    if roe is not None:
+        if roe >= 10:   score += 2
+        elif roe >= 5:  score += 1
+    if fcf_yield is not None:
+        if fcf_yield >= 5:   score += 2
+        elif fcf_yield >= 2: score += 1
+    if beta is not None:
+        if beta <= 0.8:   score += 2
+        elif beta <= 1.0: score += 1
+    if dividend_yield is not None:
+        if dividend_yield >= 3.0:   score += 2
+        elif dividend_yield >= 1.5: score += 1
+    tse = 0
+    if pbr is not None and pbr < 1.0:  tse += 1
+    if roe is not None and roe >= 8.0: tse += 1
+    score += tse
+
+    # モメンタム（直近約1年 = yfinance period="1y" 相当。既にキャッシュ済みのdataを再利用し追加取得は行わない）
+    close_1y      = data['Close'].tail(252)
+    momentum_12m  = None
+    near_52w_high = False
+    if len(close_1y) >= 20:
+        high_52w = close_1y.max()
+        current  = close_1y.iloc[-1]
+        near_52w_high = bool(current >= high_52w * 0.9)
+        if len(close_1y) >= 200:
+            momentum_12m = round(float(close_1y.iloc[-1] / close_1y.iloc[0] - 1) * 100, 1)
+
+    return {
+        'jvqm_pbr':            pbr,
+        'jvqm_roe':            roe,
+        'jvqm_fcf_yield':      fcf_yield,
+        'jvqm_beta':           beta,
+        'jvqm_dividend_yield': dividend_yield,
+        'jvqm_score':          score,
+        'momentum_12m':        momentum_12m,
+        'near_52w_high':       near_52w_high,
+    }
+
+
 class TechnicalIndicators:
     """
     テクニカル指標計算クラス（yfinanceデータのみで完結）
@@ -2306,6 +2369,9 @@ class AdvancedStockScreener:
                 total_score=total_score,
             )
 
+            # ── JVQMスコア（kabu-signal向け、総合スコアとは独立した別軸）─────
+            jvqm = calc_jvqm(info, data)
+
             # ── スコアフィルタ ────────────────────────────────────────
             # レポート掲載可否のみを示すフラグとし、早期returnはしない
             # （全銘柄スナップショットには閾値未達銘柄もスコア・9指標フラグ付きで記録するため）
@@ -2317,6 +2383,7 @@ class AdvancedStockScreener:
                     'price': latest['Close'], 'date': latest.name.strftime('%Y-%m-%d'),
                     'total_score': total_score, 'signals': signals,
                     'fetch_success': True, 'meets_threshold': False,
+                    **jvqm,
                 }
 
             # ── バックテスト（既存ロジック維持）─────────────────────
@@ -2403,6 +2470,7 @@ class AdvancedStockScreener:
                 'signals'           : signals,
                 'fetch_success'     : True,
                 'meets_threshold'   : True,
+                **jvqm,
             }
 
         except Exception:
@@ -3229,6 +3297,14 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
             "volume_surge"   : signals.get('volume_surge'),
             "pbr_value"      : signals.get('pbr_value'),
             "total_score"    : r.get('total_score'),
+            "jvqm_pbr"            : r.get('jvqm_pbr'),
+            "jvqm_roe"            : r.get('jvqm_roe'),
+            "jvqm_fcf_yield"      : r.get('jvqm_fcf_yield'),
+            "jvqm_beta"           : r.get('jvqm_beta'),
+            "jvqm_dividend_yield" : r.get('jvqm_dividend_yield'),
+            "jvqm_score"          : r.get('jvqm_score'),
+            "momentum_12m"        : r.get('momentum_12m'),
+            "near_52w_high"       : r.get('near_52w_high'),
         })
 
     batch_size = 500
