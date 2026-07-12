@@ -150,6 +150,8 @@ jobs:
           OUTPUT_DIR: docs
           REPORT_BASE_URL: https://screener.nobi-labo.com
           RUN_MODE: aggregate_screen
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python stock_screener_v3_multiplan.py
 

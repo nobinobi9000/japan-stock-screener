@@ -74,6 +74,13 @@ _INFO_CACHE: Optional[Dict[str, Dict]] = None
 # ─────────────────────────────────────────────
 SHARD_OUTPUT_DIR = Path("shard_output")
 
+# ─────────────────────────────────────────────
+#  日次スナップショット（Supabase非公開DB）設定
+#  原則3: 有料コンテンツ（全銘柄データ）は非公開ストレージ+認証API経由でのみ配信する
+# ─────────────────────────────────────────────
+SNAPSHOT_SCHEMA_VERSION = "1.0"
+SNAPSHOT_INCOMPLETE_THRESHOLD = 0.95  # 成功率がこれ未満なら is_incomplete=true
+
 
 def _get_shard_env() -> Tuple[Optional[int], Optional[int]]:
     """SHARD_INDEX/SHARD_TOTAL 環境変数を読み込む。未設定なら (None, None)。"""
@@ -94,19 +101,23 @@ def _apply_shard(df: pd.DataFrame, shard_index: Optional[int],
 
 
 def save_shard_results(results: List[Dict], total_scanned: int,
-                        sector_stats: Dict[str, int], shard_index: int) -> None:
+                        sector_stats: Dict[str, int], shard_index: int,
+                        all_stock_records: Optional[List[Dict]] = None,
+                        fetch_success_count: int = 0) -> None:
     """シャードのスクリーニング結果を集計ジョブ向けに保存する"""
     SHARD_OUTPUT_DIR.mkdir(exist_ok=True)
     payload = {
         "results": results,
         "total_scanned": total_scanned,
         "sector_stats": dict(sector_stats),
+        "all_stock_records": all_stock_records or [],
+        "fetch_success_count": fetch_success_count,
     }
     with open(SHARD_OUTPUT_DIR / f"shard_{shard_index}.pkl", "wb") as f:
         pickle.dump(payload, f)
 
 
-def load_and_merge_shard_results() -> Tuple[List[Dict], int, Dict[str, int]]:
+def load_and_merge_shard_results() -> Tuple[List[Dict], int, Dict[str, int], List[Dict], int]:
     """全シャードの結果ファイル(shard_output/shard_*.pkl)を読み込んでマージする"""
     files = sorted(SHARD_OUTPUT_DIR.glob("shard_*.pkl"))
     if not files:
@@ -115,6 +126,8 @@ def load_and_merge_shard_results() -> Tuple[List[Dict], int, Dict[str, int]]:
     all_results: List[Dict] = []
     total_scanned = 0
     sector_stats: Dict[str, int] = defaultdict(int)
+    all_stock_records: List[Dict] = []
+    fetch_success_count = 0
     for f in files:
         with open(f, "rb") as fh:
             payload = pickle.load(fh)
@@ -122,9 +135,11 @@ def load_and_merge_shard_results() -> Tuple[List[Dict], int, Dict[str, int]]:
         total_scanned += payload["total_scanned"]
         for k, v in payload["sector_stats"].items():
             sector_stats[k] += v
+        all_stock_records.extend(payload.get("all_stock_records", []))
+        fetch_success_count += payload.get("fetch_success_count", 0)
 
     all_results.sort(key=lambda x: (x['total_score'], x['win_rate']), reverse=True)
-    return all_results, total_scanned, sector_stats
+    return all_results, total_scanned, sector_stats, all_stock_records, fetch_success_count
 
 
 def load_info_cache() -> Dict[str, Dict]:
@@ -1944,6 +1959,8 @@ class AdvancedStockScreener:
         self.ti            = TechnicalIndicators()
         self.scorer        = ScoringEngine()
         self.total_scanned = 0  # スキャンした全銘柄数（ETF等含む）
+        self.all_stock_records = []  # 全銘柄スナップショット用（Supabase書き込み対象）
+        self.fetch_success_count = 0
 
     def select_free_tier_stocks(self, results: List[Dict], count: int = 3) -> List[Dict]:
         """
@@ -2129,15 +2146,29 @@ class AdvancedStockScreener:
     # ─────────────────────────────────────────────
     def screen_stock(self, code: str, name: str, sector: str = "不明",
                      info_cache: Optional[Dict] = None) -> Optional[Dict]:
-        """個別銘柄スクリーニング（v2.0 全指標統合版）"""
+        """個別銘柄スクリーニング（v2.0 全指標統合版）
+
+        戻り値は常に「全銘柄スナップショット用レコード」であり、データ取得に
+        真に失敗した場合のみ fetch_success=False の最小レコードを返す（Noneにはしない）。
+        レポート掲載可否（流動性・スコア閾値）は meets_threshold で示し、
+        呼び出し側(scan_all_stocks)がその値でレポート対象を絞り込む。
+        """
         ticker_symbol = f"{code}.T"
+
+        def _fetch_failed_record() -> Dict:
+            return {
+                'code': code, 'name': name, 'sector': sector,
+                'price': None, 'date': None,
+                'total_score': None, 'signals': {},
+                'fetch_success': False, 'meets_threshold': False,
+            }
 
         try:
             # キャッシュ対応データ取得（平日は差分1行、キャッシュなしはフルDL）
             data = get_cached_stock_data(code)
 
             if data is None or data.empty or len(data) < MA_LONG:
-                return None
+                return _fetch_failed_record()
 
             # ── 銘柄名・セクター補完 ──────────────────────────────────
             info = {}
@@ -2171,9 +2202,10 @@ class AdvancedStockScreener:
             data['MA100'] = data['Close'].rolling(100).mean()
 
             # ── 流動性チェック ───────────────────────────────────────
+            # レポート掲載可否の判定に使うのみで、ここでは早期returnしない
+            # （全銘柄スナップショットには流動性不足銘柄も記録するため）
             avg_volume_30d = data['Volume_Yen'].tail(30).mean()
-            if avg_volume_30d < self.min_volume:
-                return None
+            meets_liquidity = bool(avg_volume_30d >= self.min_volume)
 
             latest = data.iloc[-1]
             prev   = data.iloc[-2] if len(data) >= 2 else latest
@@ -2275,8 +2307,17 @@ class AdvancedStockScreener:
             )
 
             # ── スコアフィルタ ────────────────────────────────────────
-            if total_score < self.min_score:
-                return None
+            # レポート掲載可否のみを示すフラグとし、早期returnはしない
+            # （全銘柄スナップショットには閾値未達銘柄もスコア・9指標フラグ付きで記録するため）
+            meets_threshold = meets_liquidity and total_score >= self.min_score
+
+            if not meets_threshold:
+                return {
+                    'code': code, 'name': name, 'sector': sector,
+                    'price': latest['Close'], 'date': latest.name.strftime('%Y-%m-%d'),
+                    'total_score': total_score, 'signals': signals,
+                    'fetch_success': True, 'meets_threshold': False,
+                }
 
             # ── バックテスト（既存ロジック維持）─────────────────────
             win_rate, backtest_sample = 0.0, 0
@@ -2357,10 +2398,15 @@ class AdvancedStockScreener:
 
                 # ── パターン分類 ──────────────────────────────────────
                 'pattern'           : pattern,
+
+                # ── スナップショット用 ────────────────────────────────
+                'signals'           : signals,
+                'fetch_success'     : True,
+                'meets_threshold'   : True,
             }
 
         except Exception:
-            return None
+            return _fetch_failed_record()
 
     # ─────────────────────────────────────────────
     #  土曜キャッシュ更新
@@ -2438,7 +2484,9 @@ class AdvancedStockScreener:
         has_cache  = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.parquet"))
         sleep_sec  = 0.1 if has_cache else 0.5
 
-        results = []
+        results = []          # レポート掲載対象（従来どおり: 流動性・スコア閾値を満たす銘柄のみ）
+        all_records = []      # 全銘柄スナップショット用（取得成否問わず全件）
+        fetch_success_count = 0
         for idx, row in stocks_df.iterrows():
             code   = row['code']
             name   = row['name']
@@ -2448,7 +2496,10 @@ class AdvancedStockScreener:
                 print(f"進捗: {idx + 1}/{total} ({len(results)}銘柄合致)")
 
             result = self.screen_stock(code, name, sector, info_cache=info_cache)
-            if result:
+            all_records.append(result)
+            if result.get('fetch_success'):
+                fetch_success_count += 1
+            if result.get('meets_threshold'):
                 results.append(result)
                 print(f"  ✅ {code} {result['name']} "
                       f"[{sector}] スコア:{result['total_score']}点")
@@ -2456,6 +2507,9 @@ class AdvancedStockScreener:
             time.sleep(sleep_sec)
 
         print(f"\n✅ スキャン完了: {len(results)}銘柄が条件に合致")
+
+        self.all_stock_records = all_records
+        self.fetch_success_count = fetch_success_count
 
         # 総合スコア → 勝率 の順でソート
         results.sort(key=lambda x: (x['total_score'], x['win_rate']), reverse=True)
@@ -2754,15 +2808,16 @@ class AdvancedNotifier:
         if len(results) > 5:
             msg += f"...他{len(results)-5}銘柄\n\n"
 
-        # HTMLリンク（強調）
-        msg += (
-            f"{'─'*40}\n"
-            f"📄 **全{len(results)}銘柄の詳細レポート**\n"
-            f"   👉 {self.base_url}/{html_path}\n\n"
-            f"   ✅ ソート・検索機能\n"
-            f"   ✅ 全指標のスコア内訳\n"
-            f"   ✅ セクター別集計\n\n"
-        )
+        # HTMLリンク（強調・パス未設定時は掲載しない）
+        if html_path:
+            msg += (
+                f"{'─'*40}\n"
+                f"📄 **全{len(results)}銘柄の詳細レポート**\n"
+                f"   👉 {self.base_url}/{html_path}\n\n"
+                f"   ✅ ソート・検索機能\n"
+                f"   ✅ 全指標のスコア内訳\n"
+                f"   ✅ セクター別集計\n\n"
+            )
 
         # セクターレポート
         if sector_report:
@@ -3100,14 +3155,112 @@ def run_shard_screen() -> None:
         min_score       = min_score,
     )
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
-    save_shard_results(results, screener.total_scanned, screener.sector_stats, shard_index)
+    save_shard_results(results, screener.total_scanned, screener.sector_stats, shard_index,
+                       all_stock_records=screener.all_stock_records,
+                       fetch_success_count=screener.fetch_success_count)
     print(f"\n✅ シャード{shard_index}完了: {len(results)}銘柄が条件に合致"
           f"（担当{screener.total_scanned}銘柄中）")
 
 
+def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: int,
+                                 fetch_success_count: int) -> None:
+    """全銘柄の日次スナップショットをSupabase(非公開DB)へ書き込む。
+
+    原則3: 全銘柄データ（有料コンテンツ）はGitHub Pages等の公開経路に置かず、
+    非公開DB + 認証付きAPI(Edge Function)経由でのみ配信する。
+    原則5: 成功率が閾値未満の場合は is_incomplete=true を記録し、
+    不完全なスナップショットを「完成」として下流に伝えない。
+
+    SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 未設定時は警告を出してスキップする
+    （バッチ全体を失敗させない）。
+    """
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key  = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not supabase_url or not service_key:
+        print("⚠️ SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 未設定 → スナップショット保存をスキップ")
+        return
+
+    snapshot_date = datetime.now().strftime('%Y-%m-%d')
+    success_rate  = (fetch_success_count / total_scanned) if total_scanned else 0.0
+    is_incomplete = success_rate < SNAPSHOT_INCOMPLETE_THRESHOLD
+
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+
+    snapshot_row = {
+        "snapshot_date": snapshot_date,
+        "schema_version": SNAPSHOT_SCHEMA_VERSION,
+        "generated_at": datetime.now().isoformat(),
+        "total_scanned": total_scanned,
+        "success_count": fetch_success_count,
+        "success_rate": round(success_rate, 4),
+        "is_incomplete": is_incomplete,
+    }
+
+    resp = requests.post(
+        f"{supabase_url}/rest/v1/screener_snapshots?on_conflict=snapshot_date",
+        headers=headers, json=snapshot_row, timeout=30,
+    )
+    if resp.status_code not in (200, 201):
+        print(f"❌ screener_snapshots 保存失敗: {resp.status_code} {resp.text[:200]}")
+        return
+
+    stock_rows = []
+    for r in all_stock_records:
+        signals = r.get('signals') or {}
+        stock_rows.append({
+            "snapshot_date"  : snapshot_date,
+            "code"           : str(r['code']),
+            "name"           : r['name'],
+            "sector"         : r.get('sector'),
+            "close_price"    : r.get('price'),
+            "fetch_success"  : bool(r.get('fetch_success')),
+            "ma_trend"       : signals.get('ma_trend'),
+            "golden_cross"   : signals.get('golden_cross'),
+            "bottom_cross"   : signals.get('bottom_cross'),
+            "bb_signal"      : signals.get('bb_signal'),
+            "obv_trend"      : signals.get('obv_trend'),
+            "ichimoku_cloud" : signals.get('ichimoku_cloud'),
+            "ichimoku_sanryo": signals.get('ichimoku_sanryo'),
+            "volume_surge"   : signals.get('volume_surge'),
+            "pbr_value"      : signals.get('pbr_value'),
+            "total_score"    : r.get('total_score'),
+        })
+
+    batch_size = 500
+    failed_batches = 0
+    for i in range(0, len(stock_rows), batch_size):
+        chunk = stock_rows[i:i + batch_size]
+        resp = requests.post(
+            f"{supabase_url}/rest/v1/screener_stock_snapshots?on_conflict=snapshot_date,code",
+            headers=headers, json=chunk, timeout=60,
+        )
+        if resp.status_code not in (200, 201):
+            failed_batches += 1
+            print(f"❌ screener_stock_snapshots 保存失敗 (batch {i}): "
+                  f"{resp.status_code} {resp.text[:200]}")
+
+    status = "・不完全フラグ" if is_incomplete else ""
+    print(f"✅ Supabaseへスナップショット保存完了: {snapshot_date} "
+          f"(成功率{success_rate*100:.1f}%{status}、{len(stock_rows)}銘柄・"
+          f"失敗batch{failed_batches}件)")
+
+
 def _generate_reports_and_notify(screener: "AdvancedStockScreener",
-                                  results: List[Dict], total_scanned: int) -> None:
-    """スキャン結果からレポート生成・KabuNote向けJSON出力・通知送信までを行う（single/aggregate共通）"""
+                                  results: List[Dict], total_scanned: int,
+                                  all_stock_records: Optional[List[Dict]] = None,
+                                  fetch_success_count: int = 0) -> None:
+    """スキャン結果からKabuNote向けJSON出力（無料層のみ）・Supabaseスナップショット保存・
+    通知送信までを行う（single/aggregate共通）。
+
+    原則3: 全銘柄HTMLレポート(basic/analysis/premium/chart-analysis)は
+    非公開ストレージ+認証API経由の配信に切り替えるため、GitHub Pagesへの生成・公開を廃止した。
+    無料公開分（厳選3銘柄＋市場サマリー）のみ従来どおり docs/ に静的公開する。
+    """
     notification_service = os.getenv("NOTIFICATION_SERVICE", "slack")
     plan_mode             = os.getenv("PLAN_MODE", "free_beta")
     output_dir            = os.getenv("OUTPUT_DIR", "docs")
@@ -3119,47 +3272,23 @@ def _generate_reports_and_notify(screener: "AdvancedStockScreener",
     for i, s in enumerate(selected, 1):
         print(f"  {i}. {s['code']} {s['name']} (スコア:{s['total_score']:.0f}点)")
 
-    html_gen = HTMLReportGenerator(output_dir=output_dir)
-    today_str = datetime.now().strftime('%Y-%m-%d')
     print(f"   ({total_scanned:,}銘柄をスキャン、{len(results)}銘柄が条件に合致)")
 
-    print("\n📄 レポート生成中...")
-    html_path          = html_gen.generate_basic_report(results, today_str, sector_report,
-                                                        total_scanned=total_scanned)
-    analysis_html_path = html_gen.generate_analysis_report(results, today_str,
-                                                            total_scanned=total_scanned)
-
-    # Top5チャート生成（Premium Step1）
-    chart_paths = html_gen.generate_charts_for_top5(results, today_str)
-
-    # 統計グラフ生成（Premium Step2）
-    print("\n📊 統計グラフ生成中...")
-    stats_paths = html_gen.generate_stats_charts(results, today_str)
-
-    premium_html_path  = html_gen.generate_premium_report(
-        results, today_str, sector_report,
-        chart_paths=chart_paths, stats_paths=stats_paths,
-        total_scanned=total_scanned,
-    )
-
-    # チャート分析ページ生成
-    print("\n📈 チャート分析ページ生成中...")
-    chart_analysis_path = html_gen.generate_chart_analysis_page(
-        results, today_str, chart_paths=chart_paths
-    )
-
-    # ─── KabuNote連携用 JSON エクスポート ────────────────────────
+    # ─── KabuNote連携用 JSON エクスポート（厳選3銘柄＋サマリーのみ、無料公開） ──
     screener.export_json(results, selected, output_dir)
 
+    # ─── 全銘柄スナップショットをSupabase(非公開)へ保存 ─────────────
+    export_snapshot_to_supabase(all_stock_records or [], total_scanned, fetch_success_count)
+
     # ─── 通知送信 ─────────────────────────────────────────────
-    # Webhookが設定されているチャンネルに一括送信
+    # Webhookが設定されているチャンネルに一括送信（全銘柄HTMLリンクは配信廃止のため空文字）
     notifier = AdvancedNotifier(service=notification_service, plan_mode=plan_mode)
     notifier.notify_all_channels(
         results, selected, sector_report,
-        html_path=html_path,
-        analysis_html_path=analysis_html_path,
-        premium_html_path=premium_html_path,
-        chart_html_path=chart_analysis_path,
+        html_path="",
+        analysis_html_path="",
+        premium_html_path="",
+        chart_html_path="",
         total_scanned=total_scanned,
     )
 
@@ -3167,9 +3296,10 @@ def _generate_reports_and_notify(screener: "AdvancedStockScreener",
 
 
 def run_aggregate_screen() -> None:
-    """集計ジョブ: 全シャードの結果をマージし、レポート生成・通知を行う"""
+    """集計ジョブ: 全シャードの結果をマージし、Supabase保存・通知を行う"""
     print("🚀 日本市場全銘柄スクリーニング 集計ジョブ開始\n")
-    results, total_scanned, sector_stats = load_and_merge_shard_results()
+    results, total_scanned, sector_stats, all_stock_records, fetch_success_count = \
+        load_and_merge_shard_results()
 
     if not results:
         print("\n🔇 条件に合致する銘柄がありませんでした")
@@ -3179,7 +3309,9 @@ def run_aggregate_screen() -> None:
     screener.total_scanned = total_scanned
     screener.sector_stats  = defaultdict(int, sector_stats)
 
-    _generate_reports_and_notify(screener, results, total_scanned)
+    _generate_reports_and_notify(screener, results, total_scanned,
+                                  all_stock_records=all_stock_records,
+                                  fetch_success_count=fetch_success_count)
 
 
 def main():
@@ -3278,7 +3410,9 @@ def main():
         print("\n🔇 条件に合致する銘柄がありませんでした")
         return
 
-    _generate_reports_and_notify(screener, results, screener.total_scanned)
+    _generate_reports_and_notify(screener, results, screener.total_scanned,
+                                  all_stock_records=screener.all_stock_records,
+                                  fetch_success_count=screener.fetch_success_count)
 
 
 if __name__ == "__main__":
