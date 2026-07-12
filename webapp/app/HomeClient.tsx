@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useScreenerData } from '@/lib/useScreenerData'
 import type { Plan } from '@/lib/entitlement'
+import SamplePreview from './SamplePreview'
 
 const INDICATORS = [
   { pt: '15 pt', name: 'MA200 上昇トレンド', desc: '株価がMA200を上回り、かつMA200が直近20日間で上向き。トレンド継続性まで判定。' },
@@ -193,6 +194,20 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
         )}
       </section>
 
+      {/* 全銘柄分析ページのサンプル */}
+      <section className="relative z-10 px-6 py-16 max-w-[1100px] mx-auto border-t border-[var(--border2)]">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="font-[family-name:var(--mono)] text-[9px] font-bold tracking-[3px] text-[var(--green)] uppercase">
+            Basic・Premium — 全銘柄分析ページのイメージ
+          </div>
+          <div className="flex-1 h-px bg-[var(--border2)]" />
+        </div>
+        <p className="text-xs text-[var(--muted)] mb-6">
+          ログイン後、basic・premiumプランで実際に閲覧できる画面のイメージです(下表は架空データ)。
+        </p>
+        <SamplePreview />
+      </section>
+
       {/* プラン */}
       <section className="relative z-10 px-6 py-16 max-w-[1100px] mx-auto border-t border-[var(--border2)]">
         <div className="flex items-center gap-4 mb-6">
@@ -212,8 +227,8 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
               <li>厳選3銘柄を毎日表示</li>
               <li>セクター別平均スコア</li>
               <li>Discord #daily-picks</li>
-              <li className="text-[#1e293b]">全銘柄分析</li>
-              <li className="text-[#1e293b]">指標スコア内訳</li>
+              <li className="text-[var(--dim)]">全銘柄分析</li>
+              <li className="text-[var(--dim)]">指標スコア内訳</li>
             </ul>
             {!loggedIn && (
               <Link href="/login" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm border border-[var(--border2)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--border)] transition">
@@ -260,10 +275,10 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
             <div className="h-px bg-[var(--border2)] mb-5" />
             <ul className="flex flex-col gap-2.5 mb-7 text-xs text-[#94a3b8]">
               <li>Basicの全機能</li>
-              <li className="text-[#1e293b]">30日分レポートアーカイブ</li>
-              <li className="text-[#1e293b]">シグナル発生履歴</li>
+              <li className="text-[var(--dim)]">30日分レポートアーカイブ</li>
+              <li className="text-[var(--dim)]">シグナル発生履歴</li>
             </ul>
-            <span className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm border border-[#1e293b] text-[#1e293b]">
+            <span className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm border border-[var(--dim)] text-[var(--dim)]">
               近日公開
             </span>
           </div>
@@ -332,7 +347,7 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
               ログイン / 新規登録 →
             </Link>
           )}
-          <p className="mt-5 text-[10px] text-[#1e293b]">
+          <p className="mt-5 text-[11px] text-[var(--muted)]">
             ※ 本サービスは条件成立の事実表示のみを行い、投資助言は行いません。投資判断はご自身の責任でお願いします。
           </p>
         </div>
@@ -345,20 +360,20 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
             nobi-labo
           </a>
           <div className="flex gap-5">
-            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/terms.html" className="text-[11px] text-[#1e293b] hover:text-[var(--muted)] transition">
+            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/terms.html" className="text-[11px] text-[var(--dim)] hover:text-[var(--muted)] transition">
               利用規約
             </a>
-            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/disclaimer.html" className="text-[11px] text-[#1e293b] hover:text-[var(--muted)] transition">
+            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/disclaimer.html" className="text-[11px] text-[var(--dim)] hover:text-[var(--muted)] transition">
               免責事項
             </a>
-            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/privacy.html" className="text-[11px] text-[#1e293b] hover:text-[var(--muted)] transition">
+            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/privacy.html" className="text-[11px] text-[var(--dim)] hover:text-[var(--muted)] transition">
               プライバシーポリシー
             </a>
-            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/tokushoho.html" className="text-[11px] text-[#1e293b] hover:text-[var(--muted)] transition">
+            <a href="https://nobinobi9000.github.io/japan-stock-screener/legal/tokushoho.html" className="text-[11px] text-[var(--dim)] hover:text-[var(--muted)] transition">
               特定商取引法に基づく表記
             </a>
           </div>
-          <span className="font-[family-name:var(--mono)] text-[11px] text-[#1e293b]">© 2026 nobi-labo</span>
+          <span className="font-[family-name:var(--mono)] text-[11px] text-[var(--dim)]">© 2026 nobi-labo</span>
         </div>
       </footer>
     </>
