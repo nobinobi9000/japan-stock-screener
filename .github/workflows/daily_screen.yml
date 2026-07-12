@@ -1,26 +1,62 @@
-﻿name: Daily Stock Screening
+name: Daily Stock Screening
 
 on:
   schedule:
-    # 毎日16時（JST = UTC+9）→ UTC 7時に実行
-    - cron: '0 7 * * 1-5'  # 月〜金: 差分取得 + スクリーニング
-    - cron: '0 7 * * 6'    # 土曜: 2年分フルDL + キャッシュ更新
+    # 16:07 JST（毎時00分ちょうどを避けてGitHub Actions側の混雑を回避）
+    - cron: '7 7 * * 1-5'  # 月〜金: 差分取得 + スクリーニング（シャード分割）
+    - cron: '7 7 * * 6'    # 土曜: 2年分フルDL + キャッシュ更新（シャード分割）
   workflow_dispatch:  # 手動実行も可能
 
 # 権限を追加（重要！）
 permissions:
   contents: write  # リポジトリへの書き込み権限
 
-jobs:
-  screen:
-    runs-on: ubuntu-latest
-    timeout-minutes: 240  # 土曜のフルDLは2〜3時間かかるため延長
+env:
+  SHARD_TOTAL: 10
 
+jobs:
+  # ─────────────────────────────────────────────
+  #  JPX営業日ゲート（祝日・年末年始を含めて判定）
+  # ─────────────────────────────────────────────
+  check-market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.check.outputs.mode }}
+      is_open: ${{ steps.check.outputs.is_open }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.11'
+
+      - name: Install lightweight dependencies
+        run: pip install jpholiday requests
+
+      - name: Determine market day (JPX calendar)
+        id: check
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python scripts/check_market_day.py
+
+  # ─────────────────────────────────────────────
+  #  平日: 差分取得 + スクリーニング（シャード）
+  # ─────────────────────────────────────────────
+  shard-screen:
+    needs: check-market
+    if: needs.check-market.outputs.mode == 'screen' && needs.check-market.outputs.is_open == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Calculate cache key
         id: cache-key
@@ -38,7 +74,7 @@ jobs:
           "
 
       - name: Restore stock cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: cache/
           key: ${{ steps.cache-key.outputs.key }}
@@ -52,7 +88,56 @@ jobs:
         run: |
           pip install yfinance pandas numpy requests jpholiday matplotlib mplfinance pyarrow
 
-      - name: Run screening
+      - name: Run screening shard
+        env:
+          RUN_MODE: shard_screen
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ env.SHARD_TOTAL }}
+          PLAN_MODE: free_beta
+          USE_SAMPLE: false
+          MIN_SCORE: 30
+          ENABLE_BACKTEST: true
+        run: |
+          python stock_screener_v3_multiplan.py
+
+      - name: Upload shard results
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-screen-results-${{ matrix.shard }}
+          path: shard_output/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  #  平日: 集計・レポート生成・通知・コミット
+  # ─────────────────────────────────────────────
+  aggregate-screen:
+    needs: [check-market, shard-screen]
+    if: needs.check-market.outputs.mode == 'screen' && needs.check-market.outputs.is_open == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy requests jpholiday matplotlib mplfinance pyarrow
+
+      - name: Download all shard results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-screen-results-*
+          path: shard_output/
+          merge-multiple: true
+
+      - name: Run aggregation, report generation and notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_BASIC_WEBHOOK_URL: ${{ secrets.DISCORD_BASIC_WEBHOOK_URL }}
@@ -61,12 +146,10 @@ jobs:
           DISCORD_CHART_WEBHOOK_URL: ${{ secrets.DISCORD_CHART_WEBHOOK_URL }}
           NOTIFICATION_SERVICE: discord
           PLAN_MODE: free_beta
-          USE_SAMPLE: false
           ENABLE_EMAIL: false
           OUTPUT_DIR: docs
-          MIN_SCORE: 30
-          ENABLE_BACKTEST: true
           REPORT_BASE_URL: https://screener.nobi-labo.com
+          RUN_MODE: aggregate_screen
         run: |
           python stock_screener_v3_multiplan.py
 
@@ -77,3 +160,105 @@ jobs:
           git add -f docs/
           git diff --quiet && git diff --staged --quiet || git commit -m "Daily screening report $(date +%Y-%m-%d)"
           git push
+
+  # ─────────────────────────────────────────────
+  #  土曜: 2年分フルDL + キャッシュ更新（シャード）
+  # ─────────────────────────────────────────────
+  shard-cache-warm:
+    needs: check-market
+    if: needs.check-market.outputs.mode == 'cache_warm'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy requests jpholiday matplotlib mplfinance pyarrow
+
+      - name: Warm cache shard
+        env:
+          RUN_MODE: shard_cache_warm
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ env.SHARD_TOTAL }}
+        run: |
+          python stock_screener_v3_multiplan.py
+
+      - name: Upload shard cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-cache-${{ matrix.shard }}
+          path: cache/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  #  土曜: キャッシュ統合・保存
+  # ─────────────────────────────────────────────
+  aggregate-cache-warm:
+    needs: [check-market, shard-cache-warm]
+    if: needs.check-market.outputs.mode == 'cache_warm'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Calculate cache key
+        id: cache-key
+        run: |
+          python3 -c "
+          from datetime import datetime, timedelta
+          import os
+          today = datetime.utcnow()
+          days = (today.weekday() - 5) % 7
+          last_sat = today - timedelta(days=days)
+          key = 'stock-cache-' + last_sat.strftime('%Y-%m-%d')
+          print(f'Cache key: {key}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'key={key}\n')
+          "
+
+      # 週次キーが初出のため必ずミスするが、post-job で cache/ の内容を保存させるために必要
+      - name: Restore/prepare cache slot
+        uses: actions/cache/restore@v4
+        with:
+          path: cache/
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy requests jpholiday matplotlib mplfinance pyarrow
+
+      - name: Download all shard caches
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-cache-*
+          path: cache/
+          merge-multiple: true
+
+      - name: Merge shard cache info fragments
+        env:
+          RUN_MODE: aggregate_cache_warm
+        run: |
+          python stock_screener_v3_multiplan.py
+
+      - name: Save merged cache
+        uses: actions/cache/save@v4
+        with:
+          path: cache/
+          key: ${{ steps.cache-key.outputs.key }}

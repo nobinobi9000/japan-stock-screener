@@ -46,6 +46,7 @@ import time
 import requests
 import json
 import os
+import pickle
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 from pathlib import Path
@@ -65,6 +66,65 @@ import sys
 # ─────────────────────────────────────────────
 CACHE_DIR = Path("cache")
 _INFO_CACHE: Optional[Dict[str, Dict]] = None
+
+# ─────────────────────────────────────────────
+#  matrix シャーディング設定（GitHub Actions 用）
+#  SHARD_INDEX/SHARD_TOTAL 環境変数が未設定の場合は
+#  従来どおり全銘柄を単一ジョブで処理する（後方互換）
+# ─────────────────────────────────────────────
+SHARD_OUTPUT_DIR = Path("shard_output")
+
+
+def _get_shard_env() -> Tuple[Optional[int], Optional[int]]:
+    """SHARD_INDEX/SHARD_TOTAL 環境変数を読み込む。未設定なら (None, None)。"""
+    shard_index = os.getenv("SHARD_INDEX")
+    shard_total = os.getenv("SHARD_TOTAL")
+    if shard_index is None or shard_total is None:
+        return None, None
+    return int(shard_index), int(shard_total)
+
+
+def _apply_shard(df: pd.DataFrame, shard_index: Optional[int],
+                  shard_total: Optional[int]) -> pd.DataFrame:
+    """SHARD_INDEX/SHARD_TOTAL に応じて銘柄リストを均等分割する（剰余方式）"""
+    if not shard_total or shard_total <= 1:
+        return df
+    df = df.reset_index(drop=True)
+    return df.iloc[shard_index::shard_total].reset_index(drop=True)
+
+
+def save_shard_results(results: List[Dict], total_scanned: int,
+                        sector_stats: Dict[str, int], shard_index: int) -> None:
+    """シャードのスクリーニング結果を集計ジョブ向けに保存する"""
+    SHARD_OUTPUT_DIR.mkdir(exist_ok=True)
+    payload = {
+        "results": results,
+        "total_scanned": total_scanned,
+        "sector_stats": dict(sector_stats),
+    }
+    with open(SHARD_OUTPUT_DIR / f"shard_{shard_index}.pkl", "wb") as f:
+        pickle.dump(payload, f)
+
+
+def load_and_merge_shard_results() -> Tuple[List[Dict], int, Dict[str, int]]:
+    """全シャードの結果ファイル(shard_output/shard_*.pkl)を読み込んでマージする"""
+    files = sorted(SHARD_OUTPUT_DIR.glob("shard_*.pkl"))
+    if not files:
+        raise RuntimeError(f"シャード結果が見つかりません: {SHARD_OUTPUT_DIR}")
+
+    all_results: List[Dict] = []
+    total_scanned = 0
+    sector_stats: Dict[str, int] = defaultdict(int)
+    for f in files:
+        with open(f, "rb") as fh:
+            payload = pickle.load(fh)
+        all_results.extend(payload["results"])
+        total_scanned += payload["total_scanned"]
+        for k, v in payload["sector_stats"].items():
+            sector_stats[k] += v
+
+    all_results.sort(key=lambda x: (x['total_score'], x['win_rate']), reverse=True)
+    return all_results, total_scanned, sector_stats
 
 
 def load_info_cache() -> Dict[str, Dict]:
@@ -2306,11 +2366,15 @@ class AdvancedStockScreener:
     #  土曜キャッシュ更新
     # ─────────────────────────────────────────────
     def warm_cache_all_stocks(self) -> Dict[str, int]:
-        """土曜専用: 全銘柄2年分データをキャッシュ更新。スクリーニング・通知は行わない。"""
+        """土曜専用: 全銘柄2年分データをキャッシュ更新。スクリーニング・通知は行わない。
+        SHARD_INDEX/SHARD_TOTAL 設定時は担当分の銘柄のみ処理する。"""
         CACHE_DIR.mkdir(exist_ok=True)
         stocks_df = self.get_jpx_stock_list()
+        shard_index, shard_total = _get_shard_env()
+        stocks_df = _apply_shard(stocks_df, shard_index, shard_total)
         total = len(stocks_df)
-        print(f"[土曜キャッシュ更新] {total}銘柄を開始...")
+        shard_label = f"[シャード{shard_index + 1}/{shard_total}] " if shard_total else ""
+        print(f"[土曜キャッシュ更新] {shard_label}{total}銘柄を開始...")
 
         success, failed = 0, 0
         info_all: Dict[str, Dict] = {}
@@ -2341,7 +2405,9 @@ class AdvancedStockScreener:
                 failed += 1
             time.sleep(0.3)
 
-        with open(CACHE_DIR / "_info.json", "w", encoding="utf-8") as f:
+        # シャード実行時は集計ジョブでマージするため断片ファイルに保存する
+        info_filename = f"_info_shard{shard_index}.json" if shard_total else "_info.json"
+        with open(CACHE_DIR / info_filename, "w", encoding="utf-8") as f:
             json.dump(info_all, f, ensure_ascii=False)
 
         print(f"[完了] 成功:{success} 失敗:{failed} / 全:{total}")
@@ -2352,15 +2418,20 @@ class AdvancedStockScreener:
     # ─────────────────────────────────────────────
     def scan_all_stocks(self, max_stocks: Optional[int] = None,
                         use_sample: bool = False) -> List[Dict]:
-        """全銘柄スキャン"""
+        """全銘柄スキャン。SHARD_INDEX/SHARD_TOTAL 設定時は担当分の銘柄のみ処理する。"""
         print("📊 銘柄リストを取得中...")
         stocks_df = self._get_sample_stocks() if use_sample else self.get_jpx_stock_list()
 
         if max_stocks:
             stocks_df = stocks_df.head(max_stocks)
 
+        shard_index, shard_total = _get_shard_env()
+        stocks_df = _apply_shard(stocks_df, shard_index, shard_total)
+
         total = len(stocks_df)
-        self.total_scanned = total  # ETF等を含む全対象銘柄数を記録
+        self.total_scanned = total  # このシャード（未分割時は全体）が担当する銘柄数
+        if shard_total:
+            print(f"🔀 シャード {shard_index + 1}/{shard_total}: 担当 {total}銘柄")
         print(f"🔍 {total}銘柄のスクリーニングを開始（最低スコア: {self.min_score}点）\n")
 
         info_cache = load_info_cache()
@@ -2992,78 +3063,57 @@ def is_market_open() -> tuple:
     return True, ""
 
 
-def main():
-    """メイン実行関数 v3.0 Final（Discord）"""
-
-    # ── 土曜日: キャッシュ更新のみ（スクリーニング・通知なし） ──
-    if datetime.now().weekday() == 5:
-        print(f"[土曜キャッシュモード] {datetime.now().strftime('%Y年%m月%d日')}")
-        print("スクリーニングは実行せず、キャッシュ更新のみ行います\n")
-        screener = AdvancedStockScreener(min_volume=1_000_000,
-                                         enable_backtest=False, min_score=30)
-        screener.warm_cache_all_stocks()
+def merge_shard_cache_info() -> None:
+    """土曜キャッシュ更新: 各シャードの _info_shard*.json 断片を単一の _info.json にマージする"""
+    fragments = sorted(CACHE_DIR.glob("_info_shard*.json"))
+    if not fragments:
+        print("⚠️ キャッシュ情報の断片ファイルが見つかりません")
         return
 
-    # 市場休場日チェック
-    is_open, reason = is_market_open()
-    if not is_open:
-        today = datetime.now().strftime('%Y年%m月%d日')
-        print(f"🔇 本日（{today}）は{reason}のため市場休場です")
-        print("📊 スクリーニングは実行されません\n")
-        
-        # Discord に休場通知（オプション）
-        notification_service = os.getenv("NOTIFICATION_SERVICE", "discord")
-        if notification_service == "discord":
-            discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
-            if discord_webhook:
-                try:
-                    message = {
-                        "content": f"📅 市場休場のお知らせ\n\n本日（{today}）は{reason}のため、"
-                                   f"東京証券取引所は休場です。\n"
-                                   f"スクリーニングは次回開場日に実行されます。"
-                    }
-                    requests.post(discord_webhook, json=message)
-                    print("✅ Discord に休場通知を送信しました")
-                except Exception as e:
-                    print(f"⚠️  Discord 通知エラー: {e}")
-        
-        return
-    
-    print("🚀 日本市場全銘柄スクリーニング開始 v3.0 Final\n")
-    print("📢 通知: Discord\n")  # SendGrid 削除
+    merged: Dict[str, Dict] = {}
+    for f in fragments:
+        with open(f, "r", encoding="utf-8") as fh:
+            merged.update(json.load(fh))
+        f.unlink()
 
-    # ─── 環境変数読み込み ─────────────────────────────────────
-    notification_service = os.getenv("NOTIFICATION_SERVICE", "slack")
-    plan_mode            = os.getenv("PLAN_MODE", "free_beta")
-    max_stocks           = os.getenv("MAX_STOCKS")
-    enable_backtest      = os.getenv("ENABLE_BACKTEST", "true").lower() == "true"
-    min_score            = float(os.getenv("MIN_SCORE", "30"))
-    use_sample           = os.getenv("USE_SAMPLE", "false").lower() == "true"
-    output_dir           = os.getenv("OUTPUT_DIR", "docs")
+    with open(CACHE_DIR / "_info.json", "w", encoding="utf-8") as f:
+        json.dump(merged, f, ensure_ascii=False)
+    print(f"✅ キャッシュ情報を統合しました（{len(merged)}銘柄）")
 
-    print(f"⚙️  プランモード: {plan_mode}")
-    print(f"📢 通知サービス: {notification_service}")
 
+def run_shard_screen() -> None:
+    """screenシャードジョブ: 担当分の銘柄をスキャンし、結果を集計ジョブ向けに保存する（レポート生成・通知は行わない）"""
+    shard_index, shard_total = _get_shard_env()
+    if shard_index is None:
+        raise RuntimeError("RUN_MODE=shard_screen には SHARD_INDEX/SHARD_TOTAL の設定が必須です")
+
+    enable_backtest = os.getenv("ENABLE_BACKTEST", "true").lower() == "true"
+    min_score       = float(os.getenv("MIN_SCORE", "30"))
+    use_sample      = os.getenv("USE_SAMPLE", "false").lower() == "true"
+    max_stocks      = os.getenv("MAX_STOCKS")
     if max_stocks:
         max_stocks = int(max_stocks)
-        print(f"⚠️  テストモード: {max_stocks}銘柄のみスキャン\n")
 
-    # ─── スクリーニング実行 ───────────────────────────────────
     screener = AdvancedStockScreener(
         min_volume      = 1_000_000,
         enable_backtest = enable_backtest,
         min_score       = min_score,
     )
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
+    save_shard_results(results, screener.total_scanned, screener.sector_stats, shard_index)
+    print(f"\n✅ シャード{shard_index}完了: {len(results)}銘柄が条件に合致"
+          f"（担当{screener.total_scanned}銘柄中）")
 
-    if not results:
-        print("\n🔇 条件に合致する銘柄がありませんでした")
-        return
 
-    # ─── セクターレポート生成 ─────────────────────────────────
+def _generate_reports_and_notify(screener: "AdvancedStockScreener",
+                                  results: List[Dict], total_scanned: int) -> None:
+    """スキャン結果からレポート生成・KabuNote向けJSON出力・通知送信までを行う（single/aggregate共通）"""
+    notification_service = os.getenv("NOTIFICATION_SERVICE", "slack")
+    plan_mode             = os.getenv("PLAN_MODE", "free_beta")
+    output_dir            = os.getenv("OUTPUT_DIR", "docs")
+
     sector_report = screener.generate_sector_report()
 
-    # ─── 全レポート生成（チャンネルごとに専用ファイル） ────────────────────────────────────
     selected = screener.select_free_tier_stocks(results, count=3)
     print(f"\n🎯 無料版選抜：{len(selected)}銘柄")
     for i, s in enumerate(selected, 1):
@@ -3071,8 +3121,6 @@ def main():
 
     html_gen = HTMLReportGenerator(output_dir=output_dir)
     today_str = datetime.now().strftime('%Y-%m-%d')
-
-    total_scanned = screener.total_scanned
     print(f"   ({total_scanned:,}銘柄をスキャン、{len(results)}銘柄が条件に合致)")
 
     print("\n📄 レポート生成中...")
@@ -3116,6 +3164,121 @@ def main():
     )
 
     print("\n✅ 処理完了")
+
+
+def run_aggregate_screen() -> None:
+    """集計ジョブ: 全シャードの結果をマージし、レポート生成・通知を行う"""
+    print("🚀 日本市場全銘柄スクリーニング 集計ジョブ開始\n")
+    results, total_scanned, sector_stats = load_and_merge_shard_results()
+
+    if not results:
+        print("\n🔇 条件に合致する銘柄がありませんでした")
+        return
+
+    screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
+    screener.total_scanned = total_scanned
+    screener.sector_stats  = defaultdict(int, sector_stats)
+
+    _generate_reports_and_notify(screener, results, total_scanned)
+
+
+def main():
+    """メイン実行関数 v3.0 Final（Discord）
+
+    RUN_MODE 環境変数でジョブの役割を切り替える:
+      - 未設定 / "single": 従来どおり単一ジョブで全銘柄を処理する（workflow_dispatch・ローカル実行用、後方互換）
+      - "shard_screen":      担当分の銘柄をスキャンし、結果を保存するのみ（レポート生成・通知なし）
+      - "aggregate_screen":  全シャードの結果をマージし、レポート生成・通知を行う
+      - "shard_cache_warm":  土曜キャッシュ更新の担当分のみ処理する
+      - "aggregate_cache_warm": 各シャードのキャッシュ情報断片をマージする
+    """
+    run_mode = os.getenv("RUN_MODE", "single")
+
+    if run_mode == "shard_cache_warm":
+        print(f"[土曜キャッシュモード/シャード] {datetime.now().strftime('%Y年%m月%d日')}")
+        screener = AdvancedStockScreener(min_volume=1_000_000,
+                                         enable_backtest=False, min_score=30)
+        screener.warm_cache_all_stocks()
+        return
+
+    if run_mode == "aggregate_cache_warm":
+        merge_shard_cache_info()
+        return
+
+    if run_mode == "shard_screen":
+        run_shard_screen()
+        return
+
+    if run_mode == "aggregate_screen":
+        run_aggregate_screen()
+        return
+
+    # ── run_mode == "single"（従来どおりの単一ジョブ実行。workflow_dispatch・ローカル実行用） ──
+
+    # ── 土曜日: キャッシュ更新のみ（スクリーニング・通知なし） ──
+    if datetime.now().weekday() == 5:
+        print(f"[土曜キャッシュモード] {datetime.now().strftime('%Y年%m月%d日')}")
+        print("スクリーニングは実行せず、キャッシュ更新のみ行います\n")
+        screener = AdvancedStockScreener(min_volume=1_000_000,
+                                         enable_backtest=False, min_score=30)
+        screener.warm_cache_all_stocks()
+        return
+
+    # 市場休場日チェック
+    is_open, reason = is_market_open()
+    if not is_open:
+        today = datetime.now().strftime('%Y年%m月%d日')
+        print(f"🔇 本日（{today}）は{reason}のため市場休場です")
+        print("📊 スクリーニングは実行されません\n")
+
+        # Discord に休場通知（オプション）
+        notification_service = os.getenv("NOTIFICATION_SERVICE", "discord")
+        if notification_service == "discord":
+            discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+            if discord_webhook:
+                try:
+                    message = {
+                        "content": f"📅 市場休場のお知らせ\n\n本日（{today}）は{reason}のため、"
+                                   f"東京証券取引所は休場です。\n"
+                                   f"スクリーニングは次回開場日に実行されます。"
+                    }
+                    requests.post(discord_webhook, json=message)
+                    print("✅ Discord に休場通知を送信しました")
+                except Exception as e:
+                    print(f"⚠️  Discord 通知エラー: {e}")
+
+        return
+
+    print("🚀 日本市場全銘柄スクリーニング開始 v3.0 Final\n")
+    print("📢 通知: Discord\n")  # SendGrid 削除
+
+    # ─── 環境変数読み込み ─────────────────────────────────────
+    plan_mode            = os.getenv("PLAN_MODE", "free_beta")
+    max_stocks           = os.getenv("MAX_STOCKS")
+    enable_backtest      = os.getenv("ENABLE_BACKTEST", "true").lower() == "true"
+    min_score            = float(os.getenv("MIN_SCORE", "30"))
+    use_sample           = os.getenv("USE_SAMPLE", "false").lower() == "true"
+
+    print(f"⚙️  プランモード: {plan_mode}")
+    print(f"📢 通知サービス: {os.getenv('NOTIFICATION_SERVICE', 'slack')}")
+
+    if max_stocks:
+        max_stocks = int(max_stocks)
+        print(f"⚠️  テストモード: {max_stocks}銘柄のみスキャン\n")
+
+    # ─── スクリーニング実行 ───────────────────────────────────
+    screener = AdvancedStockScreener(
+        min_volume      = 1_000_000,
+        enable_backtest = enable_backtest,
+        min_score       = min_score,
+    )
+    results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
+
+    if not results:
+        print("\n🔇 条件に合致する銘柄がありませんでした")
+        return
+
+    _generate_reports_and_notify(screener, results, screener.total_scanned)
 
 
 if __name__ == "__main__":
