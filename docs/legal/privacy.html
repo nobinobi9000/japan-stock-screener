@@ -246,17 +246,19 @@
 <main>
   <div class="page-label">Legal</div>
   <h1>プライバシーポリシー</h1>
-  <div class="page-meta">制定: 2025-02-18 &nbsp;／&nbsp; 最終更新: 2025-02-26</div>
+  <div class="page-meta">制定: 2025-02-18 &nbsp;／&nbsp; 最終更新: 2026-07-12</div>
 
   <div class="callout">
     <div class="callout-label">概要</div>
-    日本株スクリーニングサービス（以下「本サービス」）は、利用者の個人情報の
-    取扱いについて以下のとおりプライバシーポリシーを定めます。
-    本サービスを利用することにより、本ポリシーに同意したものとみなされます。
+    日本株スクリーニングサービス「日本株スクリーナー」、およびnobi-laboが同一の
+    アカウント基盤で提供する関連サービス「kabu-signal」「Kabu Note」（以下あわせて
+    「本サービス群」）は、利用者の個人情報の取扱いについて以下のとおり
+    プライバシーポリシーを定めます。本サービス群のいずれかを利用することにより、
+    本ポリシーに同意したものとみなされます。
   </div>
 
   <h2>1. 収集する情報</h2>
-  <p>本サービスでは、以下の情報を収集します：</p>
+  <p>本サービス群では、以下の情報を収集します：</p>
   <table class="data-table">
     <thead>
       <tr>
@@ -267,9 +269,24 @@
     </thead>
     <tbody>
       <tr>
+        <td>アカウント情報<br><small style="color:var(--muted);">（メールアドレス・認証情報）</small></td>
+        <td>本サービス群への登録時</td>
+        <td>本人認証・プラン管理・重要なお知らせの送付</td>
+      </tr>
+      <tr>
         <td>Discord アカウント情報<br><small style="color:var(--muted);">（ユーザーID・ユーザー名）</small></td>
         <td>Discord サーバー参加時</td>
         <td>通知サービスの提供・プラン管理</td>
+      </tr>
+      <tr>
+        <td>金融情報<br><small style="color:var(--muted);">（保有銘柄・取得単価・ウォッチリスト・損益アラート設定）</small></td>
+        <td>Kabu Note / kabu-signal 利用時にご自身で入力</td>
+        <td>保有株の損益計算・ウォッチリストと銘柄シグナルの突合表示</td>
+      </tr>
+      <tr>
+        <td>Push通知購読情報</td>
+        <td>ブラウザでの通知許可時</td>
+        <td>ご自身のウォッチリスト・保有銘柄に関する通知の配信</td>
       </tr>
       <tr>
         <td>決済情報<br><small style="color:var(--muted);">（Stripe 経由。カード情報は当方に渡らない）</small></td>
@@ -283,6 +300,13 @@
       </tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <div class="callout-label">金融情報の取扱いについて</div>
+    保有銘柄・取得単価・ウォッチリストは、利用者ごとにアクセス制御（Row Level
+    Security）を施したデータベースに保存し、他の利用者から参照できない構成としています。
+    これらの情報は損益計算・通知機能の提供以外の目的には利用しません。
+  </div>
 
   <h2>2. 情報の利用目的</h2>
   <p>収集した個人情報は、以下の目的でのみ利用します：</p>
@@ -304,19 +328,27 @@
   </ul>
 
   <h3>利用している外部サービス</h3>
-  <p>本サービスは、以下の外部サービスを利用しています。各サービスのプライバシーポリシーが適用されます：</p>
+  <p>本サービス群は、以下の外部サービスを利用しています。各サービスのプライバシーポリシーが適用されます：</p>
   <div class="service-list">
     <div class="service-item">
       <div class="service-name">Discord</div>
       <div class="service-desc">スクリーニング結果の通知配信に利用。Discord の利用規約・プライバシーポリシーが適用されます。</div>
     </div>
     <div class="service-item">
+      <div class="service-name">Supabase</div>
+      <div class="service-desc">アカウント認証、および保有銘柄・取得単価・ウォッチリスト等の金融情報の保存に利用。利用者ごとにアクセス制御を行っています。</div>
+    </div>
+    <div class="service-item">
+      <div class="service-name">Resend</div>
+      <div class="service-desc">重要なお知らせ・障害通知メールの送信に利用。</div>
+    </div>
+    <div class="service-item">
       <div class="service-name">Stripe</div>
       <div class="service-desc">有料プランの決済処理に利用。クレジットカード情報は Stripe が直接管理し、当方には渡りません。</div>
     </div>
     <div class="service-item">
-      <div class="service-name">GitHub Pages</div>
-      <div class="service-desc">本サービスの Web ホスティングに利用。GitHub のプライバシーポリシーが適用されます。</div>
+      <div class="service-name">GitHub Pages / Vercel</div>
+      <div class="service-desc">本サービス群の Web ホスティングに利用。各社のプライバシーポリシーが適用されます。</div>
     </div>
   </div>
 
@@ -369,13 +401,14 @@
   </ul>
 
   <div class="page-date">
-    制定日: 2025年2月18日 &nbsp;／&nbsp; 最終更新: 2025年2月26日
+    制定日: 2025年2月18日 &nbsp;／&nbsp; 最終更新: 2026年7月12日
   </div>
 
   <nav class="legal-nav">
     <a href="../index.html">← トップへ</a>
     <a href="terms.html">利用規約</a>
     <a href="disclaimer.html">免責事項</a>
+    <a href="tokushoho.html">特定商取引法に基づく表記</a>
   </nav>
 </main>
 
