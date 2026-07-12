@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "screener-docs",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "docs", "-p", "3131", "--no-clipboard"],
+      "port": 3131
+    },
+    {
+      "name": "screener-webapp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3132"],
+      "cwd": "C:\\Users\\tkouno\\Desktop\\Claude\\japan-stock-screener\\webapp",
+      "port": 3132
+    }
+  ]
+}
