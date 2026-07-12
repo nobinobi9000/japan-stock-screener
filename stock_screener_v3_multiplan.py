@@ -436,6 +436,7 @@ class TechnicalIndicators:
 
         df['OBV_SMA'] = obv_series.rolling(trend_days).mean()
         df['OBV_Trend_Up'] = obv_series.iloc[-1] > obv_series.iloc[-trend_days] if len(df) >= trend_days else False
+        df['OBV_Trend_Down'] = obv_series.iloc[-1] < obv_series.iloc[-trend_days] if len(df) >= trend_days else False
 
         # 強気ダイバージェンス: 直近trend_days間、価格下落 & OBV上昇
         if len(df) >= trend_days:
@@ -560,6 +561,19 @@ class TechnicalIndicators:
             df['Ichi_Price_above_Cloud'] &
             tenkan_above_kijun &
             lag_above_price
+        )
+
+        # 三役逆転（簡易版、三役好転の逆条件）:
+        #   1. 終値 < 雲の下
+        #   2. 転換線 < 基準線
+        #   3. 遅行スパン < 26日前の終値
+        df['Ichi_Price_below_Cloud'] = close < cloud_bottom
+        tenkan_below_kijun = df['Ichi_Conv'] < df['Ichi_Base']
+        lag_below_price    = close < close.shift(ICHIMOKU_LAG)
+        df['Ichi_Bearish'] = (
+            df['Ichi_Price_below_Cloud'] &
+            tenkan_below_kijun &
+            lag_below_price
         )
         return df
 
@@ -2141,6 +2155,16 @@ class AdvancedStockScreener:
         slope = np.polyfit(np.arange(lookback), normalized, 1)[0]
         return slope > min_slope
 
+    def is_ma_trending_down(self, ma: pd.Series, lookback: int = 5,
+                            min_slope: float = 0.0001) -> bool:
+        """MA下降トレンド判定（is_ma_trending_up の逆条件）"""
+        if len(ma.dropna()) < lookback:
+            return False
+        recent_ma = ma.dropna().iloc[-lookback:].values
+        normalized = recent_ma / recent_ma[0]
+        slope = np.polyfit(np.arange(lookback), normalized, 1)[0]
+        return slope < -min_slope
+
     # ─────────────────────────────────────────────
     #  バックテスト（既存ロジック維持・拡張）
     # ─────────────────────────────────────────────
@@ -2372,6 +2396,20 @@ class AdvancedStockScreener:
             # ── JVQMスコア（kabu-signal向け、総合スコアとは独立した別軸）─────
             jvqm = calc_jvqm(info, data)
 
+            # ── 売り側判定（既存9指標の逆条件。事実表示のみ、原則1）───────
+            # kabu-signal Phase 5 項目3向け。買い側の総合スコアには一切影響しない。
+            sell_signals = {
+                'dead_cross': bool(prev['MA50'] > prev['MA100'] and
+                                    latest['MA50'] <= latest['MA100']),
+                'ma200_breakdown': bool(latest['Close'] < latest['MA200']) and
+                                    self.is_ma_trending_down(data['MA200'], lookback=20),
+                'ichimoku_bearish': bool(latest.get('Ichi_Bearish', False)),
+                'bb_lower_break': (not np.isnan(pct_b)) and (pct_b < 0.0),
+                'obv_downtrend': bool(latest.get('OBV_Trend_Down', False)),
+                'volume_surge_down': bool(vol_ratio_avg >= 1.5) and
+                                      bool(latest['Close'] < prev['Close']),
+            }
+
             # ── スコアフィルタ ────────────────────────────────────────
             # レポート掲載可否のみを示すフラグとし、早期returnはしない
             # （全銘柄スナップショットには閾値未達銘柄もスコア・9指標フラグ付きで記録するため）
@@ -2384,6 +2422,7 @@ class AdvancedStockScreener:
                     'total_score': total_score, 'signals': signals,
                     'fetch_success': True, 'meets_threshold': False,
                     **jvqm,
+                    'sell_signals': sell_signals,
                 }
 
             # ── バックテスト（既存ロジック維持）─────────────────────
@@ -2471,6 +2510,7 @@ class AdvancedStockScreener:
                 'fetch_success'     : True,
                 'meets_threshold'   : True,
                 **jvqm,
+                'sell_signals'      : sell_signals,
             }
 
         except Exception:
@@ -3305,6 +3345,12 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
             "jvqm_score"          : r.get('jvqm_score'),
             "momentum_12m"        : r.get('momentum_12m'),
             "near_52w_high"       : r.get('near_52w_high'),
+            "dead_cross"          : (r.get('sell_signals') or {}).get('dead_cross'),
+            "ma200_breakdown"     : (r.get('sell_signals') or {}).get('ma200_breakdown'),
+            "ichimoku_bearish"    : (r.get('sell_signals') or {}).get('ichimoku_bearish'),
+            "bb_lower_break"      : (r.get('sell_signals') or {}).get('bb_lower_break'),
+            "obv_downtrend"       : (r.get('sell_signals') or {}).get('obv_downtrend'),
+            "volume_surge_down"   : (r.get('sell_signals') or {}).get('volume_surge_down'),
         })
 
     batch_size = 500
