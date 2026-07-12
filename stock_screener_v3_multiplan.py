@@ -1615,8 +1615,6 @@ class HTMLReportGenerator:
                     f'font-size:.75em;font-weight:bold;background:{bg};color:{fg};border:1px solid {bdr};">'
                     f'{"✅ " if hit else "— "}{label}</span>'
                 )
-            wr     = r.get('win_rate', 0)
-            wr_col = '#22c55e' if wr >= 60 else '#f59e0b' if wr >= 40 else '#94a3b8'
             cards_html += f"""
             <div style="background:#1e293b;border-radius:10px;overflow:hidden;
                         border:1px solid #334155;margin-bottom:24px;">
@@ -1637,7 +1635,6 @@ class HTMLReportGenerator:
                 <div style="padding:12px 16px;">
                     <div style="margin-bottom:8px;">{badges}</div>
                     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:.8em;color:#94a3b8;">
-                        <span>📊 BackLog: <strong style="color:{wr_col};">{wr:.1f}%</strong>（{r.get('backtest_sample',0)}回）</span>
                         <span>リスク: {r.get('risk_tag','—')}</span>
                         <span>出来高比: {r.get('vol_ratio_avg', r.get('Volume_Ratio_Avg', 0)):.1f}x</span>
                     </div>
@@ -1695,7 +1692,7 @@ class HTMLReportGenerator:
         """
         Premium用HTMLレポート
         - Top5チャート（ローソク足 + MA + BB）
-        - BackLog一覧（win_rate降順）
+        - 全銘柄一覧（スコア順）
         - セクター別集計・シグナル分布
         - 過去ログへのアーカイブリンク
         """
@@ -1707,9 +1704,6 @@ class HTMLReportGenerator:
         premium_dir = self.output_dir / "premium"
         premium_dir.mkdir(parents=True, exist_ok=True)
         filepath = premium_dir / filename
-
-        # BackLog順（win_rate降順）
-        backlog_sorted = sorted(results, key=lambda x: x.get('win_rate', 0), reverse=True)
 
         # セクター集計（空・記号セクターを「ETF他」に統一）
         from collections import Counter
@@ -1819,9 +1813,6 @@ class HTMLReportGenerator:
         .score-high {{ color:#28a745; font-weight:bold; }}
         .score-mid  {{ color:#d97706; font-weight:bold; }}
         .score-low  {{ color:#dc3545; font-weight:bold; }}
-        .backlog-high {{ background:#fef3c7; color:#92400e; border-radius:4px; padding:2px 6px; font-weight:bold; }}
-        .backlog-mid  {{ background:#ede9fe; color:#5b21b6; border-radius:4px; padding:2px 6px; }}
-        .backlog-low  {{ color:#adb5bd; }}
         .hit  {{ background:#d4edda; color:#155724; border-radius:3px; padding:1px 5px; font-weight:600; font-size:.82em; }}
         .miss {{ color:#ced4da; font-size:.82em; }}
         .footer {{ padding:25px 20px; text-align:center; background:#f8f9fa; color:#6c757d; border-top:2px solid #e9ecef; }}
@@ -1838,7 +1829,7 @@ class HTMLReportGenerator:
 <div class="container">
     <div class="header">
         <h1>👑 プレミアムレポート</h1>
-        <p>📅 {date}  |  BackLog分析付き</p>
+        <p>📅 {date}  |  全指標詳細付き</p>
         <span class="badge">Premium プラン限定</span>
     </div>
         <!-- ナビゲーションパネル -->
@@ -1886,8 +1877,6 @@ class HTMLReportGenerator:
     <div class="stats">
         <div class="stat-box"><div class="number">{len(results)}</div><div class="label">該当銘柄数<br><small style="font-size:.75em;opacity:.7;">/ {total_scanned:,}件をスキャン</small></div></div>
         <div class="stat-box"><div class="number">{results[0]['total_score']:.0f}</div><div class="label">最高スコア</div></div>
-        <div class="stat-box"><div class="number">{backlog_sorted[0]['win_rate']:.0f}%</div><div class="label">BackLog最高値</div></div>
-        <div class="stat-box"><div class="number">{sum(r['win_rate'] for r in results)/len(results):.0f}%</div><div class="label">BackLog平均</div></div>
         <div class="stat-box"><div class="number">{len(set(r['sector'] for r in results))}</div><div class="label">セクター数</div></div>
     </div>
 
@@ -1912,7 +1901,7 @@ class HTMLReportGenerator:
             {self._render_stats_section(stats_paths or {})}
 
             {self._render_chart_section(results[:5], chart_paths or {}, date_str)}
-            <div class="section-title">🗂️ BackLog一覧（バックテスト参考値 降順）</div>
+            <div class="section-title">🗂️ 全銘柄一覧（スコア順）</div>
             <div class="controls">
                 <input type="text" id="search" placeholder="🔍 銘柄名・コードで検索..." onkeyup="filterTable()">
             </div>
@@ -1925,18 +1914,15 @@ class HTMLReportGenerator:
                         <th onclick="sortTable(2)">銘柄名</th>
                         <th onclick="sortTable(3)">セクター</th>
                         <th onclick="sortTable(4)">スコア</th>
-                        <th onclick="sortTable(5)">BackLog</th>
                         {indicator_headers}
                     </tr>
                 </thead>
                 <tbody>
 """
-        for i, r in enumerate(backlog_sorted, 1):
+        for i, r in enumerate(results, 1):
             sd = r.get('score_detail', {})
             sc = r['total_score']
-            wr = r.get('win_rate', 0)
             score_cls = "score-high" if sc >= 70 else "score-mid" if sc >= 50 else "score-low"
-            bt_cls = "backlog-high" if wr >= 60 else "backlog-mid" if wr >= 40 else "backlog-low"
             indicator_cells = "".join(
                 f'<td><span class="{"hit" if sd.get(k,0)>0 else "miss"}">'
                 f'{"✅"+str(int(sd.get(k,0)))+"pt" if sd.get(k,0)>0 else "—"}</span></td>'
@@ -1949,7 +1935,6 @@ class HTMLReportGenerator:
                         <td style="text-align:left">{r['name']}</td>
                         <td><small>{r['sector']}</small></td>
                         <td class="{score_cls}">{sc:.0f}</td>
-                        <td><span class="{bt_cls}">{wr:.1f}%（{r['backtest_sample']}回）</span></td>
                         {indicator_cells}
                     </tr>"""
 
@@ -1961,7 +1946,6 @@ class HTMLReportGenerator:
     </div>
 
     <div class="footer">
-        <p>⚠️ BackLog値はバックテストの参考値です。将来の利益を保証するものではありません。</p>
         <p style="margin-top:12px;">
             <a href="../index.html">🏠 トップ</a> |
             <a href="../reports/{date_str}.html">📊 Basicレポート</a> |
@@ -2691,7 +2675,6 @@ class AdvancedStockScreener:
                 "risk_tag": r.get("risk_tag", ""),
                 "sector":   r.get("sector", ""),
                 "pattern":  r.get("pattern", "📊シグナル点灯"),
-                "win_rate": round(float(r.get("win_rate", 0)), 1),
             }
             for r in selected[:3]
         ]
@@ -3011,7 +2994,7 @@ class AdvancedNotifier:
 
     def format_message_premium(self, results: List[Dict], sector_report: str = "",
                                html_path: str = "") -> str:
-        """プレミアム用通知（BackLog上位＋全指標内訳）"""
+        """プレミアム用通知（スコア上位＋全指標内訳。バックテスト実績・勝率は表示しない、原則1）"""
         today = datetime.now().strftime('%Y年%m月%d日')
 
         if not results:
@@ -3020,17 +3003,16 @@ class AdvancedNotifier:
                 "🔇 本日は条件に合致する銘柄がありませんでした。\n"
             )
 
-        # BackLog上位5（win_rate降順）
-        backlog_top = sorted(results, key=lambda x: x.get('win_rate', 0), reverse=True)[:5]
+        top5 = results[:5]
 
         msg = (
             f"👑 プレミアムレポート\n"
             f"📅 {today}  |  対象 {len(results)}銘柄\n\n"
-            f"【🗂️ BackLog Top5】（バックテスト参考値 降順）\n"
+            f"【スコア上位5】\n"
             f"{'─'*40}\n\n"
         )
 
-        for i, r in enumerate(backlog_top, 1):
+        for i, r in enumerate(top5, 1):
             sd = r.get('score_detail', {})
             hit_indicators = []
             label_map = {
@@ -3048,8 +3030,7 @@ class AdvancedNotifier:
                 f"{i}. 【{r['code']}】{r['name']}\n"
                 f"   ⭐ スコア: {r['total_score']:.0f}点\n"
                 f"   💵 株価: ¥{r['price']:,.0f}  |  {r['sector']}\n"
-                f"   📊 内訳: {breakdown}\n"
-                f"   📈 BackLog: {r['win_rate']:.1f}%（{r['backtest_sample']}回）\n\n"
+                f"   📊 内訳: {breakdown}\n\n"
             )
 
         msg += f"{'─'*40}\n"
@@ -3062,7 +3043,7 @@ class AdvancedNotifier:
         if html_path:
             msg += (
                 f"{'─'*40}\n"
-                f"👑 プレミアムレポート（BackLog一覧＋アーカイブ）\n"
+                f"👑 プレミアムレポート（全銘柄一覧＋アーカイブ）\n"
                 f"   👉 {self.base_url}/{html_path}\n"
             )
 
@@ -3173,7 +3154,7 @@ class AdvancedNotifier:
         else:
             print("⚠️ DISCORD_ANALYSIS_WEBHOOK_URL 未設定 → #analysis スキップ")
 
-        # #premium（BackLog付きレポート）
+        # #premium（スコア上位＋全指標内訳レポート）
         if self.discord_webhook_premium:
             print("\n📤 #premium へ送信中...")
             msg = self.format_message_premium(results, sector_report, premium_html_path)
