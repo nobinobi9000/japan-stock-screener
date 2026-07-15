@@ -2771,7 +2771,8 @@ class AdvancedNotifier:
 
     def format_message_free(self, selected: List[Dict], total_count: int,
                              html_path: str = "",
-                             total_scanned: int = 0) -> str:
+                             total_scanned: int = 0,
+                             fetch_success_count: int = 0) -> str:
         """
         無料版通知メッセージ（選抜3件）
 
@@ -2780,19 +2781,32 @@ class AdvancedNotifier:
             total_count: 全該当銘柄数
             html_path: HTMLレポートのパス（free_betaモードのみ）
             total_scanned: 全スキャン対象銘柄数（ETF等含む）
+            fetch_success_count: うちデータ取得に成功した銘柄数（原則5:
+                取得件数を毎回明示し、通知件数の少なさがデータ取得の問題か
+                本当に該当銘柄が無いのかを判別できるようにする）
         """
         today = datetime.now().strftime('%Y年%m月%d日')
         scanned_str = f"{total_scanned:,}銘柄中" if total_scanned > 0 else ""
 
+        fetch_rate = (fetch_success_count / total_scanned) if total_scanned else 0.0
+        fetch_line = (
+            f"📡 データ取得: {fetch_success_count:,}/{total_scanned:,}銘柄"
+            f"（{fetch_rate*100:.1f}%）\n"
+        )
+        if fetch_rate < SNAPSHOT_INCOMPLETE_THRESHOLD:
+            fetch_line += "⚠️ 本日はデータ取得成功率が低く、結果が不完全な可能性があります\n"
+
         if not selected:
             return (
                 f"📊 日本株スクリーニング結果\n📅 {today}\n\n"
+                f"{fetch_line}\n"
                 "🔇 本日は条件に合致する銘柄がありませんでした。\n"
             )
 
         msg = (
             f"📊 日本株スクリーニング結果 v3.0\n"
             f"📅 {today}\n\n"
+            f"{fetch_line}"
             f"🎯 本日 {scanned_str}{total_count}銘柄が条件に合致しました\n\n"
             f"【今日の注目3銘柄】（中位×安定戦略）\n"
             f"{'─'*40}\n\n"
@@ -3121,52 +3135,73 @@ class AdvancedNotifier:
                             sector_report: str = "", html_path: str = "",
                             analysis_html_path: str = "", premium_html_path: str = "",
                             chart_html_path: str = "",
-                            total_scanned: int = 0):
+                            total_scanned: int = 0, fetch_success_count: int = 0):
         """
         設定済みの全Webhookに通知を送る。
         Webhookが未設定のチャンネルはスキップ。
         プランの増減に関わらずこのメソッド1つで完結する。
         """
+        # 各チャンネルの送信は独立させ、1チャンネルのフォーマット/送信で例外が
+        # 起きても他チャンネルへの通知やこの後のコミット処理を止めないようにする
+        # (2026-07-13、取得成功率が極端に低い日にここで例外が発生し、
+        #  Discord通知・docs/latest.jsonのコミットの両方が未実行になった事例あり)
+
         # #daily-picks（無料版 3銘柄）
         if self.discord_webhook:
-            print("\n📤 #daily-picks へ送信中...")
-            msg = self.format_message_free(selected, len(results),
-                                           total_scanned=total_scanned)
-            print(msg)
-            self._send_to_webhook(self.discord_webhook, msg, "#daily-picks")
+            try:
+                print("\n📤 #daily-picks へ送信中...")
+                msg = self.format_message_free(selected, len(results),
+                                               total_scanned=total_scanned,
+                                               fetch_success_count=fetch_success_count)
+                print(msg)
+                self._send_to_webhook(self.discord_webhook, msg, "#daily-picks")
+            except Exception as e:
+                print(f"❌ #daily-picks 通知エラー: {e}")
         else:
             print("⚠️ DISCORD_WEBHOOK_URL 未設定 → #daily-picks スキップ")
 
         # #full-report（ベーシック Top5）
         if self.discord_webhook_basic:
-            print("\n📤 #full-report へ送信中...")
-            msg = self.format_message_full(results, sector_report, html_path,
-                                           total_scanned=total_scanned)
-            self._send_to_webhook(self.discord_webhook_basic, msg, "#full-report")
+            try:
+                print("\n📤 #full-report へ送信中...")
+                msg = self.format_message_full(results, sector_report, html_path,
+                                               total_scanned=total_scanned)
+                self._send_to_webhook(self.discord_webhook_basic, msg, "#full-report")
+            except Exception as e:
+                print(f"❌ #full-report 通知エラー: {e}")
         else:
             print("⚠️ DISCORD_BASIC_WEBHOOK_URL 未設定 → #full-report スキップ")
 
         # #analysis（セクター別集計 + 8指標内訳レポートリンク）
         if self.discord_webhook_analysis:
-            print("\n📤 #analysis へ送信中...")
-            msg = self.format_message_analysis(results, sector_report, analysis_html_path)
-            self._send_to_webhook(self.discord_webhook_analysis, msg, "#analysis")
+            try:
+                print("\n📤 #analysis へ送信中...")
+                msg = self.format_message_analysis(results, sector_report, analysis_html_path)
+                self._send_to_webhook(self.discord_webhook_analysis, msg, "#analysis")
+            except Exception as e:
+                print(f"❌ #analysis 通知エラー: {e}")
         else:
             print("⚠️ DISCORD_ANALYSIS_WEBHOOK_URL 未設定 → #analysis スキップ")
 
         # #premium（スコア上位＋全指標内訳レポート）
         if self.discord_webhook_premium:
-            print("\n📤 #premium へ送信中...")
-            msg = self.format_message_premium(results, sector_report, premium_html_path)
-            self._send_to_webhook(self.discord_webhook_premium, msg, "#premium")
+            try:
+                print("\n📤 #premium へ送信中...")
+                msg = self.format_message_premium(results, sector_report, premium_html_path)
+                self._send_to_webhook(self.discord_webhook_premium, msg, "#premium")
+            except Exception as e:
+                print(f"❌ #premium 通知エラー: {e}")
         else:
             print("⚠️ DISCORD_PREMIUM_WEBHOOK_URL 未設定 → #premium スキップ")
 
         # #chart-analysis（Top5チャート分析）
         if self.discord_webhook_chart:
-            print("\n📤 #chart-analysis へ送信中...")
-            msg = self.format_message_chart_analysis(results, chart_html_path)
-            self._send_to_webhook(self.discord_webhook_chart, msg, "#chart-analysis")
+            try:
+                print("\n📤 #chart-analysis へ送信中...")
+                msg = self.format_message_chart_analysis(results, chart_html_path)
+                self._send_to_webhook(self.discord_webhook_chart, msg, "#chart-analysis")
+            except Exception as e:
+                print(f"❌ #chart-analysis 通知エラー: {e}")
         else:
             print("⚠️ DISCORD_CHART_WEBHOOK_URL 未設定 → #chart-analysis スキップ")
 
@@ -3393,9 +3428,56 @@ def _generate_reports_and_notify(screener: "AdvancedStockScreener",
         premium_html_path="",
         chart_html_path="",
         total_scanned=total_scanned,
+        fetch_success_count=fetch_success_count,
     )
 
     print("\n✅ 処理完了")
+
+
+def _notify_and_record_empty_results(total_scanned: int, fetch_success_count: int,
+                                      all_stock_records: Optional[List[Dict]] = None) -> None:
+    """条件成立銘柄が0件だった日の処理（原則5）。
+
+    黙って終了せず、取得成功率からデータ取得の問題(取得件数が少なすぎる)なのか
+    正常に取得できた上で本当に該当銘柄が無かったのかを判別できる通知を送る。
+    また、スキャン自体は行われたことをSupabaseにも記録し、監視・分析ページ側が
+    「本日は配信なし」を明示的に把握できるようにする(黙って前日のデータのまま
+    にはしない)。
+    """
+    fetch_rate = (fetch_success_count / total_scanned) if total_scanned else 0.0
+    today = datetime.now().strftime('%Y年%m月%d日')
+
+    if fetch_rate < SNAPSHOT_INCOMPLETE_THRESHOLD:
+        message = (
+            f"⚠️ 本日（{today}）はデータ取得に問題がありました\n"
+            f"📡 取得成功: {fetch_success_count:,}/{total_scanned:,}銘柄"
+            f"（{fetch_rate*100:.1f}%）\n"
+            f"本日の配信はスキップされました。データ取得状況をご確認ください。"
+        )
+        print(f"\n⚠️ 取得成功率が低いため結果0件: {fetch_success_count}/{total_scanned}"
+              f"（{fetch_rate*100:.1f}%）")
+    else:
+        message = (
+            f"📊 日本株スクリーニング結果\n📅 {today}\n\n"
+            f"📡 データ取得: {fetch_success_count:,}/{total_scanned:,}銘柄"
+            f"（{fetch_rate*100:.1f}%、正常）\n\n"
+            f"🔇 本日は条件に合致する銘柄がありませんでした。"
+        )
+        print(f"\n🔇 データ取得は正常（{fetch_success_count}/{total_scanned}）でしたが、"
+              f"条件に合致する銘柄がありませんでした")
+
+    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+    if discord_webhook:
+        try:
+            requests.post(discord_webhook, json={"content": message}, timeout=30)
+        except Exception as e:
+            print(f"❌ Discord通知エラー: {e}")
+    else:
+        print("⚠️ DISCORD_WEBHOOK_URL 未設定 → 通知スキップ")
+
+    # スキャン自体は実施されたことをSupabaseにも記録する(is_incompleteで
+    # 不完全さを明示。全銘柄の生データが無くてもtotal_scanned/成功率は残す)
+    export_snapshot_to_supabase(all_stock_records or [], total_scanned, fetch_success_count)
 
 
 def run_aggregate_screen() -> None:
@@ -3405,7 +3487,7 @@ def run_aggregate_screen() -> None:
         load_and_merge_shard_results()
 
     if not results:
-        print("\n🔇 条件に合致する銘柄がありませんでした")
+        _notify_and_record_empty_results(total_scanned, fetch_success_count, all_stock_records)
         return
 
     screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
@@ -3510,7 +3592,8 @@ def main():
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
 
     if not results:
-        print("\n🔇 条件に合致する銘柄がありませんでした")
+        _notify_and_record_empty_results(screener.total_scanned, screener.fetch_success_count,
+                                          screener.all_stock_records)
         return
 
     _generate_reports_and_notify(screener, results, screener.total_scanned,
