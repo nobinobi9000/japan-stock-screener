@@ -3333,59 +3333,65 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
         print(f"❌ screener_snapshots 保存失敗: {resp.status_code} {resp.text[:200]}")
         return
 
-    stock_rows = []
-    for r in all_stock_records:
-        signals = r.get('signals') or {}
-        stock_rows.append({
-            "snapshot_date"  : snapshot_date,
-            "code"           : str(r['code']),
-            "name"           : r['name'],
-            "sector"         : r.get('sector'),
-            "close_price"    : r.get('price'),
-            "fetch_success"  : bool(r.get('fetch_success')),
-            "ma_trend"       : signals.get('ma_trend'),
-            "golden_cross"   : signals.get('golden_cross'),
-            "bottom_cross"   : signals.get('bottom_cross'),
-            "bb_signal"      : signals.get('bb_signal'),
-            "obv_trend"      : signals.get('obv_trend'),
-            "ichimoku_cloud" : signals.get('ichimoku_cloud'),
-            "ichimoku_sanryo": signals.get('ichimoku_sanryo'),
-            "volume_surge"   : signals.get('volume_surge'),
-            "pbr_value"      : signals.get('pbr_value'),
-            "total_score"    : r.get('total_score'),
-            "jvqm_pbr"            : r.get('jvqm_pbr'),
-            "jvqm_roe"            : r.get('jvqm_roe'),
-            "jvqm_fcf_yield"      : r.get('jvqm_fcf_yield'),
-            "jvqm_beta"           : r.get('jvqm_beta'),
-            "jvqm_dividend_yield" : r.get('jvqm_dividend_yield'),
-            "jvqm_score"          : r.get('jvqm_score'),
-            "momentum_12m"        : r.get('momentum_12m'),
-            "near_52w_high"       : r.get('near_52w_high'),
-            "dead_cross"          : (r.get('sell_signals') or {}).get('dead_cross'),
-            "ma200_breakdown"     : (r.get('sell_signals') or {}).get('ma200_breakdown'),
-            "ichimoku_bearish"    : (r.get('sell_signals') or {}).get('ichimoku_bearish'),
-            "bb_lower_break"      : (r.get('sell_signals') or {}).get('bb_lower_break'),
-            "obv_downtrend"       : (r.get('sell_signals') or {}).get('obv_downtrend'),
-            "volume_surge_down"   : (r.get('sell_signals') or {}).get('volume_surge_down'),
-        })
+    # ここから先(銘柄別スナップショットの構築・送信)で例外が起きても、
+    # 上のscreener_snapshots保存は既に完了しているため、ここは丸ごと
+    # try/exceptで囲み、通知処理やコミット処理を巻き込んで失敗させない
+    try:
+        stock_rows = []
+        for r in all_stock_records:
+            signals = r.get('signals') or {}
+            stock_rows.append({
+                "snapshot_date"  : snapshot_date,
+                "code"           : str(r.get('code')),
+                "name"           : r.get('name'),
+                "sector"         : r.get('sector'),
+                "close_price"    : r.get('price'),
+                "fetch_success"  : bool(r.get('fetch_success')),
+                "ma_trend"       : signals.get('ma_trend'),
+                "golden_cross"   : signals.get('golden_cross'),
+                "bottom_cross"   : signals.get('bottom_cross'),
+                "bb_signal"      : signals.get('bb_signal'),
+                "obv_trend"      : signals.get('obv_trend'),
+                "ichimoku_cloud" : signals.get('ichimoku_cloud'),
+                "ichimoku_sanryo": signals.get('ichimoku_sanryo'),
+                "volume_surge"   : signals.get('volume_surge'),
+                "pbr_value"      : signals.get('pbr_value'),
+                "total_score"    : r.get('total_score'),
+                "jvqm_pbr"            : r.get('jvqm_pbr'),
+                "jvqm_roe"            : r.get('jvqm_roe'),
+                "jvqm_fcf_yield"      : r.get('jvqm_fcf_yield'),
+                "jvqm_beta"           : r.get('jvqm_beta'),
+                "jvqm_dividend_yield" : r.get('jvqm_dividend_yield'),
+                "jvqm_score"          : r.get('jvqm_score'),
+                "momentum_12m"        : r.get('momentum_12m'),
+                "near_52w_high"       : r.get('near_52w_high'),
+                "dead_cross"          : (r.get('sell_signals') or {}).get('dead_cross'),
+                "ma200_breakdown"     : (r.get('sell_signals') or {}).get('ma200_breakdown'),
+                "ichimoku_bearish"    : (r.get('sell_signals') or {}).get('ichimoku_bearish'),
+                "bb_lower_break"      : (r.get('sell_signals') or {}).get('bb_lower_break'),
+                "obv_downtrend"       : (r.get('sell_signals') or {}).get('obv_downtrend'),
+                "volume_surge_down"   : (r.get('sell_signals') or {}).get('volume_surge_down'),
+            })
 
-    batch_size = 500
-    failed_batches = 0
-    for i in range(0, len(stock_rows), batch_size):
-        chunk = stock_rows[i:i + batch_size]
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/screener_stock_snapshots?on_conflict=snapshot_date,code",
-            headers=headers, json=chunk, timeout=60,
-        )
-        if resp.status_code not in (200, 201):
-            failed_batches += 1
-            print(f"❌ screener_stock_snapshots 保存失敗 (batch {i}): "
-                  f"{resp.status_code} {resp.text[:200]}")
+        batch_size = 500
+        failed_batches = 0
+        for i in range(0, len(stock_rows), batch_size):
+            chunk = stock_rows[i:i + batch_size]
+            resp = requests.post(
+                f"{supabase_url}/rest/v1/screener_stock_snapshots?on_conflict=snapshot_date,code",
+                headers=headers, json=chunk, timeout=60,
+            )
+            if resp.status_code not in (200, 201):
+                failed_batches += 1
+                print(f"❌ screener_stock_snapshots 保存失敗 (batch {i}): "
+                      f"{resp.status_code} {resp.text[:200]}")
 
-    status = "・不完全フラグ" if is_incomplete else ""
-    print(f"✅ Supabaseへスナップショット保存完了: {snapshot_date} "
-          f"(成功率{success_rate*100:.1f}%{status}、{len(stock_rows)}銘柄・"
-          f"失敗batch{failed_batches}件)")
+        status = "・不完全フラグ" if is_incomplete else ""
+        print(f"✅ Supabaseへスナップショット保存完了: {snapshot_date} "
+              f"(成功率{success_rate*100:.1f}%{status}、{len(stock_rows)}銘柄・"
+              f"失敗batch{failed_batches}件)")
+    except Exception as e:
+        print(f"❌ 銘柄別スナップショットの保存中にエラー: {e}")
 
 
 def _generate_reports_and_notify(screener: "AdvancedStockScreener",
@@ -3486,17 +3492,34 @@ def run_aggregate_screen() -> None:
     results, total_scanned, sector_stats, all_stock_records, fetch_success_count = \
         load_and_merge_shard_results()
 
-    if not results:
-        _notify_and_record_empty_results(total_scanned, fetch_success_count, all_stock_records)
-        return
+    # このtry/exceptは原則5の最終防波堤: 通知・保存処理のどこかで想定外の
+    # 例外が起きても、ここで捕捉して後続の「docs/latest.jsonをコミット&
+    # プッシュ」ステップ(GitHub Actions側の次ステップ)まで到達できるように
+    # する。2026-07-13・07-16に、この関数内の例外でコミットまで届かない
+    # 事象が発生したため追加。
+    try:
+        if not results:
+            _notify_and_record_empty_results(total_scanned, fetch_success_count, all_stock_records)
+            return
 
-    screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
-    screener.total_scanned = total_scanned
-    screener.sector_stats  = defaultdict(int, sector_stats)
+        screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
+        screener.total_scanned = total_scanned
+        screener.sector_stats  = defaultdict(int, sector_stats)
 
-    _generate_reports_and_notify(screener, results, total_scanned,
-                                  all_stock_records=all_stock_records,
-                                  fetch_success_count=fetch_success_count)
+        _generate_reports_and_notify(screener, results, total_scanned,
+                                      all_stock_records=all_stock_records,
+                                      fetch_success_count=fetch_success_count)
+    except Exception as e:
+        print(f"❌ 集計・通知処理で予期しないエラー: {e}")
+        discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        if discord_webhook:
+            try:
+                requests.post(discord_webhook, json={
+                    "content": f"⚠️ 本日のスクリーニング処理で予期しないエラーが発生しました。"
+                               f"データが正しく配信されていない可能性があります。({type(e).__name__})"
+                }, timeout=30)
+            except Exception:
+                pass
 
 
 def main():
@@ -3591,14 +3614,26 @@ def main():
     )
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
 
-    if not results:
-        _notify_and_record_empty_results(screener.total_scanned, screener.fetch_success_count,
-                                          screener.all_stock_records)
-        return
+    try:
+        if not results:
+            _notify_and_record_empty_results(screener.total_scanned, screener.fetch_success_count,
+                                              screener.all_stock_records)
+            return
 
-    _generate_reports_and_notify(screener, results, screener.total_scanned,
-                                  all_stock_records=screener.all_stock_records,
-                                  fetch_success_count=screener.fetch_success_count)
+        _generate_reports_and_notify(screener, results, screener.total_scanned,
+                                      all_stock_records=screener.all_stock_records,
+                                      fetch_success_count=screener.fetch_success_count)
+    except Exception as e:
+        print(f"❌ 集計・通知処理で予期しないエラー: {e}")
+        discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        if discord_webhook:
+            try:
+                requests.post(discord_webhook, json={
+                    "content": f"⚠️ 本日のスクリーニング処理で予期しないエラーが発生しました。"
+                               f"データが正しく配信されていない可能性があります。({type(e).__name__})"
+                }, timeout=30)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
