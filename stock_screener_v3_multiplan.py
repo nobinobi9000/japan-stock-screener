@@ -163,9 +163,14 @@ def load_info_cache() -> Dict[str, Dict]:
 
 def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
     """
-    キャッシュ対応データ取得。
-    キャッシュあり → 差分1行追加。
-    キャッシュなし or 破損 → 2年分フルDL（フォールバック）。
+    [診断専用] 差分キャッシュ取得ロジック(2026-05-15導入)。
+
+    2026年7月時点で本番の通知・レポートが激しく劣化する問題が発生し、
+    このロジックが疑われたため、本番経路(screen_stock)からは一時的に外し、
+    get_full_stock_data() (2026-05-14時点の直接フル取得方式)に差し替えた。
+    この関数自体は削除せず、原因調査のためのログ収集専用として screen_stock から
+    「結果を使わずに呼ぶだけ」の形で引き続き実行している。解析が終わり次第、
+    本番経路に戻すか置き換えるかを判断する。
     """
     cache_path = CACHE_DIR / f"{code}.parquet"
     ticker_symbol = f"{code}.T"
@@ -182,13 +187,19 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
     ticker = yf.Ticker(ticker_symbol)
 
     if cached_df is None or cached_df.empty:
-        data = ticker.history(period="2y")
+        try:
+            data = ticker.history(period="2y")
+        except Exception as e:
+            print(f"[診断:{code}] 初回フルDLで例外: {type(e).__name__}: {e}")
+            return None
         if not data.empty:
             CACHE_DIR.mkdir(exist_ok=True)
             try:
                 data.to_parquet(cache_path, engine="pyarrow")
             except Exception:
                 pass
+        else:
+            print(f"[診断:{code}] 初回フルDLが空")
         return data if not data.empty else None
 
     # 差分取得
@@ -205,10 +216,12 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
 
     try:
         new_data = ticker.history(start=start_date, end=end_str)
-    except Exception:
+    except Exception as e:
+        print(f"[診断:{code}] 差分取得で例外: {type(e).__name__}: {e} (start={start_date} end={end_str} last_date={last_date.date()})")
         return cached_df
 
     if new_data.empty:
+        print(f"[診断:{code}] 差分取得が空 (start={start_date} end={end_str} last_date={last_date.date()})")
         # キャッシュが7日以上古い場合は2年分フルリフレッシュ（stale cache 自動修復）
         days_stale = (datetime.now() - last_date).days
         if days_stale > 7:
@@ -219,10 +232,15 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
                         fresh_data.to_parquet(cache_path, engine="pyarrow")
                     except Exception:
                         pass
+                    print(f"[診断:{code}] {days_stale}日超stale→フルリフレッシュ成功")
                     return fresh_data
-            except Exception:
-                pass
+                else:
+                    print(f"[診断:{code}] {days_stale}日超staleのフルリフレッシュも空")
+            except Exception as e:
+                print(f"[診断:{code}] stale自動修復で例外: {type(e).__name__}: {e}")
         return cached_df
+
+    print(f"[診断:{code}] 差分取得成功: {len(new_data)}行 (start={start_date} end={end_str})")
 
     if hasattr(new_data.index, 'tz') and new_data.index.tz is not None:
         new_data.index = new_data.index.tz_localize(None)
@@ -237,6 +255,28 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
         pass
 
     return combined
+
+
+def get_full_stock_data(code: str) -> Optional[pd.DataFrame]:
+    """
+    [本番用] 2026-05-14時点の方式に復帰したデータ取得。
+
+    キャッシュ・差分ロジックを一切使わず、毎回2年分をフル取得する。
+    5/15にキャッシュ方式(get_cached_stock_data)を導入して以降、本番の
+    取得成功率が悪化した疑いがあるため、原因調査が終わるまでの間、
+    5/12〜14時点で実際に安定稼働していたこちらの方式を本番経路に戻す。
+    """
+    try:
+        data = ticker_history_2y(code)
+    except Exception as e:
+        print(f"[本番:{code}] フルDLで例外: {type(e).__name__}: {e}")
+        return None
+    return data if not data.empty else None
+
+
+def ticker_history_2y(code: str) -> pd.DataFrame:
+    ticker = yf.Ticker(f"{code}.T")
+    return ticker.history(period="2y")
 
 
 # ─────────────────────────────────────────────
@@ -2235,8 +2275,14 @@ class AdvancedStockScreener:
             }
 
         try:
-            # キャッシュ対応データ取得（平日は差分1行、キャッシュなしはフルDL）
-            data = get_cached_stock_data(code)
+            # 本番データ取得（2026-05-14時点の方式に復帰。差分キャッシュの不具合調査のため一時的な措置）
+            data = get_full_stock_data(code)
+
+            # 診断専用: 差分キャッシュ版を裏で並行実行し、ログのみ収集する（本番の結果には一切使わない）
+            try:
+                get_cached_stock_data(code)
+            except Exception as e:
+                print(f"[診断:{code}] 診断呼び出し自体で例外: {type(e).__name__}: {e}")
 
             if data is None or data.empty or len(data) < MA_LONG:
                 return _fetch_failed_record()
@@ -3343,7 +3389,9 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
             stock_rows.append({
                 "snapshot_date"  : snapshot_date,
                 "code"           : str(r.get('code')),
-                "name"           : r.get('name'),
+                # nameはNOT NULL制約があり、1件でもnullだとバッチ全体(500件)が
+                # 丸ごと拒否されるため、必ず何らかの文字列を入れる
+                "name"           : r.get('name') or str(r.get('code')) or '不明',
                 "sector"         : r.get('sector'),
                 "close_price"    : r.get('price'),
                 "fetch_success"  : bool(r.get('fetch_success')),
