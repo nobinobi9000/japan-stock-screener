@@ -1,33 +1,37 @@
 {
-  "date": "2026-07-09",
+  "date": "2026-07-21",
   "top3": [
     {
-      "code": "7999",
-      "name": "ＭＵＴＯＨホールディングス",
-      "score": 45.0,
-      "price": 7580.0,
-      "risk_tag": "🟡標準",
+      "code": "6524",
+      "name": "湖北工業",
+      "score": 50.0,
+      "price": 4235.0,
+      "risk_tag": "🟢安定",
       "sector": "電気機器",
-      "pattern": "⛩一目好転",
-      "win_rate": 50.0
+      "pattern": "📊シグナル点灯"
     }
   ],
   "sector_heatmap": [
     {
       "name": "電気機器",
-      "avg_score": 45.0,
+      "avg_score": 50.0,
+      "stock_count": 1
+    },
+    {
+      "name": "サービス業",
+      "avg_score": 30.0,
       "stock_count": 1
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 1,
+    "total_screened": 2,
     "gc_count": 0,
-    "volume_surge_count": 0,
-    "ichimoku_count": 1,
+    "volume_surge_count": 1,
+    "ichimoku_count": 0,
     "pattern_distribution": {
-      "⛩一目好転": 1
+      "📊シグナル点灯": 2
     },
-    "auto_comment": "「電気機器」セクターの平均スコアが45点で最高。このセクターに注目が集まっています。"
+    "auto_comment": "出来高急増が1銘柄で発生。市場全体に動意が出ています。"
   }
 }
