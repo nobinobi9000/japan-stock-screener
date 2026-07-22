@@ -1,37 +1,214 @@
 {
-  "date": "2026-07-21",
+  "date": "2026-07-22",
   "top3": [
     {
-      "code": "6524",
-      "name": "湖北工業",
+      "code": "6506",
+      "name": "安川電機",
       "score": 50.0,
-      "price": 4235.0,
+      "price": 5213.0,
       "risk_tag": "🟢安定",
       "sector": "電気機器",
-      "pattern": "📊シグナル点灯"
+      "pattern": "💎安定上昇"
+    },
+    {
+      "code": "2914",
+      "name": "日本たばこ産業",
+      "score": 60.0,
+      "price": 6458.0,
+      "risk_tag": "🟢安定",
+      "sector": "食料品",
+      "pattern": "⛩一目好転"
+    },
+    {
+      "code": "8725",
+      "name": "ＭＳ＆ＡＤインシュアランスグループホールディングス",
+      "score": 60.0,
+      "price": 4801.0,
+      "risk_tag": "🟢安定",
+      "sector": "保険業",
+      "pattern": "⛩一目好転"
     }
   ],
   "sector_heatmap": [
     {
-      "name": "電気機器",
+      "name": "鉱業",
+      "avg_score": 65.0,
+      "stock_count": 2
+    },
+    {
+      "name": "海運業",
+      "avg_score": 52.5,
+      "stock_count": 8
+    },
+    {
+      "name": "パルプ・紙",
       "avg_score": 50.0,
-      "stock_count": 1
+      "stock_count": 15
+    },
+    {
+      "name": "銀行業",
+      "avg_score": 49.9,
+      "stock_count": 74
+    },
+    {
+      "name": "保険業",
+      "avg_score": 49.4,
+      "stock_count": 8
+    },
+    {
+      "name": "金属製品",
+      "avg_score": 48.3,
+      "stock_count": 48
+    },
+    {
+      "name": "輸送用機器",
+      "avg_score": 46.5,
+      "stock_count": 50
+    },
+    {
+      "name": "鉄鋼",
+      "avg_score": 46.5,
+      "stock_count": 26
+    },
+    {
+      "name": "電気・ガス業",
+      "avg_score": 46.2,
+      "stock_count": 17
+    },
+    {
+      "name": "証券、商品先物取引業",
+      "avg_score": 45.7,
+      "stock_count": 29
+    },
+    {
+      "name": "倉庫・運輸関連業",
+      "avg_score": 45.7,
+      "stock_count": 23
+    },
+    {
+      "name": "繊維製品",
+      "avg_score": 45.2,
+      "stock_count": 28
+    },
+    {
+      "name": "ゴム製品",
+      "avg_score": 45.0,
+      "stock_count": 14
+    },
+    {
+      "name": "その他金融業",
+      "avg_score": 44.2,
+      "stock_count": 24
+    },
+    {
+      "name": "卸売業",
+      "avg_score": 44.0,
+      "stock_count": 162
+    },
+    {
+      "name": "化学",
+      "avg_score": 43.2,
+      "stock_count": 101
+    },
+    {
+      "name": "石油・石炭製品",
+      "avg_score": 42.9,
+      "stock_count": 7
+    },
+    {
+      "name": "精密機器",
+      "avg_score": 42.6,
+      "stock_count": 19
+    },
+    {
+      "name": "陸運業",
+      "avg_score": 42.3,
+      "stock_count": 37
+    },
+    {
+      "name": "医薬品",
+      "avg_score": 42.2,
+      "stock_count": 20
+    },
+    {
+      "name": "機械",
+      "avg_score": 42.0,
+      "stock_count": 102
+    },
+    {
+      "name": "食料品",
+      "avg_score": 41.7,
+      "stock_count": 73
+    },
+    {
+      "name": "ガラス・土石製品",
+      "avg_score": 41.3,
+      "stock_count": 26
+    },
+    {
+      "name": "不動産業",
+      "avg_score": 40.8,
+      "stock_count": 62
+    },
+    {
+      "name": "小売業",
+      "avg_score": 40.5,
+      "stock_count": 160
+    },
+    {
+      "name": "-",
+      "avg_score": 40.5,
+      "stock_count": 199
+    },
+    {
+      "name": "電気機器",
+      "avg_score": 40.4,
+      "stock_count": 91
+    },
+    {
+      "name": "建設業",
+      "avg_score": 39.5,
+      "stock_count": 64
     },
     {
       "name": "サービス業",
-      "avg_score": 30.0,
-      "stock_count": 1
+      "avg_score": 39.3,
+      "stock_count": 232
+    },
+    {
+      "name": "水産・農林業",
+      "avg_score": 39.2,
+      "stock_count": 6
+    },
+    {
+      "name": "その他製品",
+      "avg_score": 38.9,
+      "stock_count": 50
+    },
+    {
+      "name": "情報・通信業",
+      "avg_score": 37.0,
+      "stock_count": 218
+    },
+    {
+      "name": "非鉄金属",
+      "avg_score": 33.3,
+      "stock_count": 9
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 2,
-    "gc_count": 0,
-    "volume_surge_count": 1,
-    "ichimoku_count": 0,
+    "total_screened": 2004,
+    "gc_count": 25,
+    "volume_surge_count": 283,
+    "ichimoku_count": 1509,
     "pattern_distribution": {
-      "📊シグナル点灯": 2
+      "⛩一目好転": 1509,
+      "⚡過熱注意": 1,
+      "🚀強気ブレイク": 1,
+      "📊シグナル点灯": 245,
+      "💎安定上昇": 248
     },
-    "auto_comment": "出来高急増が1銘柄で発生。市場全体に動意が出ています。"
+    "auto_comment": "「鉱業」セクターの平均スコアが65点で最高。このセクターに注目が集まっています。"
   }
 }
