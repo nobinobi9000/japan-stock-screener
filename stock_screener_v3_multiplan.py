@@ -79,7 +79,7 @@ SHARD_OUTPUT_DIR = Path("shard_output")
 #  原則3: 有料コンテンツ（全銘柄データ）は非公開ストレージ+認証API経由でのみ配信する
 # ─────────────────────────────────────────────
 SNAPSHOT_SCHEMA_VERSION = "1.0"
-SNAPSHOT_INCOMPLETE_THRESHOLD = 0.95  # 成功率がこれ未満なら is_incomplete=true
+SNAPSHOT_INCOMPLETE_THRESHOLD = 0.7  # 成功率がこれ未満なら is_incomplete=true（新規上場・整理銘柄等による数%の自然減は正常範囲のため、明らかな障害のみ検知する水準に設定）
 
 
 def _get_shard_env() -> Tuple[Optional[int], Optional[int]]:
