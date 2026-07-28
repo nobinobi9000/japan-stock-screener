@@ -242,8 +242,13 @@ def get_cached_stock_data(code: str) -> Optional[pd.DataFrame]:
 
     print(f"[診断:{code}] 差分取得成功: {len(new_data)}行 (start={start_date} end={end_str})")
 
+    # cached_df・new_data の両方のタイムゾーンを揃えてから結合する
+    # （new_data 側だけ tz を外していたため、比較・ソート時に
+    #   "Cannot compare tz-naive and tz-aware timestamps" が発生していた）
     if hasattr(new_data.index, 'tz') and new_data.index.tz is not None:
         new_data.index = new_data.index.tz_localize(None)
+    if hasattr(cached_df.index, 'tz') and cached_df.index.tz is not None:
+        cached_df.index = cached_df.index.tz_localize(None)
 
     combined = pd.concat([cached_df, new_data])
     combined = combined[~combined.index.duplicated(keep='last')]
@@ -2278,9 +2283,19 @@ class AdvancedStockScreener:
             # 本番データ取得（2026-05-14時点の方式に復帰。差分キャッシュの不具合調査のため一時的な措置）
             data = get_full_stock_data(code)
 
-            # 診断専用: 差分キャッシュ版を裏で並行実行し、ログのみ収集する（本番の結果には一切使わない）
+            # 診断専用: 差分キャッシュ版を裏で並行実行し、本番結果との一致を照合する（本番の結果には一切使わない）
             try:
-                get_cached_stock_data(code)
+                diag_data = get_cached_stock_data(code)
+                if (diag_data is not None and not diag_data.empty
+                        and data is not None and not data.empty):
+                    diag_date  = diag_data.index[-1].strftime('%Y-%m-%d')
+                    prod_date  = data.index[-1].strftime('%Y-%m-%d')
+                    diag_close = round(float(diag_data['Close'].iloc[-1]), 2)
+                    prod_close = round(float(data['Close'].iloc[-1]), 2)
+                    if diag_date != prod_date or abs(diag_close - prod_close) > 0.01:
+                        print(f"[診断:{code}] 不一致 本番={prod_date}/{prod_close} 診断={diag_date}/{diag_close}")
+                    else:
+                        print(f"[診断:{code}] 一致確認OK {diag_date}/{diag_close}")
             except Exception as e:
                 print(f"[診断:{code}] 診断呼び出し自体で例外: {type(e).__name__}: {e}")
 
