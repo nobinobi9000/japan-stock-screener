@@ -3310,13 +3310,14 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
                 "jvqm_dividend_yield" : r.get('jvqm_dividend_yield'),
                 "jvqm_score"          : r.get('jvqm_score'),
                 "momentum_12m"        : r.get('momentum_12m'),
-                "near_52w_high"       : r.get('near_52w_high'),
-                "dead_cross"          : (r.get('sell_signals') or {}).get('dead_cross'),
-                "ma200_breakdown"     : (r.get('sell_signals') or {}).get('ma200_breakdown'),
-                "ichimoku_bearish"    : (r.get('sell_signals') or {}).get('ichimoku_bearish'),
-                "bb_lower_break"      : (r.get('sell_signals') or {}).get('bb_lower_break'),
-                "obv_downtrend"       : (r.get('sell_signals') or {}).get('obv_downtrend'),
-                "volume_surge_down"   : (r.get('sell_signals') or {}).get('volume_surge_down'),
+                "near_52w_high"       : bool(r.get('near_52w_high')),
+                # sell_signals の値は numpy.bool_ になるケースがあるため明示的に bool() 変換する
+                "dead_cross"          : bool((r.get('sell_signals') or {}).get('dead_cross')),
+                "ma200_breakdown"     : bool((r.get('sell_signals') or {}).get('ma200_breakdown')),
+                "ichimoku_bearish"    : bool((r.get('sell_signals') or {}).get('ichimoku_bearish')),
+                "bb_lower_break"      : bool((r.get('sell_signals') or {}).get('bb_lower_break')),
+                "obv_downtrend"       : bool((r.get('sell_signals') or {}).get('obv_downtrend')),
+                "volume_surge_down"   : bool((r.get('sell_signals') or {}).get('volume_surge_down')),
             })
 
         batch_size = 500
