@@ -2,10 +2,11 @@ name: Daily Stock Screening
 
 on:
   schedule:
-    # 16:07 JST（毎時00分ちょうどを避けてGitHub Actions側の混雑を回避）
-    - cron: '7 7 * * 1-5'  # 月〜金: 差分取得 + スクリーニング（シャード分割）
+    # 月〜金の平日スクリーニングは cloudflare-watchdog/ からの workflow_dispatch に一本化した。
+    # 理由: GitHub純正のscheduleイベントは負荷時に数時間〜終日レベルで遅延・欠落しうる
+    # （2026-08-27に実測）。ベストエフォートな入口を1つに絞るため、ここには残さない。
     - cron: '7 7 * * 6'    # 土曜: 2年分フルDL + キャッシュ更新（シャード分割）
-  workflow_dispatch:  # 手動実行も可能
+  workflow_dispatch:  # 手動実行 / cloudflare-watchdog からの外部起動
 
 # 権限を追加（重要！）
 permissions:
