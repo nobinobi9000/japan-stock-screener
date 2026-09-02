@@ -83,6 +83,27 @@ GitHub PagesではなくVercelを指している（0-1節参照）。GitHub Page
   （Kabu Note側のアプリケーションコードを一切経由しない、Supabase上でのサーバー間連携）。
   Kabu Note側からは見えない経路のため、この記述ミスは起きやすい。1-3節で詳述。
 
+### 0-4. 🔴 `screener_stock_snapshots`の欠落は「修正済み」ではなく未解決（2026-09-02 Supabase実データで検証）
+
+commit `2ccb14d`（numpy.bool_/float64 JSONシリアライズ修正、`git log`で確認した正確な日付は
+**2026-08-22 21:36:39 +0900**）は、当初「これで解消」と見なされていたが、Supabaseへ直接
+SELECTした結果、**修正後も間欠的に再発し続けている**ことを確認した。
+
+| snapshot_date | `screener_snapshots`（メタ、is_incomplete） | `screener_stock_snapshots`（銘柄別） |
+|---|---|---|
+| 2026-08-24〜26 | false（正常） | 正常（各4,439行） |
+| **2026-08-27** | false（正常） | **0行** |
+| **2026-08-28** | false（正常） | **0行** |
+| 2026-08-31 | false（正常） | 正常（4,439行） |
+| **2026-09-01** | false（正常） | **0行** |
+
+`export_snapshot_to_supabase()`（`stock_screener_v3_multiplan.py:3233`）はメタ行の書き込みと
+銘柄別500件バッチ送信が別処理で、後者は例外を握りつぶすtry/exceptに包まれているため、
+**メタ行が`is_incomplete=false`で正常に見えても銘柄別データだけ全滅する日がある**。
+kabu-signalの鮮度ガードはメタ行の`is_incomplete`しか見ないため、この欠落を検知できない。
+原因は未特定（Aug22の修正だけでは8/27・8/28・9/1の再発を説明できない）。
+詳細・改修方針は`docs/PROJECT_STATE.md` 6節9項を参照。
+
 ---
 
 ## 1. 現在共有しているデータ・ファイル・API・DBテーブル
@@ -327,9 +348,10 @@ Phase 3で必ず確認・整理が必要な論点。
 - `account_entitlements`が3サービスで本当に同一レコードを指しているか（3-5節）
 - webappの`/api/free-latest`・`/api/snapshot`に対する、Kabu Note・kabu-signalからの
   実際の利用実績（現状は「webapp自身が自分のために使っている」ことしか確認できていない）
-- `screener_stock_snapshots`が2026-09-02以前に一時的に空になっていた事象
-  （kabu-signal側のnumpyシリアライズ修正、`japan-stock-screener` commit `2ccb14d`、
-  2026-08-22）が、その後の日次バッチで実際に正常化しているかの継続監視
+- ~~`screener_stock_snapshots`の欠落が正常化しているかの継続監視~~ →
+  **検証済み・未解決（0-4節参照）**。「次回バッチで解消見込み」ではなく、
+  `export_snapshot_to_supabase()`の銘柄別バッチ送信部分に失敗原因を可視化する
+  改修が必要な状態
 
 ---
 

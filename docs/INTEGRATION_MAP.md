@@ -181,11 +181,33 @@ Supabase プロジェクト nhkgyipjeithytqqfuda を3アプリ全員が共有
 - **提案されている修正**（未適用）: `SCREENER_URL`を`https://raw.githubusercontent.com/nobinobi9000/japan-stock-screener/main/docs/latest.json`に変更（Kabu-Note側の1行修正、screener側の変更は不要）
 - **要確認**: この修正を適用してよいか、ユーザーに確認して着手すべき
 
-### 🟠 6-2. `screener_stock_snapshots`が空だった問題（numpyバグ）の修正コミット日付が矛盾
+### 🔴 6-2. `screener_stock_snapshots`の欠落は「修正済み」ではなく、2026-09-02時点でも継続中（Supabase実データで検証済み）
 
-- kabu-signalの`PROJECT_STATE.md`: 「修正は2026-09-02にpush済み（commit `2ccb14d`）。次回バッチ（2026-09-03）で解消見込み」
-- japan-stock-screenerの`INTEGRATION_NOTES.md`: 「（kabu-signal側のnumpyシリアライズ修正、japan-stock-screener commit `2ccb14d`、**2026-08-22**）」
-- 同一コミットハッシュに対して日付が10日以上ズレている。**どちらか（または両方）が誤り**。実際にコミットログを確認し、`screener_stock_snapshots`が現在正常にデータを持っているか要検証
+**コミット日付**: `git log`で確認した`2ccb14d`（numpy.bool_/float64 JSONシリアライズ修正）の実際の日付は
+**2026-08-22 21:36:39 +0900**。kabu-signalの`PROJECT_STATE.md`にある「2026-09-02にpush済み」という
+記述は誤り（コミットはそれより10日以上前）。
+
+**修正状況**: Supabaseへ直接クエリして`screener_snapshots`（メタ）と`screener_stock_snapshots`
+（銘柄別詳細）を突き合わせた結果、**Aug22の修正後も欠落が断続的に発生し続けている**ことを確認した
+（2026-09-02実施、`execute_sql`でのSELECT結果）:
+
+| snapshot_date | `screener_snapshots`（メタ）| `screener_stock_snapshots`（銘柄別）|
+|---|---|---|
+| 2026-08-24〜26 | 存在（success_rate≈0.949, is_incomplete=false） | **存在**（各4,439行） |
+| 2026-08-27 | 存在（success_rate=0.9489, is_incomplete=false） | **0行（欠落）** |
+| 2026-08-28 | 存在（success_rate=0.9486, is_incomplete=false） | **0行（欠落）** |
+| 2026-08-31 | 存在（success_rate=0.9493, is_incomplete=false） | **存在**（4,439行） |
+| 2026-09-01 | 存在（success_rate=0.9493, is_incomplete=false） | **0行（欠落）** |
+
+メタ行（`screener_snapshots`）は`is_incomplete=false`で毎日正常に見えるため、**kabu-signalの鮮度ガード
+（`snapshot_date`と`is_incomplete`しか見ない）はこの欠落を検知できない**。実際には
+`export_snapshot_to_supabase()`内の銘柄別バッチ送信（500件区切り、例外を握りつぶすtry/except内）が
+日によって全滅しており、原因は特定できていない（numpy型変換だけが原因なら8/24-26で再発しないはずで、
+Aug22の修正だけでは説明がつかない）。
+
+**結論**: 「修正済み」ではなく**未解決の間欠的バグ**として扱うこと。次回バッチでの自然解消を待つ方針は
+誤り。`export_snapshot_to_supabase()`の銘柄別バッチ送信部分（`stock_screener_v3_multiplan.py:3323`
+付近）に、失敗時に握りつぶさず原因をDiscord等へ通知するログ強化が必要。
 
 ### 🟠 6-3. Kabu-Noteの `PROJECT_STATE.md` に誤記がある（他2アプリの資料で指摘済み）
 

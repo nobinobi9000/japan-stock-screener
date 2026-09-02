@@ -336,6 +336,19 @@ japan-stock-screener/
    `.gitignore`で除外されているためコミットはされていないが、ローカルファイルとして
    実値が残っている点は認識しておくこと（本ドキュメントには値を転記していない）。
 
+9. **🔴 `export_snapshot_to_supabase()`の銘柄別データ書き込みが間欠的に全滅している（未解決）**
+   `stock_screener_v3_multiplan.py:3233`の`export_snapshot_to_supabase()`は、`screener_snapshots`
+   （メタ1行）への書き込みと`screener_stock_snapshots`（銘柄別、500件ずつバッチ送信・失敗を
+   握りつぶすtry/except内）への書き込みが別処理になっている。2026-09-02にSupabaseへ直接
+   クエリして確認したところ、**メタ行は`is_incomplete=false`で毎日正常に見えるにもかかわらず、
+   銘柄別テーブルが特定の日だけ0行になる**現象が続いている（2026-08-27, 08-28, 09-01が該当。
+   同じ期間の08-24〜26, 08-31は正常に4,439行ずつ入っている）。numpy型変換のJSONシリアライズ
+   バグ修正（commit `2ccb14d`, 2026-08-22）はこの問題を解決していない
+   （修正日以降も再発しているため）。原因未特定。kabu-signalの鮮度ガードは`screener_snapshots`
+   の`is_incomplete`しか見ないため、**この欠落を検知できずに素通りしている**点が特に問題。
+   `export_snapshot_to_supabase()`の銘柄別バッチ送信部分で、失敗時に握りつぶさず原因を
+   ログ・通知に出すよう改修する必要がある（詳細は`docs/INTEGRATION_MAP.md` 6-2節）。
+
 ---
 
 ## 7. 使用技術・主要ライブラリ
