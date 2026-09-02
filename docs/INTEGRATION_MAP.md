@@ -217,9 +217,36 @@ Kabu-Noteの`PROJECT_STATE.md`5-4節「kabu-signalとの連携: 現状は直接�
 
 kabu-signalの`PROJECT_STATE.md`・`INTEGRATION_NOTES.md`は screener の実行時刻を「16:07 JST」と記載しているが、これは2026-08-29以前の値。GitHub純正cronの信頼性問題（最大11時間超の遅延・未発火）により`cloudflare-watchdog`（16:30起動・18:30リトライ）に置き換え済み（japan-stock-screener側で実測確認済み）。kabu-signal側の資料が未更新。
 
-### 🟡 6-5. `account_entitlements` が3アプリで同一レコードを参照しているか未検証
+### ✅ 6-5. `account_entitlements` は3アプリで完全に同一のテーブル・同一レコードを参照している（2026-09-02 Supabase実データ・3リポジトリのコードで検証済み）
 
-Stripe決済主体はscreener/webappの`STRIPE_BASIC_PRICE_ID`のみ。Kabu-Note・kabu-signalが「有料」と判定する際、本当に同じユーザーレコードを見ているのか、それぞれ別レコードを持っているのかが3ファイルとも未検証のまま。Phase 3で必ず確認すること。
+**検証方法と結果:**
+
+1. `information_schema.tables`で確認 → `public.account_entitlements`という名前のテーブルは
+   プロジェクト全体に**1つしか存在しない**（重複や別スキーマでの同名テーブルなし）
+2. カラム構成: `id (uuid, NOT NULL)`, `plan (text, NOT NULL)`, `plan_source (text)`,
+   `updated_at (timestamptz, NOT NULL)`
+3. 3リポジトリのコードを実際に読み比べた結果、**クエリの形が一字一句同じロジック**だった:
+   - `japan-stock-screener/webapp/lib/entitlement.ts`: `resolvePlan()`
+   - `kabu-signal/lib/entitlement.ts`: `resolvePlan()`（コメントに「screener-snapshot Edge
+     Functionと同じ規約」と明記）
+   - `Kabu-Note/src/hooks/useEntitlement.js`: `useEntitlement()`
+   - いずれも `supabase.from('account_entitlements').select('plan').eq('id', userId).maybeSingle()`
+     で、行が無ければ`'free'`扱いという同一のフォールバック規約
+   - 加えて`kabu-signal/screener/email_sender.py`の`fetch_pro_user_emails()`も
+     `GET /rest/v1/account_entitlements?select=id&plan=in.(basic,premium)`で同テーブルを読む
+     （有料会員向け障害通知メールの宛先取得用）
+4. **書き込み元はwebapp（`webapp/app/api/stripe/webhook/route.ts`）のみ**。kabu-signal・Kabu-Note
+   のコード全体を検索したが、このテーブルへの書き込み（insert/update/upsert）は見つからなかった
+   （両者とも読み取り専用）
+5. 現在の実データ: `account_entitlements`は**0行**（`auth.users`は5人登録済みだが、誰も
+   Stripe決済を完了していないため全員が`plan_source`の無い"free"扱いのまま）。したがって
+   実例レコードでの相互参照確認はできなかったが、テーブル・カラム・クエリ・認証基盤
+   （同一Supabaseプロジェクト、同一`auth.users`）がすべて共通である以上、**行が作られた瞬間から
+   3アプリは物理的に同じレコードを見る**ことは構造上確定している
+
+**結論**: 3ファイルとも「未検証」としていたが、**設計上は完全に共有されている**ことを確認した。
+残る懸念は「実際に課金ユーザーが発生した際に想定通り動くか」の実地テストのみ（Phase 3で
+Stripeテストモードでの決済→3アプリでのプラン反映を1度通しで確認することを推奨）。
 
 ### 🟡 6-6. `signals/latest.json` のキー構造が二重管理
 
