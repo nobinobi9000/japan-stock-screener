@@ -336,18 +336,67 @@ japan-stock-screener/
    `.gitignore`で除外されているためコミットはされていないが、ローカルファイルとして
    実値が残っている点は認識しておくこと（本ドキュメントには値を転記していない）。
 
-9. **🔴 `export_snapshot_to_supabase()`の銘柄別データ書き込みが間欠的に全滅している（未解決）**
-   `stock_screener_v3_multiplan.py:3233`の`export_snapshot_to_supabase()`は、`screener_snapshots`
-   （メタ1行）への書き込みと`screener_stock_snapshots`（銘柄別、500件ずつバッチ送信・失敗を
-   握りつぶすtry/except内）への書き込みが別処理になっている。2026-09-02にSupabaseへ直接
-   クエリして確認したところ、**メタ行は`is_incomplete=false`で毎日正常に見えるにもかかわらず、
-   銘柄別テーブルが特定の日だけ0行になる**現象が続いている（2026-08-27, 08-28, 09-01が該当。
-   同じ期間の08-24〜26, 08-31は正常に4,439行ずつ入っている）。numpy型変換のJSONシリアライズ
-   バグ修正（commit `2ccb14d`, 2026-08-22）はこの問題を解決していない
-   （修正日以降も再発しているため）。原因未特定。kabu-signalの鮮度ガードは`screener_snapshots`
-   の`is_incomplete`しか見ないため、**この欠落を検知できずに素通りしている**点が特に問題。
-   `export_snapshot_to_supabase()`の銘柄別バッチ送信部分で、失敗時に握りつぶさず原因を
-   ログ・通知に出すよう改修する必要がある（詳細は`docs/INTEGRATION_MAP.md` 6-2節）。
+9. **✅ `export_snapshot_to_supabase()`の銘柄別データ書き込みが間欠的に全滅する — 修正済み（2026-09-02、commit `53b10af`）**
+
+   **確定原因**: `calc_jvqm()`（265行目）の`momentum_12m`計算（314行目）が
+   ゼロ除算・NaNガード無し:
+   ```python
+   momentum_12m = round(float(close_1y.iloc[-1] / close_1y.iloc[0] - 1) * 100, 1)
+   ```
+   `close_1y.iloc[0]`（252営業日前の終値）が0またはNaNの銘柄が1件でもあると`inf`/`nan`が
+   発生する。同様に`jvqm_pbr`/`jvqm_roe`/`jvqm_beta`/`jvqm_dividend_yield`もyfinanceの
+   `info.get(...)`を`is not None`チェックのみで通しており、yfinanceがNaN floatを返すケースは
+   すり抜ける（`None`とfloat NaNは別物のため）。
+
+   この値が`export_snapshot_to_supabase()`（3233行目）の`stock_rows`構築時（3306〜3312行目）に
+   未サニタイズのまま代入される（`close_price`/`total_score`は`float(x or 0)`でガードされているが、
+   jvqm系5項目と`momentum_12m`は`r.get(...)`の生値をそのまま渡している）。
+
+   `requests.post(json=chunk)`は内部で`requests/models.py`の`prepare_body()`が
+   `complexjson.dumps(json, allow_nan=False)`を呼ぶため（2026-09-02、ローカルで再現テスト済み・
+   実際の本番エラーメッセージと一致を確認）、NaN/Infinityを含むバッチのシリアライズ時に
+   `requests.exceptions.InvalidJSONError: Out of range float values are not JSON compliant`
+   が発生する。**銘柄別バッチ送信ループ（3325〜3334行目）全体が1つのtry/exceptで
+   囲われている**ため、最初に不正な値を含むバッチでループ全体が中断され、以降のバッチは
+   一切送信されない。一方`screener_snapshots`（メタ行）は別処理として先に書き込み完了済みのため
+   `is_incomplete=false`のまま残る＝**メタは正常、銘柄別は0行という非対称な失敗**が生じる。
+
+   **実ログでの確認（2026-09-02、`gh run view --log`で直接確認）**:
+   - 2026-08-27 (run `33102399035`)・08-28 (`33203604592`)・09-01 (`33482497357`)の
+     `aggregate-screen`ジョブログに、いずれも同一の
+     `❌ 銘柄別スナップショットの保存中にエラー: Out of range float values are not JSON compliant`
+     を確認
+   - 08-31 (`33368701690`、正常日)には同エラーが無く、
+     `✅ Supabaseへスナップショット保存完了: 2026-08-31 (成功率94.9%、4439銘柄・失敗batch0件)`
+     と正常終了
+   - 09-01は shard-screen 10個すべて成功・16:30 JST定刻起動・aggregate-screenも41秒で正常終了
+     しており、**タイムアウト・同時実行・cron遅延とは無関係**。純粋にその日のyfinanceデータ内容
+     （特定銘柄のNaN/Inf値）に依存する再現性バグと判断
+   - numpy型変換バグ修正（commit `2ccb14d`, 実際の日付は2026-08-22）はこの問題とは**別原因**であり、
+     修正後も再発するのは当然だった
+
+   **kabu-signalへの影響**: 鮮度ガードは`screener_snapshots.is_incomplete`しか見ないため、
+   この欠落を検知できず素通りする（原則5の趣旨に反する）。
+
+   **実施した修正**（2026-09-02、commit `53b10af`）:
+   1. `calc_jvqm()`の`momentum_12m`計算に、252営業日前終値が0/NaNの場合は`None`を返す
+      ガードを追加（314行目付近）
+   2. `export_snapshot_to_supabase()`で、`jvqm_pbr`/`jvqm_roe`/`jvqm_fcf_yield`/
+      `jvqm_beta`/`jvqm_dividend_yield`/`momentum_12m`/`close_price`/`total_score`を
+      新設の`_json_safe_float()`（NaN/Infinity→None正規化）経由で送るよう変更
+   3. バッチ送信ループを、全バッチを囲む1つのtry/exceptから**バッチ単位**のtry/exceptに
+      変更。1バッチの失敗（シリアライズ例外・HTTPエラー・ネットワーク例外いずれも）が
+      残りのバッチを巻き込まなくなった
+   4. バッチが1件でも失敗した場合、新設の`_notify_snapshot_batch_failure()`が
+      `DISCORD_WEBHOOK_URL`へ通知するようにした（未設定時はログに明示出力）
+
+   **検証方法**: 過去の不良日（08-27/08-28/09-01）の実データはGitHub Actions
+   artifactのretention-days:1により既に失効しているため、確定した根本原因
+   （momentum_12mのNaN/Infinity混入によりバッチ全体のシリアライズが失敗する）を
+   再現する合成データ（1200銘柄・NaN/Infを含む）で代替検証した。修正前のロジックでは
+   0バッチ送信になる条件で、修正後は全3バッチ（500/500/200件）が正常送信されることを
+   確認。また1バッチが本物のネットワーク例外（Timeout）で失敗しても、残り2バッチは
+   正常に送信され、失敗通知フックが呼ばれることも確認した。
 
 ---
 
