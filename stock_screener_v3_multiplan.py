@@ -45,6 +45,7 @@ from datetime import datetime, timedelta
 import time
 import requests
 import json
+import math
 import os
 import pickle
 from typing import List, Dict, Optional, Tuple
@@ -311,7 +312,12 @@ def calc_jvqm(info: Dict, data: pd.DataFrame) -> Dict:
         current  = close_1y.iloc[-1]
         near_52w_high = bool(current >= high_52w * 0.9)
         if len(close_1y) >= 200:
-            momentum_12m = round(float(close_1y.iloc[-1] / close_1y.iloc[0] - 1) * 100, 1)
+            base_price = close_1y.iloc[0]
+            # 252営業日前の終値が0またはNaNだとゼロ除算/NaN伝播でinf/nanが生じ、
+            # 下流のexport_snapshot_to_supabase()でのJSONシリアライズが丸ごと
+            # 失敗する原因になっていたため、計算不能な場合はNoneのままにする
+            if pd.notna(base_price) and base_price != 0 and pd.notna(current):
+                momentum_12m = round(float(current / base_price - 1) * 100, 1)
 
     return {
         'jvqm_pbr':            pbr,
@@ -3230,6 +3236,50 @@ def run_shard_screen() -> None:
           f"（担当{screener.total_scanned}銘柄中）")
 
 
+def _json_safe_float(value) -> Optional[float]:
+    """NaN/Infinity をNoneに正規化する。
+
+    requestsライブラリはjson=引数のシリアライズ時にallow_nan=Falseを使うため、
+    NaN/Infinityが1件でも混入するとバッチ全体のPOSTが例外で落ちる
+    （2026-09-02、momentum_12mのゼロ除算で実際に発生・原因確定）。
+    yfinance由来の値（jvqm_pbr/roe/beta/dividend_yield等）もNaNを返すことが
+    あるため、Supabaseへ送る直前の単一の関門としてここで防ぐ。
+    """
+    if value is None:
+        return None
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
+
+
+def _notify_snapshot_batch_failure(snapshot_date: str, failed_batches: int,
+                                    total_batches: int, errors: List[str]) -> None:
+    """screener_stock_snapshotsのバッチ送信が一部/全部失敗した際にDiscordへ通知する。
+
+    原則5(沈黙による誤認を作らない)対応。従来はprint()のみで、GitHub Actionsの
+    ログを能動的に見ない限り誰も気づけなかった（2026-08-27・08-28・09-01が該当）。
+    kabu-signalの鮮度ガードはscreener_snapshots.is_incompleteしか見ないため、
+    この種の欠落を検知できない点も合わせて明記する。
+    """
+    message = (
+        f"⚠️ {snapshot_date} の screener_stock_snapshots 保存で"
+        f"{failed_batches}/{total_batches}バッチが失敗しました。\n"
+        f"kabu-signalの鮮度ガードはこの欠落を検知できないため、要確認です。\n"
+        + "\n".join(f"- {e}" for e in errors[:5])
+    )
+    print(f"⚠️ {message}")
+    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+    if discord_webhook:
+        try:
+            requests.post(discord_webhook, json={"content": message}, timeout=30)
+        except Exception as e:
+            print(f"❌ バッチ失敗通知のDiscord送信エラー: {e}")
+    else:
+        print("⚠️ DISCORD_WEBHOOK_URL 未設定 → バッチ失敗通知をDiscordへ送信できません")
+
+
 def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: int,
                                  fetch_success_count: int) -> None:
     """全銘柄の日次スナップショットをSupabase(非公開DB)へ書き込む。
@@ -3277,9 +3327,8 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
         print(f"❌ screener_snapshots 保存失敗: {resp.status_code} {resp.text[:200]}")
         return
 
-    # ここから先(銘柄別スナップショットの構築・送信)で例外が起きても、
-    # 上のscreener_snapshots保存は既に完了しているため、ここは丸ごと
-    # try/exceptで囲み、通知処理やコミット処理を巻き込んで失敗させない
+    # 銘柄別スナップショットの構築(ここで例外が起きても、上のscreener_snapshots
+    # 保存は既に完了しているため、通知処理やコミット処理を巻き込んで失敗させない)
     try:
         stock_rows = []
         for r in all_stock_records:
@@ -3291,7 +3340,7 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
                 # 丸ごと拒否されるため、必ず何らかの文字列を入れる
                 "name"           : r.get('name') or str(r.get('code')) or '不明',
                 "sector"         : r.get('sector'),
-                "close_price"    : float(r.get('price') or 0),
+                "close_price"    : _json_safe_float(r.get('price')) or 0.0,
                 "fetch_success"  : bool(r.get('fetch_success')),
                 "ma_trend"       : bool(signals.get('ma_trend') or False),
                 "golden_cross"   : bool(signals.get('golden_cross') or False),
@@ -3302,14 +3351,19 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
                 "ichimoku_sanryo": bool(signals.get('ichimoku_sanryo') or False),
                 "volume_surge"   : bool(signals.get('volume_surge') or False),
                 "pbr_value"      : bool(signals.get('pbr_value') or False),
-                "total_score"    : float(r.get('total_score') or 0),
-                "jvqm_pbr"            : r.get('jvqm_pbr'),
-                "jvqm_roe"            : r.get('jvqm_roe'),
-                "jvqm_fcf_yield"      : r.get('jvqm_fcf_yield'),
-                "jvqm_beta"           : r.get('jvqm_beta'),
-                "jvqm_dividend_yield" : r.get('jvqm_dividend_yield'),
+                "total_score"    : _json_safe_float(r.get('total_score')) or 0.0,
+                # jvqm系・momentum_12mはNaN/Infinityになり得る(yfinanceの欠損データ、
+                # またはゼロ除算)ため、_json_safe_float()でNoneに正規化してから送る。
+                # ここを通さずrawで渡すと、requestsのjson=シリアライズ(allow_nan=False)が
+                # 例外を投げてバッチ送信ループ全体を巻き込んで落とす(2026-09-02に確定した
+                # 根本原因。詳細はdocs/INTEGRATION_MAP.md §6-2)。
+                "jvqm_pbr"            : _json_safe_float(r.get('jvqm_pbr')),
+                "jvqm_roe"            : _json_safe_float(r.get('jvqm_roe')),
+                "jvqm_fcf_yield"      : _json_safe_float(r.get('jvqm_fcf_yield')),
+                "jvqm_beta"           : _json_safe_float(r.get('jvqm_beta')),
+                "jvqm_dividend_yield" : _json_safe_float(r.get('jvqm_dividend_yield')),
                 "jvqm_score"          : r.get('jvqm_score'),
-                "momentum_12m"        : r.get('momentum_12m'),
+                "momentum_12m"        : _json_safe_float(r.get('momentum_12m')),
                 "near_52w_high"       : bool(r.get('near_52w_high')),
                 # sell_signals の値は numpy.bool_ になるケースがあるため明示的に bool() 変換する
                 "dead_cross"          : bool((r.get('sell_signals') or {}).get('dead_cross')),
@@ -3319,26 +3373,44 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
                 "obv_downtrend"       : bool((r.get('sell_signals') or {}).get('obv_downtrend')),
                 "volume_surge_down"   : bool((r.get('sell_signals') or {}).get('volume_surge_down')),
             })
+    except Exception as e:
+        print(f"❌ 銘柄別スナップショットの構築中にエラー: {e}")
+        return
 
-        batch_size = 500
-        failed_batches = 0
-        for i in range(0, len(stock_rows), batch_size):
-            chunk = stock_rows[i:i + batch_size]
+    # 銘柄別スナップショットの送信: バッチ(500件)単位でtry/exceptを分離する。
+    # 以前は全バッチを1つのtry/exceptで囲んでいたため、1バッチのシリアライズ
+    # 例外だけで残り全バッチが送信されず欠落する事象が発生していた
+    # (2026-08-27・08-28・09-01。詳細はdocs/INTEGRATION_MAP.md §6-2)。
+    batch_size = 500
+    total_batches = (len(stock_rows) + batch_size - 1) // batch_size if stock_rows else 0
+    failed_batches = 0
+    failed_batch_errors: List[str] = []
+    for i in range(0, len(stock_rows), batch_size):
+        chunk = stock_rows[i:i + batch_size]
+        try:
             resp = requests.post(
                 f"{supabase_url}/rest/v1/screener_stock_snapshots?on_conflict=snapshot_date,code",
                 headers=headers, json=chunk, timeout=60,
             )
             if resp.status_code not in (200, 201):
                 failed_batches += 1
-                print(f"❌ screener_stock_snapshots 保存失敗 (batch {i}): "
-                      f"{resp.status_code} {resp.text[:200]}")
+                error_msg = f"batch {i}: HTTP {resp.status_code} {resp.text[:200]}"
+                print(f"❌ screener_stock_snapshots 保存失敗 ({error_msg})")
+                failed_batch_errors.append(error_msg)
+        except Exception as e:
+            failed_batches += 1
+            error_msg = f"batch {i}: {type(e).__name__}: {e}"
+            print(f"❌ screener_stock_snapshots 保存中に例外 ({error_msg})")
+            failed_batch_errors.append(error_msg)
 
-        status = "・不完全フラグ" if is_incomplete else ""
-        print(f"✅ Supabaseへスナップショット保存完了: {snapshot_date} "
-              f"(成功率{success_rate*100:.1f}%{status}、{len(stock_rows)}銘柄・"
-              f"失敗batch{failed_batches}件)")
-    except Exception as e:
-        print(f"❌ 銘柄別スナップショットの保存中にエラー: {e}")
+    status = "・不完全フラグ" if is_incomplete else ""
+    print(f"✅ Supabaseへスナップショット保存完了: {snapshot_date} "
+          f"(成功率{success_rate*100:.1f}%{status}、{len(stock_rows)}銘柄・"
+          f"失敗batch{failed_batches}/{total_batches}件)")
+
+    if failed_batches > 0:
+        _notify_snapshot_batch_failure(snapshot_date, failed_batches, total_batches,
+                                        failed_batch_errors)
 
 
 def _generate_reports_and_notify(screener: "AdvancedStockScreener",
