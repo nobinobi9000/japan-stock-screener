@@ -157,6 +157,17 @@ Supabase プロジェクト nhkgyipjeithytqqfuda を3アプリ全員が共有
 
 - `momentum_12m` / `jvqm_pbr` / `jvqm_roe` / `jvqm_fcf_yield` / `jvqm_beta` / `jvqm_dividend_yield` は `export_snapshot_to_supabase()` で `_json_safe_float()`（NaN/Infinity→None正規化）を経由してから送信するよう修正済み（§6-2、commit `53b10af`）。この計算式に新しいフィールドを追加する場合も、必ず`_json_safe_float()`を通してから`stock_rows`に入れること（通さずに生値を渡すと、NaN/Infinity混入時にそのバッチのシリアライズが失敗する。バッチ単位のtry/exceptで他バッチへの被害は防げるが、そのバッチの銘柄は欠落する）
 
+### ルールK. kabu-signalの `signals/latest.json` への書き込みは `main.py` のみが行う
+
+- `jvqm_screener.py`（`run()`）に`signals/latest.json`への書き込み処理を追加しないこと。
+  以前は`jvqm_screener.run()`自身も独自にこのファイルへ書き込んでおり、`main.py`が
+  その後の処理（`tdnet_checker.py`のスクレイピング等）で例外を投げて落ちると、
+  `final_signals`キーを持たない暫定スキーマが残ってフロントが空表示になる不具合が
+  あった（§6-6、commit `80fe1b3`で解消済み）。書き込み経路は`main.py`のStep 4に
+  一本化されている。この一本化を崩す変更（`jvqm_screener.py`や他のステップに
+  ファイル書き込みを追加する等）をする場合は、必ず既存の単一書き込み経路との
+  整合性を確認すること
+
 ---
 
 ## 4. 他に影響を与えず単独で変更してよい部分
@@ -273,9 +284,20 @@ Kabu-Noteの`PROJECT_STATE.md`5-4節は、kabu-signalの`user_matcher.py`がKabu
 `watchlist`/`holdings`をservice_roleキーで直接読んでいる旨（アプリコードを経由しない
 サーバー間連携）を正しく記載する内容に更新済み。
 
-### 🟡 6-4. バッチ実行時刻の記載が資料間で食い違っている
+### ✅ 6-4. バッチ実行時刻の記載齟齬 — **解消済み（2026-09-02）**
 
-kabu-signalの`PROJECT_STATE.md`・`INTEGRATION_NOTES.md`は screener の実行時刻を「16:07 JST」と記載しているが、これは2026-08-29以前の値。GitHub純正cronの信頼性問題（最大11時間超の遅延・未発火）により`cloudflare-watchdog`（16:30起動・18:30リトライ）に置き換え済み（japan-stock-screener側で実測確認済み）。kabu-signal側の資料が未更新。
+kabu-signalの`docs/PROJECT_STATE.md`・`docs/INTEGRATION_NOTES.md`を確認したところ、
+**現在どちらにも「16:07」という記載は存在しない**。`docs/INTEGRATION_NOTES.md`は既に
+「screener: 毎平日16:30 JST書き込み完了（cloudflare-watchdogによるworkflow_dispatch）
+→ kabu-signal: 毎平日21:00 JST読み取り（4時間30分のバッファ）」と正しく記載されている
+（`docs/PROJECT_STATE.md`にはそもそもscreenerの実行時刻への言及自体が無い）。
+いつ・誰が修正したかはgit logからは特定できなかった（該当箇所を触ったコミットが見当たらず、
+確認時点で既に修正済みの状態だった）。
+
+実際のcron設定とも突き合わせて検証済み: kabu-signal自身は
+`.github/workflows/morning-scan.yml`の`cron: '0 12 * * 1-5'`（UTC12:00=21:00 JST）で記載通り。
+screener側は`cloudflare-watchdog/src/index.js`の`CRON_FIRST_ATTEMPT = "30 7 * * 1-5"`
+（UTC7:30=16:30 JST）で、こちらも記載と一致。
 
 ### ✅ 6-5. `account_entitlements` の3アプリ共有 — **検証済み（2026-09-02）**
 
@@ -286,9 +308,29 @@ kabu-signalの`PROJECT_STATE.md`・`INTEGRATION_NOTES.md`は screener の実行�
 kabu-signal・Kabu-Noteは読み取り専用。設計上、3アプリは物理的に同じレコードを見る構成。
 残る懸念は実際の課金ユーザー発生時の実地テストのみ。
 
-### 🟡 6-6. `signals/latest.json` のキー構造が二重管理
+### ✅ 6-6. `signals/latest.json` のキー構造二重管理 — **解消済み（2026-09-02、commit `80fe1b3`）**
 
-`jvqm_screener.py`は`signals`キーを出力、`main.py`は`final_signals`キーを出力。フロント（`app/api/signals/route.ts`, `app/page.tsx`）は`final_signals`を参照するため、鮮度ガード失敗時に`jvqm_screener.py`の出力のみ残ると表示が空になる（kabu-signal自身の既知バグ、他アプリへの影響は現状なし）。
+**依存箇所の洗い出し結果**: フロント（`app/api/signals/route.ts`・`app/page.tsx`）は一貫して
+`final_signals`キー（`main.py`が書き込むスキーマ）のみを参照しており、`jvqm_screener.py`が
+出力する`signals`キーはフロント側では一切参照されていなかった。
+
+**実際に発生していたリスク**: `jvqm_screener.py`の`run()`自体が`signals/latest.json`に
+独自に書き込んでいた（旧実装）。`main.py`のStep 1で呼ばれた直後にこの書き込みが発生し、
+その後`main.py`がStep 2〜3（`tdnet_checker.run()`によるkabutan.jpスクレイピング等、
+外部サイト依存で失敗しうる処理）で例外を投げて未捕捉のまま異常終了すると、
+`jvqm_screener.py`が書いた暫定スキーマ（`final_signals`キー無し、`signals`キーのみ）が
+そのまま残ってしまい、フロントが`data?.final_signals ?? []`で空表示になる、という
+**実際に起こりうる不具合**だった（鮮度ガード失敗時ではなく、鮮度ガード通過後・main.py完走前の
+中間失敗が引き金になる点に注意。鮮度ガード失敗時はそもそもファイル書き込みが無いため
+前日分の正しいスキーマのまま残る）。
+
+**解消方針**: 片方に統一。`signals/latest.json`への書き込みは`main.py`（Step 4）1箇所のみに
+統一し、`jvqm_screener.run()`からファイル書き込みの副作用を削除した
+（`kabu-signal/screener/jvqm_screener.py`、未使用になった`import json`・`Path`・`OUTPUT_DIR`も
+削除）。`jvqm_screener.run()`は計算結果の辞書を返すのみとなり、`main.py`がそれを使って
+`final_signals`/`event_signals`/`negative_signals`を含む本来のスキーマを書き込む、という
+単一経路になった。合成データでのテストで、実行前後で`signals/latest.json`が一切変更されない
+（mtime・内容とも不変）ことを確認済み。
 
 ### 🟢 6-7. その他の未検証項目
 
