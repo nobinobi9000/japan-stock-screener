@@ -43,6 +43,12 @@ def main() -> None:
         # 土曜は市場休場日判定を行わず、常にキャッシュ更新ジョブを実行する
         mode = "cache_warm"
         is_open, reason = True, ""
+    elif today.weekday() == 6:
+        # 日曜はスキャンジョブもキャッシュ更新ジョブも存在しないため、判定・通知を行わない。
+        # 休場通知は「平日なのに祝日等で予定外に休場」を知らせるためのものであり、
+        # 土日の休場は自明なので通知不要（土曜と同様の扱いに揃える）。
+        mode = "none"
+        is_open, reason = False, "日曜日"
     else:
         mode = "screen"
         is_open, reason = is_market_open(today)
