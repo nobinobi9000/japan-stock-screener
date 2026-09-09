@@ -196,6 +196,7 @@ japan-stock-screener/
 | total_score | 0〜100点 |
 | jvqm_pbr, jvqm_roe, jvqm_fcf_yield, jvqm_beta, jvqm_dividend_yield, jvqm_score, momentum_12m, near_52w_high | JVQM関連 |
 | dead_cross, ma200_breakdown, ichimoku_bearish, bb_lower_break, obv_downtrend, volume_surge_down | 売り6指標（bool） |
+| crash_alert_1d, pct_change_1d | 1日騰落率と急落フラグ（閾値-7%、2026-09-10追加。kabu-signalの「保有目的に関係ない危険アラート」用） |
 
 書き込み元: `export_snapshot_to_supabase()`（`stock_screener_v3_multiplan.py:3233`）。
 `name`カラムはNOT NULL制約があるため、コード側で必ず何らかの文字列にフォールバックしている（コメント参照）。
@@ -548,3 +549,32 @@ STRIPE_BASIC_PRICE_ID
 
 6節TODO3の修正（`get_cached_stock_data`→`get_full_stock_data`置換）をしない限り
 `fetch_yfinance.py`はエラーになる。`.env`に`JQUANTS_API_KEY`が必要（要ローテーション済みキー）。
+
+---
+
+## INTEGRATION_MAP.mdへの反映待ち
+
+- **新規追加: `screener_stock_snapshots`に`crash_alert_1d`/`pct_change_1d`カラムを追加
+  （commit `3fda3fe`、2026-09-10）**
+
+  ユーザーからの指摘「保有目的（短期売買/長期保有）の個別設定に関係なく、
+  急落は無条件で通知すべき」を受けて、1日-7%以上の急落を検知する
+  `crash_alert_1d`（bool）・実際の騰落率`pct_change_1d`（numeric）を
+  `screener_stock_snapshots`に追加した（マイグレーション適用済み、
+  カラム追加のみなので既存の読み取りコードへの影響は無い＝
+  `docs/INTEGRATION_MAP.md` §3 ルールAの「カラム追加は安全」に該当）。
+
+  kabu-signal側はこの2カラムを使い、既存の売り側6シグナル
+  （デッドクロス等、`SELL_FLAG_KEYS`）とは**意図的に独立した通知経路**
+  （`fetch_crash_alert_codes()`/`build_danger_alert_notifications()`、
+  kabu-signal commit `e952b44`）で保有銘柄への急落通知を実装済み。
+  将来、保有目的ごとにシグナルの出し分け設定を追加する場合でも、
+  この危険アラートだけは設定に関係なく必ず発火させる設計。
+
+  **INTEGRATION_MAP.mdへの反映内容**:
+  1. §2の連携表に、`screener_stock_snapshots`経由で
+     `crash_alert_1d`/`pct_change_1d`がkabu-signalに渡っている旨を追記
+  2. §3のルールAが対象とするカラム一覧に`crash_alert_1d`・`pct_change_1d`を追加
+  3. 新規の運用ルールとして「保有目的に関係なく通知すべき危険アラートは
+     `SELL_FLAG_KEYS`（既存の売り側6シグナル）とは別経路で実装すること」
+     という設計方針を明記してほしい
