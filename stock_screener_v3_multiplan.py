@@ -2330,6 +2330,15 @@ class AdvancedStockScreener:
             # ── JVQMスコア（kabu-signal向け、総合スコアとは独立した別軸）─────
             jvqm = calc_jvqm(info, data)
 
+            # ── 1日騰落率（保有目的の設定に関係なく通知すべき「危険アラート」向け）───
+            # ゼロ除算・NaN伝播対策(momentum_12mで発生した不具合と同種の原因を
+            # 未然に防ぐため、ここでも同様のガードを入れる)。
+            prev_close = prev['Close']
+            if pd.notna(prev_close) and prev_close != 0 and pd.notna(latest['Close']):
+                pct_change_1d = round(float(latest['Close'] / prev_close - 1) * 100, 2)
+            else:
+                pct_change_1d = None
+
             # ── 売り側判定（既存9指標の逆条件。事実表示のみ、原則1）───────
             # kabu-signal Phase 5 項目3向け。買い側の総合スコアには一切影響しない。
             sell_signals = {
@@ -2342,6 +2351,9 @@ class AdvancedStockScreener:
                 'obv_downtrend': bool(latest.get('OBV_Trend_Down', False)),
                 'volume_surge_down': bool(vol_ratio_avg >= 1.5) and
                                       bool(latest['Close'] < prev['Close']),
+                # 危険アラート(原則5): 保有目的の個別設定に関係なく必ず通知すべき
+                # 急落の事実表示。閾値はユーザー指定(1日で-7%以上、2026-09-10)。
+                'crash_alert_1d': (pct_change_1d is not None) and (pct_change_1d <= -7.0),
             }
 
             # ── スコアフィルタ ────────────────────────────────────────
@@ -2357,6 +2369,7 @@ class AdvancedStockScreener:
                     'fetch_success': True, 'meets_threshold': False,
                     **jvqm,
                     'sell_signals': sell_signals,
+                    'pct_change_1d': pct_change_1d,
                 }
 
             # ── バックテスト（既存ロジック維持）─────────────────────
@@ -2445,6 +2458,7 @@ class AdvancedStockScreener:
                 'meets_threshold'   : True,
                 **jvqm,
                 'sell_signals'      : sell_signals,
+                'pct_change_1d'     : pct_change_1d,
             }
 
         except Exception:
@@ -3372,6 +3386,10 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
                 "bb_lower_break"      : bool((r.get('sell_signals') or {}).get('bb_lower_break')),
                 "obv_downtrend"       : bool((r.get('sell_signals') or {}).get('obv_downtrend')),
                 "volume_surge_down"   : bool((r.get('sell_signals') or {}).get('volume_surge_down')),
+                # 危険アラート(原則5): 保有目的の個別設定に関係なく必ず通知すべき、
+                # 1日-7%以上の急落を検知した事実(2026-09-10追加)
+                "crash_alert_1d"      : bool((r.get('sell_signals') or {}).get('crash_alert_1d')),
+                "pct_change_1d"       : _json_safe_float(r.get('pct_change_1d')),
             })
     except Exception as e:
         print(f"❌ 銘柄別スナップショットの構築中にエラー: {e}")
