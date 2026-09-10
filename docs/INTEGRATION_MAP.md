@@ -1,7 +1,7 @@
 # INTEGRATION_MAP.md — 3アプリ統合連携マップ（信頼できる唯一の情報源）
 
 > 対象アプリ: **japan-stock-screener** / **kabu-signal** / **Kabu-Note**
-> 最終更新: 2026-09-02
+> 最終更新: 2026-09-10
 > このファイルは3リポジトリの `docs/PROJECT_STATE.md`・`docs/INTEGRATION_NOTES.md`（計6ファイル）を統合して作成した。
 > 各アプリの詳細（機能一覧・技術スタック・デプロイ手順等）は元の6ファイルを参照。本ファイルは**連携部分に特化**したサマリー。
 > **今後すべてのセッションは、この3アプリのいずれかを触る前に本ファイルを必ず読むこと。**
@@ -85,8 +85,8 @@ Supabase プロジェクト nhkgyipjeithytqqfuda を3アプリ全員が共有
 |---|---|---|---|---|---|---|
 | 1 | japan-stock-screener | Kabu-Note | `docs/latest.json`（top3・sector_heatmap・market_summary） | `raw.githubusercontent.com` 公開JSON | 平日16:30〜17:00頃 | **✅修正済み（2026-09-02）**。useScreenerData.jsのURLをraw.githubusercontent.com経由に変更してCORS問題解消（commit `f16089d`） |
 | 2 | japan-stock-screener | japan-stock-screener（webapp自身） | 同上（`raw.githubusercontent.com`経由） | サーバー側プロキシ | 同上 | 正常稼働中（CORS問題なし） |
-| 3 | japan-stock-screener | kabu-signal | `screener_snapshots`（鮮度メタ情報） | Supabase テーブル（service_role） | 平日16:30起動、所要17〜30分 | `jvqm_screener.py`の鮮度ガードが読む。**⚠️ §6-2の間欠バグにより、このメタ行だけが正常でも銘柄別データが0行のケースがある点に注意** |
-| 4 | japan-stock-screener | kabu-signal | `screener_stock_snapshots`（全銘柄JVQM・テクニカル指標） | Supabase テーブル（service_role） | 同上 | `jvqm_screener.py`のcandidates生成の主データ。**✅ §6-2: momentum_12mのゼロ除算等でNaN/Infinityが混入し全銘柄分が書き込まれない間欠バグは修正済み（commit `53b10af`）** |
+| 3 | japan-stock-screener | kabu-signal | `screener_snapshots`（鮮度メタ情報） | Supabase テーブル（service_role） | 平日16:30起動、所要17〜30分 | `jvqm_screener.py`の鮮度ガードが読む。**✅ §6-2: momentum_12mのゼロ除算等でNaN/Infinityが混入し銘柄別データが0行になる間欠バグは修正済み（commit `53b10af`）。件数不足の暫定検知（`_stock_coverage_insufficient()`、commit `41eab6a`）も併用中** |
+| 4 | japan-stock-screener | kabu-signal | `screener_stock_snapshots`（全銘柄JVQM・テクニカル指標・危険アラート判定） | Supabase テーブル（service_role） | 同上 | `jvqm_screener.py`のcandidates生成の主データ。**✅ PostgREST 1000件上限による読み取り側の切り詰め問題も修正済み（`_fetch_all_rows()`、commit `3bcfd89`）**。`crash_alert_1d`/`pct_change_1d`（2026-09-10追加）は`user_matcher.fetch_crash_alert_codes()`が保有銘柄の急落検知に使用（§3ルールL） |
 | 5 | Kabu-Note | kabu-signal | `watchlist`（user_id, code） | Supabase テーブル（service_role） | リアルタイム（ユーザー操作時） | `user_matcher.py`の買いシグナル突合対象 |
 | 6 | Kabu-Note | kabu-signal | `holdings`（user_id, code, cost_price） | Supabase テーブル（service_role） | リアルタイム | `user_matcher.py`の売りシグナル突合・損益アラート計算 |
 | 7 | kabu-signal | （自分自身のみ） | `pnl_alert_settings`（閾値） | Supabase テーブル | ユーザーがkabu-signalの設定画面で入力 | Kabu-Note側UIは未実装。将来Kabu-Noteが書き込む可能性あり（§4） |
@@ -102,8 +102,10 @@ Supabase プロジェクト nhkgyipjeithytqqfuda を3アプリ全員が共有
 - **カラム追加**: 安全。kabu-signalは`select=*`で全カラム取得するため追加分は無視される
 - **以下のカラムを削除・リネームする場合は、必ず `kabu-signal/screener/jvqm_screener.py` の `fetch_latest_snapshot()` を同時に修正すること**:
   `snapshot_date`, `is_incomplete`, `success_rate`, `code`, `name`, `close_price`, `jvqm_pbr`, `jvqm_roe`, `jvqm_fcf_yield`, `jvqm_beta`, `jvqm_dividend_yield`, `jvqm_score`, `momentum_12m`, `near_52w_high`, `dead_cross`, `ma200_breakdown`, `ichimoku_bearish`, `bb_lower_break`, `obv_downtrend`, `volume_surge_down`, `fetch_success`
+- **`crash_alert_1d`・`pct_change_1d`を削除・リネームする場合は、`kabu-signal/screener/user_matcher.py`の`fetch_crash_alert_codes()`（`select=code,name,close_price,pct_change_1d`・`crash_alert_1d=eq.true`で明示的に参照）も同時に修正すること**（2026-09-10追加、§3ルールLも参照）
 - `fetch_success`列のクエリ条件（`?fetch_success=eq.true`）を変える場合、kabu-signal側のクエリパラメータも同時修正
 - `is_incomplete`の判定ロジック（`SNAPSHOT_INCOMPLETE_THRESHOLD`）を変える場合、kabu-signalの鮮度ガードの閾値解釈も揃える
+- **`screener_stock_snapshots`・`screener_snapshots`とも、全件取得コードを新設・変更する場合は必ずページネーション（`Range`ヘッダー等）を実装すること**。Supabase(PostgREST)はデフォルトで1リクエストあたり最大1000件しか返さない。`kabu-signal/screener/jvqm_screener.py`の`fetch_latest_snapshot()`がこれに気づかずページネーション無しで実装されており、2026-08-24〜09-02の間、正常日を含め毎日1,000/4,439件（約23%）しか読めていなかった（kabu-signal commit `3bcfd89`で`_fetch_all_rows()`により修正済み。詳細はkabu-signal `docs/PROJECT_STATE.md` 6節-0項）
 
 ### ルールB. `docs/latest.json` のスキーマを変更する場合
 
@@ -167,6 +169,24 @@ Supabase プロジェクト nhkgyipjeithytqqfuda を3アプリ全員が共有
   一本化されている。この一本化を崩す変更（`jvqm_screener.py`や他のステップに
   ファイル書き込みを追加する等）をする場合は、必ず既存の単一書き込み経路との
   整合性を確認すること
+
+### ルールL. 「保有目的の個別設定に関係なく必ず通知すべき危険情報」は既存の売り側シグナル判定と別経路で実装する
+
+- 2026-09-10、ユーザーからの指摘「保有目的（短期売買/長期保有）によらず、
+  急落は無条件で通知すべき」を受けて、`screener_stock_snapshots`に
+  `crash_alert_1d`（1日-7%以上の急落フラグ）・`pct_change_1d`（実際の騰落率）を追加
+  （japan-stock-screener commit `3fda3fe`）。kabu-signal側は
+  `user_matcher.fetch_crash_alert_codes()` / `build_danger_alert_notifications()`
+  （kabu-signal commit `e952b44`）として、既存の売り側6シグナル
+  （`SELL_FLAG_KEYS`、`build_personal_notifications()`内）とは**意図的に独立した
+  通知経路**で実装した
+- 将来、保有銘柄ごとに「短期売買」「長期保有（配当・優待狙い）」等の目的タグを
+  追加し、目的に応じてシグナルの出し分け設定を実装する場合、この危険アラート
+  （`crash_alert_1d`）だけは**その設定に関係なく必ず発火させること**
+  （原則5: 沈黙による誤認を作らない。長期保有設定だからという理由で
+  急落の事実を伝えないのは沈黙による誤認にあたる）
+- 今後、他の「無条件通知すべき危険情報」を追加する場合も、既存の売り側
+  シグナル判定のリストに混ぜず、同様に独立した経路で実装すること
 
 ---
 
@@ -332,12 +352,39 @@ kabu-signal・Kabu-Noteは読み取り専用。設計上、3アプリは物理�
 単一経路になった。合成データでのテストで、実行前後で`signals/latest.json`が一切変更されない
 （mtime・内容とも不変）ことを確認済み。
 
-### 🟢 6-7. その他の未検証項目
+### ✅ 6-8. `screener_stock_snapshots`読み取りのPostgREST 1000件上限問題 — **修正済み（2026-09-03、commit `3bcfd89`）**
 
-- kabu-signalの公開ドメインが本当に`signal.nobi-labo.com`か（japan-stock-screener側の監査では`kabu.nobi-labo.com`のみ実地確認、`signal.nobi-labo.com`は自己申告のまま）
+`kabu-signal/screener/jvqm_screener.py`の`fetch_latest_snapshot()`が
+`screener_stock_snapshots`を取得する際ページネーションを行っておらず、
+Supabase(PostgREST)のデフォルト上限（1リクエストあたり最大1000件）に
+常に切り詰められていた。データが完全に揃っていた過去の正常日を含め、
+**2026-08-24〜09-02の間、毎日1,000/4,439件（約23%）の銘柄でしか
+候補生成・シグナル判定を行っていなかった**可能性が高い（screener側は
+実際には4,439行を正しく書き込んでいた）。件数チェックが無かったため
+長期間気づかれていなかったが、§6-2向けの鮮度ガード暫定対策
+（`_stock_coverage_insufficient()`）が実件数と期待値を比較するように
+なったことで表面化した。`_fetch_all_rows()`を追加し、PostgRESTの
+`Range`ヘッダーで1,000件ずつページングして全件取得するよう修正済み。
+本番Supabaseに対するライブテストで全件取得できることを確認済み。
+（§3ルールA参照）
+
+### ✅ 6-9. 「保有目的の個別設定に関係なく通知すべき危険アラート」機能を追加（2026-09-10）
+
+ユーザーからの指摘「短期売買/長期保有の個別設定によらず、急落は
+無条件で通知すべき」を受けて、1日-7%以上の急落を検知する
+`crash_alert_1d`/`pct_change_1d`を`screener_stock_snapshots`に追加
+（japan-stock-screener commit `3fda3fe`）。kabu-signal側は既存の
+売り側6シグナルとは独立した通知経路として実装した
+（kabu-signal commit `e952b44`。詳細・設計方針は§3ルールL）。
+
+### 🟢 6-10. その他の未検証項目
+
 - `screener-snapshot` Supabase Edge Functionのソースコードがどこにあるか不明（japan-stock-screenerリポジトリ内には存在しない）。Kabu-Note・kabu-signalからの実際の利用実績も未確認
 - kabu-signalの`tdnet_checker.py`がTDnetではなくkabutan.jpをスクレイピングしている点は、CLAUDE.mdの原則2の文言（「TDnet適時開示のみ例外」）と実装が不一致。CLAUDE.md更新かコード修正のどちらかで整理が必要
 - kabu-signalの`RESEND_API_KEY`がGitHub Secretsに未登録のため、鮮度ガード不合格時の障害通知メールが送信されない（実害は軽微、`send_failure_email()`はバッチを止めない設計）
+
+（旧6-7の「kabu-signalの公開ドメインが本当にsignal.nobi-labo.comか」は
+2026-09-07にブラウザで直接アクセスして表示を確認済みのため解消済みとしてクローズ）
 
 ---
 
