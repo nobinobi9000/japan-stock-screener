@@ -1,0 +1,25 @@
+name = "stock-screener-watchdog"
+main = "src/index.js"
+compatibility_date = "2026-08-28"
+# cronのみで動く監視用Workerのため、公開HTTPルートは不要（誰でも叩けてしまうのを防ぐ）
+workers_dev = false
+
+[triggers]
+# JST: 16:30(1回目) / 18:30(2回目) / 20:00(最終確認・アラート)
+# 曜日指定はCloudflareの実装が「1=日曜始まり」であることが実測で判明したため、
+# 標準cronの「1-5(月〜金)」のつもりで書いていた設定は実際には日〜木に発火し、
+# 本来必要な金曜が毎週ゼロ回になっていた(2026-09-19、3週間分の実行履歴から確定)。
+# 月〜金は2-6が正しい。
+crons = ["30 7 * * 2-6", "30 9 * * 2-6", "0 11 * * 2-6"]
+
+[vars]
+GITHUB_OWNER = "nobinobi9000"
+GITHUB_REPO = "japan-stock-screener"
+WORKFLOW_FILE = "daily_screen.yml"
+WORKFLOW_REF = "main"
+ALERT_FROM_EMAIL = "alert@nobi-labo.com"
+ALERT_TO_EMAIL = "suzukidaichisansyou@gmail.com"
+
+# 以下はシークレットとして別途登録する（このファイルには書かない）:
+#   wrangler secret put GITHUB_TOKEN
+#   wrangler secret put RESEND_API_KEY
