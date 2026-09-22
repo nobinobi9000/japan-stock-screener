@@ -557,3 +557,26 @@ STRIPE_BASIC_PRICE_ID
 - 反映済み（2026-09-10）。`crash_alert_1d`/`pct_change_1d`カラムの追加と
   危険アラート機能は§2連携表・§3ルールA・ルールL・§6-9として
   `docs/INTEGRATION_MAP.md`本体に統合済み。詳細はそちらを参照。
+
+- **`stock_master_latest`ビュー新設・screener_stock_snapshotsが新たな共有マスタの
+  情報源になった（2026-09-22、Kabu-Note側から着手・詳細はKabu-Note/docs/PROJECT_STATE.md
+  5-1b節）**
+
+  Kabu-Noteの銘柄名がGoogle翻訳依存で不安定だった問題の修正として、Supabaseに
+  `stock_master_latest`ビュー（`screener_stock_snapshots`から銘柄コードごとの
+  最新行を返す。code/name/sector/close_priceのみ）を新設し、Kabu-Note・kabu-signal
+  双方がこれを参照する設計にした。本リポジトリのコード変更はなし（ビューはSupabase側の
+  オブジェクトで、本リポジトリには定義がない）が、**`screen_stock()`が書き込む
+  `name`/`sector`/`close_price`/`fetch_success`の意味・カラム名を変更する際は、
+  この共有ビュー経由で全アプリの銘柄名表示に影響することに注意が必要**。
+
+  **INTEGRATION_MAP.mdへの反映内容**:
+  1. §5-3「他システムとの連携ポイント」に、`stock_master_latest`ビューを
+     無料層・有料層に次ぐ「第3の連携経路（社名・業種・株価の共有マスタ、全ユーザー
+     参照可）」として追記してほしい
+  2. §3のルールに「`screener_stock_snapshots`の`name`/`sector`/`close_price`/
+     `fetch_success`列の意味を変更する場合、`stock_master_latest`ビュー経由で
+     Kabu-Note・kabu-signalの銘柄名表示に影響するため、変更前に確認すること」を追加
+  3. RLS設計の補足として、`stock_master_latest`はテーブル所有者権限でRLSを
+     意図的にバイパスし、code/name/sector/close_priceのみを全ユーザーに公開する
+     設計である旨を記録（JVQMスコア等の分析系カラムはプレミアム限定のRLSのまま）
