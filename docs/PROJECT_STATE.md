@@ -580,3 +580,21 @@ STRIPE_BASIC_PRICE_ID
   3. RLS設計の補足として、`stock_master_latest`はテーブル所有者権限でRLSを
      意図的にバイパスし、code/name/sector/close_priceのみを全ユーザーに公開する
      設計である旨を記録（JVQMスコア等の分析系カラムはプレミアム限定のRLSのまま）
+
+- **有償化の準備（2026-09-25）: プラン判定の一本化・Stripe実装の整備（本番課金は未有効化）**
+
+  - 有償ゲートを`account_entitlements.plan`（basic/premium）に一本化。`screener_stock_snapshots`/
+    `screener_snapshots`のRLSも同基準に変更（旧: `profiles.is_screener_premium`、非推奨化）。
+    kabu-signal `/api/signals/[code]`は無償プランに買い側分析項目をサーバー側で返さない。
+  - kabu-signal `email_sender.py`が存在しないplan値`'pro'`を検索していた不具合を修正
+    （有料会員への障害通知が常に0件だった）。プラン値は free/basic/premium が正。
+  - Stripe webhookはDB書き込み失敗時に500を返す（再送させる）。課金導線は
+    `NEXT_PUBLIC_BILLING_ENABLED=true`のときのみ表示（未設定=非表示）。
+  - **本番課金の有効化は財務局への事前照会完了が条件のまま（照会の要否自体が未確認）。**
+
+  **INTEGRATION_MAP.mdへの反映内容**:
+  1. プラン値は free/basic/premium（実装指示書の「Free/Pro」表記と不一致）。有償判定は
+     `account_entitlements.plan`のみを正とし、仮フラグは使わない旨を§3ルールに追記
+  2. 有償プランの範囲（現状踏襲）: 有償=JVQM上位30・スコア内訳・全銘柄分析／無償=市場サマリー・
+     厳選3銘柄・自分の保有/ウォッチに関する通知（危険/売り側/損益）
+  3. 課金有効化の前提条件（財務局照会・LP「β無料」表記の切替・BILLING_ENABLED）をチェックリスト化
