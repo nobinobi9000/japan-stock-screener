@@ -278,7 +278,6 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
               <li>当日分 全銘柄分析ページ</li>
               <li>ソート・検索・フィルター</li>
               <li>全指標スコア内訳</li>
-              <li>Discord #full-report</li>
             </ul>
             {!loggedIn ? (
               <Link href="/login" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">

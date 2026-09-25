@@ -142,10 +142,9 @@ jobs:
       - name: Run aggregation, report generation and notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DISCORD_BASIC_WEBHOOK_URL: ${{ secrets.DISCORD_BASIC_WEBHOOK_URL }}
-          DISCORD_PREMIUM_WEBHOOK_URL: ${{ secrets.DISCORD_PREMIUM_WEBHOOK_URL }}
-          DISCORD_ANALYSIS_WEBHOOK_URL: ${{ secrets.DISCORD_ANALYSIS_WEBHOOK_URL }}
-          DISCORD_CHART_WEBHOOK_URL: ${{ secrets.DISCORD_CHART_WEBHOOK_URL }}
+          # 有料プラン向けDiscordチャンネル(#full-report/#analysis/#premium/#chart-analysis)への
+          # 配信は2026-09-25に廃止(有料の主軸はWeb分析ページ。原則3・4)。Webhook未設定のチャンネルは
+          # コード側で自動スキップされる。再開する場合はここに環境変数を戻す。
           NOTIFICATION_SERVICE: discord
           PLAN_MODE: free_beta
           ENABLE_EMAIL: false
