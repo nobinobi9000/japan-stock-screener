@@ -2,8 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 // ログイン不要で通す経路（'/' は公開LPのため未ログインでもアクセス可。
-// '/api/free-latest' は無料枠データ配信のため未ログインでも取得できる必要がある）
-const PUBLIC_PATHS = ['/', '/login', '/manifest.json', '/api/free-latest']
+// '/api/free-latest' は無料枠データ配信のため未ログインでも取得できる必要がある。
+// '/api/stripe/webhook' はStripeからの直接呼び出しでユーザーセッションが無いため、
+// 署名検証(route.ts側)を真正性の担保として未ログイン扱いで通す）
+const PUBLIC_PATHS = ['/', '/login', '/manifest.json', '/api/free-latest', '/api/stripe/webhook']
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || (p !== '/' && pathname.startsWith(p + '/')))

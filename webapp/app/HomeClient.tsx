@@ -28,6 +28,8 @@ const PATTERNS = [
   { icon: '📊', name: 'シグナル点灯', cond: '上記以外の複合シグナル', desc: '上記いずれのパターンにも該当しない、複数シグナル成立銘柄です。' },
 ]
 
+const BILLING_ENABLED = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
+
 export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan: Plan }) {
   const router = useRouter()
   const { data, loading, error } = useScreenerData()
@@ -38,6 +40,30 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
     router.push('/')
     router.refresh()
   }
+
+  // 課金導線の表示スイッチ。財務局への事前照会が完了するまでは未設定(=非表示)のままにする。
+  // 有効化するときは Vercel の環境変数 NEXT_PUBLIC_BILLING_ENABLED=true と、LPの
+  // 「βテスト期間中は全機能無料」表記の切替を同時に行うこと。
+
+  // 失敗時は黙って何も起きない状態にせず、必ず利用者に伝える(原則5)
+  async function redirectToStripe(path: string) {
+    try {
+      const res = await fetch(path, { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok && body.url) {
+        window.location.href = body.url
+        return
+      }
+      alert(res.status === 409
+        ? '既にご契約中です。プラン管理からご確認ください。'
+        : '決済ページを開けませんでした。時間をおいて再度お試しください。')
+    } catch {
+      alert('通信に失敗しました。時間をおいて再度お試しください。')
+    }
+  }
+
+  const handleUpgrade = () => redirectToStripe('/api/stripe/checkout')
+  const handleManagePlan = () => redirectToStripe('/api/stripe/portal')
 
   const isPaid = plan === 'basic' || plan === 'premium'
 
@@ -254,10 +280,25 @@ export default function HomeClient({ loggedIn, plan }: { loggedIn: boolean; plan
               <li>全指標スコア内訳</li>
               <li>Discord #full-report</li>
             </ul>
-            {isPaid ? (
-              <Link href="/analysis" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">
-                全銘柄分析へ →
+            {!loggedIn ? (
+              <Link href="/login" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">
+                ログイン / 新規登録 →
               </Link>
+            ) : isPaid ? (
+              <div className="space-y-2">
+                <Link href="/analysis" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">
+                  全銘柄分析へ →
+                </Link>
+                {BILLING_ENABLED && (
+                  <button onClick={handleManagePlan} className="block w-full py-2 text-center text-xs font-semibold rounded-sm border border-[var(--border2)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--border)] transition">
+                    ご契約中・プラン管理
+                  </button>
+                )}
+              </div>
+            ) : BILLING_ENABLED ? (
+              <button onClick={handleUpgrade} className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">
+                アップグレードする(¥980/月) →
+              </button>
             ) : (
               <Link href="/login" className="block w-full py-3 text-center text-xs font-black tracking-wide rounded-sm bg-[var(--green)] text-[#04080f] hover:opacity-90 transition">
                 ログイン / 新規登録 →
