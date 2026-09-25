@@ -20,9 +20,15 @@
  * 沈黙による誤認を作らない、を「通知の有無」ではなく「実行結果の事実」で判定するため）。
  */
 
-const CRON_FIRST_ATTEMPT = "30 7 * * 1-5";  // 16:30 JST
-const CRON_RETRY = "30 9 * * 1-5";          // 18:30 JST
-const CRON_FINAL_CHECK = "0 11 * * 1-5";    // 20:00 JST
+// 曜日部分(wrangler.tomlの2-6等)に依存しないよう、「分 時」だけで判定する。
+// 曜日指定を直した際に文字列一致が崩れ、16:30の自動起動が止まった(2026-09-19〜25)ため。
+const CRON_FIRST_ATTEMPT = "30 7";  // 16:30 JST
+const CRON_RETRY = "30 9";          // 18:30 JST
+const CRON_FINAL_CHECK = "0 11";    // 20:00 JST
+
+function cronSlot(cron) {
+  return String(cron).trim().split(/\s+/).slice(0, 2).join(" ");
+}
 
 export default {
   async scheduled(event, env, ctx) {
@@ -39,7 +45,7 @@ export default {
 };
 
 async function handleScheduled(event, env) {
-  const cron = event.cron;
+  const cron = cronSlot(event.cron);
 
   if (cron === CRON_FIRST_ATTEMPT) {
     console.log("[watchdog] 16:30 — 1回目起動（無条件）");
