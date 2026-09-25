@@ -614,3 +614,37 @@ STRIPE_BASIC_PRICE_ID
   2. §3ルールに「有料コンテンツ・有料会員への連絡をDiscordに依存しない」を再掲し、Discord配信は
      全員同一内容の無料チャンネルのみと明記
   3. 課金有効化チェックリストに「Discord上の旧有料チャンネル/ロールの整理」を追加
+
+
+## 有償化ロードマップ（2026-09-25策定・進行中）
+
+現状: Stripe実装はテストモードで整備済み（webhook強化・二重契約防止）。課金導線は
+`NEXT_PUBLIC_BILLING_ENABLED`未設定で非表示。有償ゲートは`account_entitlements.plan`に一本化済み。
+Discordの有償チャンネル配信は廃止済み（テスターは不在のため、旧チャンネル/ロールの整理に告知は不要）。
+プラン: Free / Basic(¥980・Stripe) のみ。Premium(¥1,980)は「準備中」でStripe商品も未作成。
+
+### ステップ（この順で進める）
+
+| # | 内容 | 担当 | 状態 |
+|---|---|---|---|
+| 1 | **財務局への事前照会の要否確認**（投資助言・代理業に該当しないかの確認。法的判断は専門家/財務局に確認）。本番課金の前提条件 | ユーザー | 未着手・最優先 |
+| 2 | Discord整理: 旧有料チャンネル(#full-report/#analysis/#premium/#chart-analysis)とロールの削除、不要になったGitHub Secrets(DISCORD_BASIC/PREMIUM/ANALYSIS/CHART)の削除 | ユーザー（Discord/GitHub操作） | 未着手 |
+| 3 | Vercel(webapp)に環境変数設定: `STRIPE_SECRET_KEY`(sk_test_)・`STRIPE_WEBHOOK_SECRET`・`STRIPE_BASIC_PRICE_ID`・`SUPABASE_SERVICE_ROLE_KEY`。Stripeダッシュボードでテスト用商品(¥980/月)とWebhook(`/api/stripe/webhook`、checkout.session.completed / customer.subscription.updated / deleted)を登録 | ユーザー（キー入力）＋Claude（手順支援） | 未着手 |
+| 4 | テストモードで一連の動作確認（`NEXT_PUBLIC_BILLING_ENABLED=true`をプレビュー環境のみで有効化→テストカードで契約→plan=basic反映→ポータルで解約→plan=free反映→Kabu-Note/kabu-signalのゲート確認） | Claude＋ユーザー | 未着手 |
+| 5 | LPの「βテスト期間中は全機能無料」表記の切替、特商法ページの最終確認（決済導入済みの表記へ更新、旧LP docs/index.htmlの扱い） | Claude（文言案）＋ユーザー承認 | 未着手 |
+| 6 | 本番切替: Stripe本番キー・本番商品・本番Webhookへ差し替え、`NEXT_PUBLIC_BILLING_ENABLED=true`を本番に設定。**ステップ1完了が必須** | ユーザー＋Claude | 未着手 |
+
+### 並行して進める技術タスク
+
+- `daily_screen.yml`に`git pull --rebase`と`concurrency`グループを追加（同時dispatch時のpush衝突対策。9/24に発生）
+- 2026-09-28(月)16:30 JSTにwatchdogの自動起動が動いたか確認（9/25に判定ロジックを修正・再デプロイ済み。実発火での検証がまだ）
+- Kabu-Noteの`useEntitlement.js`（無料は保有3件・ウォッチ5件まで等）を有償化の範囲に合わせて見直し
+- 有料会員向けメール配信（日次サマリー等）は未実装。特典として出す場合は別途実装が必要（現行LPでは特典として記載していない）
+- Premium(¥1,980)の特典内容を確定するまでは「準備中」のまま。着手時はStripe商品追加＋webhookのprice→plan対応が必要
+- 未コミットのまま残しているもの: `CLAUDE.md`、`docs/実装指示プロンプト.md`、`verification/`（別作業の産物。扱いをユーザーが判断）
+- kabu-signal→Kabu-Note通知移行のフェーズ3〜6（Kabu-Note/docs/PROJECT_STATE.md 6節参照）
+- INTEGRATION_MAP.mdへの反映（各リポジトリの「INTEGRATION_MAP.mdへの反映待ち」参照。別の反映セッションで実施）
+
+### 守ること
+- 財務局照会（ステップ1）の結論が出るまで、本番キーの設定・課金導線の公開・「有料」を前提とした告知をしない
+- Stripe等のキー・シークレットはチャットに貼らず、Vercel/GitHubの画面で直接入力する
