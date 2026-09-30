@@ -1,219 +1,220 @@
 {
-  "date": "2026-09-29",
+  "date": "2026-09-30",
   "top3": [
     {
-      "code": "8766",
-      "name": "東京海上ホールディングス",
+      "code": "8411",
+      "name": "みずほフィナンシャルグループ",
       "score": 60.0,
-      "price": 523.2000122070312,
+      "price": 8855.0,
       "risk_tag": "🟢安定",
-      "sector": "保険業",
+      "sector": "銀行業",
       "pattern": "⛩一目好転"
     },
     {
-      "code": "7267",
-      "name": "本田技研工業",
-      "score": 55.0,
-      "price": 1669.0,
+      "code": "6525",
+      "name": "ＫＯＫＵＳＡＩ　ＥＬＥＣＴＲＩＣ",
+      "score": 70.0,
+      "price": 9578.0,
       "risk_tag": "🟢安定",
-      "sector": "輸送用機器",
+      "sector": "電気機器",
       "pattern": "⛩一目好転"
     },
     {
-      "code": "6178",
-      "name": "日本郵政",
-      "score": 55.0,
-      "price": 2495.5,
+      "code": "5802",
+      "name": "住友電気工業",
+      "score": 70.0,
+      "price": 2318.0,
       "risk_tag": "🟢安定",
-      "sector": "サービス業",
-      "pattern": "⛩一目好転"
+      "sector": "非鉄金属",
+      "pattern": "⚡過熱注意"
     }
   ],
   "sector_heatmap": [
     {
-      "name": "倉庫・運輸関連業",
-      "avg_score": 52.2,
-      "stock_count": 16
-    },
-    {
       "name": "空運業",
-      "avg_score": 50.0,
+      "avg_score": 58.3,
       "stock_count": 3
     },
     {
-      "name": "保険業",
+      "name": "銀行業",
+      "avg_score": 53.9,
+      "stock_count": 75
+    },
+    {
+      "name": "鉱業",
+      "avg_score": 50.0,
+      "stock_count": 1
+    },
+    {
+      "name": "ゴム製品",
       "avg_score": 49.4,
       "stock_count": 8
     },
     {
-      "name": "銀行業",
-      "avg_score": 48.8,
-      "stock_count": 73
-    },
-    {
-      "name": "金属製品",
-      "avg_score": 46.7,
-      "stock_count": 44
-    },
-    {
-      "name": "機械",
-      "avg_score": 46.5,
-      "stock_count": 105
-    },
-    {
-      "name": "輸送用機器",
-      "avg_score": 46.5,
-      "stock_count": 39
-    },
-    {
-      "name": "繊維製品",
-      "avg_score": 46.0,
-      "stock_count": 26
-    },
-    {
-      "name": "海運業",
-      "avg_score": 45.8,
-      "stock_count": 6
-    },
-    {
-      "name": "卸売業",
-      "avg_score": 45.3,
-      "stock_count": 168
-    },
-    {
-      "name": "その他製品",
-      "avg_score": 45.2,
-      "stock_count": 54
-    },
-    {
-      "name": "ゴム製品",
-      "avg_score": 45.0,
-      "stock_count": 8
-    },
-    {
-      "name": "パルプ・紙",
-      "avg_score": 44.6,
-      "stock_count": 14
-    },
-    {
-      "name": "ガラス・土石製品",
-      "avg_score": 44.5,
-      "stock_count": 21
-    },
-    {
-      "name": "化学",
-      "avg_score": 44.5,
-      "stock_count": 118
-    },
-    {
-      "name": "不動産業",
-      "avg_score": 44.4,
-      "stock_count": 54
+      "name": "倉庫・運輸関連業",
+      "avg_score": 48.6,
+      "stock_count": 18
     },
     {
       "name": "電気機器",
-      "avg_score": 44.0,
-      "stock_count": 127
+      "avg_score": 47.4,
+      "stock_count": 134
     },
     {
-      "name": "建設業",
-      "avg_score": 43.6,
-      "stock_count": 55
+      "name": "金属製品",
+      "avg_score": 47.4,
+      "stock_count": 45
     },
     {
-      "name": "陸運業",
-      "avg_score": 42.6,
-      "stock_count": 29
+      "name": "パルプ・紙",
+      "avg_score": 46.7,
+      "stock_count": 15
     },
     {
-      "name": "サービス業",
-      "avg_score": 42.4,
-      "stock_count": 192
-    },
-    {
-      "name": "非鉄金属",
-      "avg_score": 41.9,
-      "stock_count": 8
-    },
-    {
-      "name": "小売業",
-      "avg_score": 41.7,
-      "stock_count": 121
-    },
-    {
-      "name": "食料品",
-      "avg_score": 41.4,
-      "stock_count": 60
-    },
-    {
-      "name": "鉄鋼",
-      "avg_score": 41.3,
-      "stock_count": 19
-    },
-    {
-      "name": "電気・ガス業",
-      "avg_score": 41.2,
-      "stock_count": 16
+      "name": "ガラス・土石製品",
+      "avg_score": 46.5,
+      "stock_count": 23
     },
     {
       "name": "精密機器",
-      "avg_score": 41.1,
-      "stock_count": 22
+      "avg_score": 46.5,
+      "stock_count": 24
+    },
+    {
+      "name": "化学",
+      "avg_score": 46.4,
+      "stock_count": 118
+    },
+    {
+      "name": "機械",
+      "avg_score": 46.4,
+      "stock_count": 104
+    },
+    {
+      "name": "輸送用機器",
+      "avg_score": 46.1,
+      "stock_count": 46
+    },
+    {
+      "name": "繊維製品",
+      "avg_score": 46.1,
+      "stock_count": 27
+    },
+    {
+      "name": "卸売業",
+      "avg_score": 45.7,
+      "stock_count": 171
+    },
+    {
+      "name": "保険業",
+      "avg_score": 45.6,
+      "stock_count": 8
+    },
+    {
+      "name": "石油・石炭製品",
+      "avg_score": 45.0,
+      "stock_count": 4
+    },
+    {
+      "name": "不動産業",
+      "avg_score": 44.8,
+      "stock_count": 51
+    },
+    {
+      "name": "鉄鋼",
+      "avg_score": 44.7,
+      "stock_count": 19
+    },
+    {
+      "name": "建設業",
+      "avg_score": 44.7,
+      "stock_count": 68
+    },
+    {
+      "name": "電気・ガス業",
+      "avg_score": 44.2,
+      "stock_count": 18
+    },
+    {
+      "name": "サービス業",
+      "avg_score": 42.1,
+      "stock_count": 187
+    },
+    {
+      "name": "その他製品",
+      "avg_score": 41.8,
+      "stock_count": 57
     },
     {
       "name": "情報・通信業",
+      "avg_score": 41.1,
+      "stock_count": 208
+    },
+    {
+      "name": "その他金融業",
+      "avg_score": 40.8,
+      "stock_count": 20
+    },
+    {
+      "name": "小売業",
       "avg_score": 40.6,
-      "stock_count": 199
+      "stock_count": 125
+    },
+    {
+      "name": "-",
+      "avg_score": 40.0,
+      "stock_count": 139
+    },
+    {
+      "name": "非鉄金属",
+      "avg_score": 40.0,
+      "stock_count": 13
+    },
+    {
+      "name": "食料品",
+      "avg_score": 39.9,
+      "stock_count": 58
+    },
+    {
+      "name": "医薬品",
+      "avg_score": 39.7,
+      "stock_count": 29
+    },
+    {
+      "name": "陸運業",
+      "avg_score": 39.3,
+      "stock_count": 22
+    },
+    {
+      "name": "海運業",
+      "avg_score": 39.3,
+      "stock_count": 7
     },
     {
       "name": "証券、商品先物取引業",
       "avg_score": 38.3,
-      "stock_count": 27
-    },
-    {
-      "name": "その他金融業",
-      "avg_score": 37.9,
-      "stock_count": 17
-    },
-    {
-      "name": "-",
-      "avg_score": 37.5,
-      "stock_count": 107
-    },
-    {
-      "name": "石油・石炭製品",
-      "avg_score": 37.1,
-      "stock_count": 7
-    },
-    {
-      "name": "医薬品",
-      "avg_score": 36.7,
-      "stock_count": 23
+      "stock_count": 21
     },
     {
       "name": "水産・農林業",
-      "avg_score": 36.0,
+      "avg_score": 33.0,
       "stock_count": 5
-    },
-    {
-      "name": "鉱業",
-      "avg_score": 35.0,
-      "stock_count": 2
     }
   ],
   "market_summary": {
     "total_scanned": 4439,
-    "total_screened": 1793,
-    "gc_count": 14,
-    "volume_surge_count": 503,
-    "ichimoku_count": 885,
+    "total_screened": 1871,
+    "gc_count": 16,
+    "volume_surge_count": 381,
+    "ichimoku_count": 1084,
     "pattern_distribution": {
-      "⛩一目好転": 885,
-      "⚡過熱注意": 5,
-      "📊シグナル点灯": 478,
       "🚀強気ブレイク": 1,
-      "💎安定上昇": 424
+      "⛩一目好転": 1084,
+      "⚡過熱注意": 5,
+      "📊シグナル点灯": 398,
+      "💎安定上昇": 382,
+      "🎯底打ち反転": 1
     },
-    "auto_comment": "出来高急増が503銘柄で発生。市場全体に動意が出ています。"
+    "auto_comment": "「空運業」セクターの平均スコアが58点で最高。このセクターに注目が集まっています。"
   }
 }
