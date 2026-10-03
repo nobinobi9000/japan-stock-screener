@@ -11,7 +11,7 @@
       "name": "screener-webapp",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3132"],
-      "cwd": "C:\\Users\\tkouno\\Desktop\\Claude\\japan-stock-screener\\webapp",
+      "cwd": "C:\\Users\\tkouno\\Desktop\\Claude\\stocks\\japan-stock-screener\\webapp",
       "port": 3132
     }
   ]
