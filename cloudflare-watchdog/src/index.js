@@ -20,11 +20,16 @@
  * 沈黙による誤認を作らない、を「通知の有無」ではなく「実行結果の事実」で判定するため）。
  */
 
+import { kabuNoteTick, KABU_NOTE_CRON_SLOT } from "./kabu-note.js";
+
 // 曜日部分(wrangler.tomlの2-6等)に依存しないよう、「分 時」だけで判定する。
 // 曜日指定を直した際に文字列一致が崩れ、16:30の自動起動が止まった(2026-09-19〜25)ため。
 const CRON_FIRST_ATTEMPT = "30 7";  // 16:30 JST
 const CRON_RETRY = "30 9";          // 18:30 JST
 const CRON_FINAL_CHECK = "0 11";    // 20:00 JST
+// Kabu-Note 用（5分おき・UTC 7-11時＝JST 16:00〜20:55）。処理は kabu-note.js に隔離している。
+// 既存3つの分岐には触れず、この cron のときだけ別経路へ分岐する。
+const CRON_KABU_NOTE = KABU_NOTE_CRON_SLOT;
 
 function cronSlot(cron) {
   return String(cron).trim().split(/\s+/).slice(0, 2).join(" ");
@@ -46,6 +51,16 @@ export default {
 
 async function handleScheduled(event, env) {
   const cron = cronSlot(event.cron);
+
+  if (cron === CRON_KABU_NOTE) {
+    // 例外は握り、screener 経路(既存3 cron)へ影響させない
+    try {
+      await kabuNoteTick(event.scheduledTime, env);
+    } catch (e) {
+      console.error(`[watchdog] kabu-note tick で予期しないエラー: ${e && e.message}`);
+    }
+    return;
+  }
 
   if (cron === CRON_FIRST_ATTEMPT) {
     console.log("[watchdog] 16:30 — 1回目起動（無条件）");

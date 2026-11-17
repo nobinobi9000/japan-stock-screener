@@ -10,7 +10,9 @@ workers_dev = false
 # 標準cronの「1-5(月〜金)」のつもりで書いていた設定は実際には日〜木に発火し、
 # 本来必要な金曜が毎週ゼロ回になっていた(2026-09-19、3週間分の実行履歴から確定)。
 # 月〜金は2-6が正しい。
-crons = ["30 7 * * 2-6", "30 9 * * 2-6", "0 11 * * 2-6"]
+# 4本目はKabu-Note用: JST 16:00〜20:55 に5分おき（UTC 7〜11時の毎5分）。
+# 16:45〜19:55 は起動・再試行、20:05 は最終確認。1本の式で収める(Cronの本数を節約)。
+crons = ["30 7 * * 2-6", "30 9 * * 2-6", "0 11 * * 2-6", "*/5 7-11 * * 2-6"]
 
 [vars]
 GITHUB_OWNER = "nobinobi9000"
@@ -20,6 +22,13 @@ WORKFLOW_REF = "main"
 ALERT_FROM_EMAIL = "alert@nobi-labo.com"
 ALERT_TO_EMAIL = "suzukidaichisansyou@gmail.com"
 
+# Kabu-Note 起動用（秘密は含まない）
+KABU_NOTE_REPO = "Kabu-Note"
+KABU_NOTE_WORKFLOW_FILE = "daily_update.yml"
+# "true" の間は GET のみ（dispatch・メール送信をしない）。実運用に切り替えるときに外す／"false" にする
+KABU_NOTE_DRY_RUN = "true"
+
 # 以下はシークレットとして別途登録する（このファイルには書かない）:
 #   wrangler secret put GITHUB_TOKEN
 #   wrangler secret put RESEND_API_KEY
+#   wrangler secret put KABU_NOTE_GITHUB_TOKEN   # Kabu-Note 専用PAT（未登録なら GITHUB_TOKEN を使う）
