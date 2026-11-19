@@ -263,6 +263,95 @@ def classify_signal_pattern(
     return "📊シグナル点灯"
 
 
+# ── 配当利回り(%単位)の単位健全性チェック（原則5。2026-11-19、約100倍の保存事故を受けて追加）──
+# 日本株の実利回りは概ね0〜数%（中央値2〜3%程度）。ETF・REIT等でも30%を超えることは通常ない。
+DIVIDEND_YIELD_ROW_MAX      = 30.0   # 行単位: これを超える/負の値はNone化（約100倍の298等を弾く）
+DIVIDEND_MEDIAN_MIN         = 0.5    # バッチ単位: 正の値の中央値の下限（小数のまま=0.03等の単位ずれを検知）
+DIVIDEND_MEDIAN_MAX         = 8.0    # 同上限（約100倍=298等の単位ずれを検知）
+DIVIDEND_OUT_OF_RANGE_RATIO = 0.05   # バッチ単位: 範囲外件数が配当値を持つ行の5%超なら異常
+DIVIDEND_MIN_SAMPLE         = 30     # 中央値チェックを行う最小件数（MAX_STOCKSによる少数テスト実行での誤検知防止）
+DIVIDEND_COVERAGE_MIN       = 0.30   # 配当値を持つ行の割合の下限（実測約81%。項目消失の検知）
+DIVIDEND_COVERAGE_MIN_ROWS  = 100    # カバレッジチェックを行う最小行数
+DIVIDEND_CROSSCHECK_REL_DIFF = 0.5   # dividendRate/株価との相対差（照合用。警告のみで判定には使わない）
+
+
+def parse_dividend_yield(raw) -> Tuple[Optional[float], str]:
+    """yfinanceのdividendYield(%単位)を検証して返す。(値, status)。
+
+    status: 'ok' / 'missing'(None・0=無配) / 'invalid'(数値化不可・NaN・inf) /
+            'out_of_range'(負、または DIVIDEND_YIELD_ROW_MAX 超)
+    ok以外は値をNoneにする。×100などの単位変換はしない（Yahoo側の値が%単位）。
+    """
+    if raw is None:
+        return None, 'missing'
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return None, 'invalid'
+    if not math.isfinite(v):
+        return None, 'invalid'
+    if v == 0:
+        return None, 'missing'
+    if v < 0 or v > DIVIDEND_YIELD_ROW_MAX:
+        return None, 'out_of_range'
+    return round(v, 2), 'ok'
+
+
+def crosscheck_dividend_yield(dividend_rate, price, dividend_yield) -> Optional[str]:
+    """dividendRate(1株配当・円)÷株価×100 と dividendYield(%)の照合。
+
+    'ok' / 'mismatch'（相対差が DIVIDEND_CROSSCHECK_REL_DIFF 超）/ None（照合不能）。
+    警告ログ用で、保存値・スコアには使わない。
+    """
+    if dividend_yield is None:
+        return None
+    try:
+        rate = float(dividend_rate)
+        px   = float(price)
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(rate) and math.isfinite(px)) or rate <= 0 or px <= 0:
+        return None
+    own = rate / px * 100
+    return 'mismatch' if abs(own - dividend_yield) / own > DIVIDEND_CROSSCHECK_REL_DIFF else 'ok'
+
+
+def check_dividend_yield_sanity(records: List[Dict]) -> Dict:
+    """全銘柄レコードの配当利回りの単位が健全かを判定する（副作用なし）。
+
+    返り値: {'anomaly': bool, 'reasons': [str], 'stats': {...}}。
+    ログ・通知文に載せるのは件数と中央値のみ（PUBLICリポジトリのため個別の値は出さない）。
+    """
+    # 取得失敗行（JVQM未計算でstatusなし）は対象外
+    records  = [r for r in records if r.get('jvqm_dividend_yield_status') is not None]
+    statuses = [r.get('jvqm_dividend_yield_status') for r in records]
+    ok_vals = [r['jvqm_dividend_yield'] for r in records
+                if r.get('jvqm_dividend_yield_status') == 'ok'
+                and r.get('jvqm_dividend_yield') is not None]
+    n_ok            = len(ok_vals)
+    n_out_of_range  = statuses.count('out_of_range')
+    n_invalid       = statuses.count('invalid')
+    n_with_value    = n_ok + n_out_of_range + n_invalid
+    n_mismatch      = sum(1 for r in records if r.get('jvqm_dividend_crosscheck') == 'mismatch')
+    median_val      = float(np.median(ok_vals)) if ok_vals else None
+    stats = {
+        'rows': len(records), 'with_value': n_with_value, 'ok': n_ok,
+        'out_of_range': n_out_of_range, 'invalid': n_invalid,
+        'median': median_val, 'crosscheck_mismatch': n_mismatch,
+    }
+    reasons: List[str] = []
+    if n_with_value and (n_out_of_range + n_invalid) / n_with_value > DIVIDEND_OUT_OF_RANGE_RATIO:
+        reasons.append(f"範囲外・不正値が{n_out_of_range + n_invalid}/{n_with_value}件"
+                       f"（{DIVIDEND_OUT_OF_RANGE_RATIO*100:.0f}%超）")
+    if n_ok >= DIVIDEND_MIN_SAMPLE and not (DIVIDEND_MEDIAN_MIN <= median_val <= DIVIDEND_MEDIAN_MAX):
+        reasons.append(f"正の値の中央値{median_val:.2f}が想定範囲"
+                       f"{DIVIDEND_MEDIAN_MIN}〜{DIVIDEND_MEDIAN_MAX}の外")
+    if len(records) >= DIVIDEND_COVERAGE_MIN_ROWS and n_with_value / len(records) < DIVIDEND_COVERAGE_MIN:
+        reasons.append(f"配当値を持つ行が{n_with_value}/{len(records)}件"
+                       f"（{DIVIDEND_COVERAGE_MIN*100:.0f}%未満。dividendYield項目の消失の疑い）")
+    return {'anomaly': bool(reasons), 'reasons': reasons, 'stats': stats}
+
+
 def calc_jvqm(info: Dict, data: pd.DataFrame) -> Dict:
     """JVQM(Value-Quality-Momentum)スコアを計算する。
 
@@ -279,8 +368,15 @@ def calc_jvqm(info: Dict, data: pd.DataFrame) -> Dict:
     fcf_yield      = (round(free_cashflow / market_cap * 100, 1)
                        if free_cashflow and market_cap and market_cap > 0 else None)
     beta           = round(info['beta'], 2) if info.get('beta') is not None else None
-    div_yield_raw  = info.get('dividendYield')
-    dividend_yield = round(div_yield_raw * 100, 1) if div_yield_raw else None
+    # 配当利回り(%単位)。yfinanceのdividendYieldは既に%単位(例: 2.98)で返る。
+    # 以前は小数(0.0298)前提で×100しており、約100倍の値が保存されていた(2026-11-19判明)。
+    # 異常値はNoneにし、判定結果(status)は日次バッチの単位チェックで集計する。
+    dividend_yield, div_status = parse_dividend_yield(info.get('dividendYield'))
+    close_series = data['Close'] if 'Close' in data else None
+    last_price = (close_series.iloc[-1]
+                  if close_series is not None and len(close_series) else None)
+    div_crosscheck = crosscheck_dividend_yield(info.get('dividendRate'), last_price,
+                                               dividend_yield)
 
     score = 0
     if pbr is not None:
@@ -325,6 +421,8 @@ def calc_jvqm(info: Dict, data: pd.DataFrame) -> Dict:
         'jvqm_fcf_yield':      fcf_yield,
         'jvqm_beta':           beta,
         'jvqm_dividend_yield': dividend_yield,
+        'jvqm_dividend_yield_status': div_status,        # 単位チェック用の内部情報(DBには保存しない)
+        'jvqm_dividend_crosscheck':   div_crosscheck,    # 同上
         'jvqm_score':          score,
         'momentum_12m':        momentum_12m,
         'near_52w_high':       near_52w_high,
@@ -3294,6 +3392,52 @@ def _notify_snapshot_batch_failure(snapshot_date: str, failed_batches: int,
         print("⚠️ DISCORD_WEBHOOK_URL 未設定 → バッチ失敗通知をDiscordへ送信できません")
 
 
+def _notify_dividend_unit_anomaly(check: Dict) -> None:
+    """配当利回りの単位チェック異常を管理者へDiscord通知する（原則5）。
+
+    既存の DISCORD_WEBHOOK_URL を使う。件数と中央値のみ載せる（PUBLICリポジトリ・個別値なし）。
+    """
+    s = check['stats']
+    message = (
+        "⚠️ 配当利回り(jvqm_dividend_yield)の単位チェックで異常を検知しました。\n"
+        "スナップショットは保存済みですが、値の単位ずれの可能性があります（要確認）。\n"
+        + "\n".join(f"- {x}" for x in check['reasons'])
+        + f"\n（対象{s['rows']}行・配当値あり{s['with_value']}行・範囲外{s['out_of_range']}行・"
+          f"不正{s['invalid']}行）"
+    )
+    print(f"⚠️ {message}")
+    discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+    if discord_webhook:
+        try:
+            requests.post(discord_webhook, json={"content": message}, timeout=30)
+        except Exception as e:
+            print(f"❌ 配当単位異常通知のDiscord送信エラー: {e}")
+    else:
+        print("⚠️ DISCORD_WEBHOOK_URL 未設定 → 配当単位異常をDiscordへ送信できません")
+
+
+def run_dividend_unit_check(all_stock_records: List[Dict]) -> bool:
+    """配当利回りの単位チェックを実行しログ出力する。異常ならDiscord通知してTrueを返す。
+
+    スナップショット保存は止めない（止めると下流が空になるため）。終了コードも変えない
+    （docs/latest.jsonのコミットとKabu-Note自動起動を止めないため。2026-11-19ユーザー決定）。
+    代わりにDiscord通知と、GitHub Actionsの警告アノテーション(::warning::)で無言を避ける。
+    """
+    check = check_dividend_yield_sanity(all_stock_records)
+    s = check['stats']
+    med = f"{s['median']:.2f}" if s['median'] is not None else "なし"
+    print(f"🔎 配当利回り単位チェック: 対象{s['rows']}行 / 配当値あり{s['with_value']}"
+          f" / 正常{s['ok']} / 範囲外{s['out_of_range']} / 不正{s['invalid']}"
+          f" / 中央値{med} / dividendRate照合の不一致{s['crosscheck_mismatch']}件")
+    if check['anomaly']:
+        # GitHub Actionsの警告アノテーション（Actionsの実行サマリーに黄色の警告として出る）。件数のみ
+        print("::warning title=配当利回りの単位チェック異常::"
+              + " / ".join(check['reasons'])
+              + f"（対象{s['rows']}行・範囲外{s['out_of_range']}行・不正{s['invalid']}行）")
+        _notify_dividend_unit_anomaly(check)
+    return check['anomaly']
+
+
 def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: int,
                                  fetch_success_count: int) -> None:
     """全銘柄の日次スナップショットをSupabase(非公開DB)へ書き込む。
@@ -3434,7 +3578,7 @@ def export_snapshot_to_supabase(all_stock_records: List[Dict], total_scanned: in
 def _generate_reports_and_notify(screener: "AdvancedStockScreener",
                                   results: List[Dict], total_scanned: int,
                                   all_stock_records: Optional[List[Dict]] = None,
-                                  fetch_success_count: int = 0) -> None:
+                                  fetch_success_count: int = 0) -> bool:
     """スキャン結果からKabuNote向けJSON出力（無料層のみ）・Supabaseスナップショット保存・
     通知送信までを行う（single/aggregate共通）。
 
@@ -3458,6 +3602,9 @@ def _generate_reports_and_notify(screener: "AdvancedStockScreener",
     # ─── KabuNote連携用 JSON エクスポート（厳選3銘柄＋サマリーのみ、無料公開） ──
     screener.export_json(results, selected, output_dir)
 
+    # ─── 配当利回りの単位チェック（異常でも保存は続行。Discord通知＋警告アノテーション。終了コードは0）──
+    dividend_anomaly = run_dividend_unit_check(all_stock_records or [])
+
     # ─── 全銘柄スナップショットをSupabase(非公開)へ保存 ─────────────
     export_snapshot_to_supabase(all_stock_records or [], total_scanned, fetch_success_count)
 
@@ -3475,10 +3622,11 @@ def _generate_reports_and_notify(screener: "AdvancedStockScreener",
     )
 
     print("\n✅ 処理完了")
+    return dividend_anomaly
 
 
 def _notify_and_record_empty_results(total_scanned: int, fetch_success_count: int,
-                                      all_stock_records: Optional[List[Dict]] = None) -> None:
+                                      all_stock_records: Optional[List[Dict]] = None) -> bool:
     """条件成立銘柄が0件だった日の処理（原則5）。
 
     黙って終了せず、取得成功率からデータ取得の問題(取得件数が少なすぎる)なのか
@@ -3520,7 +3668,9 @@ def _notify_and_record_empty_results(total_scanned: int, fetch_success_count: in
 
     # スキャン自体は実施されたことをSupabaseにも記録する(is_incompleteで
     # 不完全さを明示。全銘柄の生データが無くてもtotal_scanned/成功率は残す)
+    dividend_anomaly = run_dividend_unit_check(all_stock_records or [])
     export_snapshot_to_supabase(all_stock_records or [], total_scanned, fetch_success_count)
+    return dividend_anomaly
 
 
 def run_aggregate_screen() -> None:
@@ -3534,18 +3684,20 @@ def run_aggregate_screen() -> None:
     # プッシュ」ステップ(GitHub Actions側の次ステップ)まで到達できるように
     # する。2026-07-13・07-16に、この関数内の例外でコミットまで届かない
     # 事象が発生したため追加。
+    dividend_anomaly = False
     try:
         if not results:
-            _notify_and_record_empty_results(total_scanned, fetch_success_count, all_stock_records)
-            return
+            dividend_anomaly = _notify_and_record_empty_results(
+                total_scanned, fetch_success_count, all_stock_records)
+        else:
+            screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
+            screener.total_scanned = total_scanned
+            screener.sector_stats  = defaultdict(int, sector_stats)
 
-        screener = AdvancedStockScreener(min_volume=1_000_000, enable_backtest=False, min_score=30)
-        screener.total_scanned = total_scanned
-        screener.sector_stats  = defaultdict(int, sector_stats)
-
-        _generate_reports_and_notify(screener, results, total_scanned,
-                                      all_stock_records=all_stock_records,
-                                      fetch_success_count=fetch_success_count)
+            dividend_anomaly = _generate_reports_and_notify(
+                screener, results, total_scanned,
+                all_stock_records=all_stock_records,
+                fetch_success_count=fetch_success_count)
     except Exception as e:
         print(f"❌ 集計・通知処理で予期しないエラー: {e}")
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
@@ -3557,6 +3709,11 @@ def run_aggregate_screen() -> None:
                 }, timeout=30)
             except Exception:
                 pass
+
+    # 配当利回りの単位異常は通知＋警告アノテーションで知らせる（run_dividend_unit_check内）。
+    # 終了コードは変えない（docs/latest.jsonのコミットとKabu-Note自動起動を止めないため）。
+    if dividend_anomaly:
+        print("⚠️ 配当利回りの単位チェック異常あり（スナップショットは保存済み・終了コードは0）")
 
 
 def main():
@@ -3651,15 +3808,17 @@ def main():
     )
     results = screener.scan_all_stocks(max_stocks=max_stocks, use_sample=use_sample)
 
+    dividend_anomaly = False
     try:
         if not results:
-            _notify_and_record_empty_results(screener.total_scanned, screener.fetch_success_count,
-                                              screener.all_stock_records)
-            return
-
-        _generate_reports_and_notify(screener, results, screener.total_scanned,
-                                      all_stock_records=screener.all_stock_records,
-                                      fetch_success_count=screener.fetch_success_count)
+            dividend_anomaly = _notify_and_record_empty_results(
+                screener.total_scanned, screener.fetch_success_count,
+                screener.all_stock_records)
+        else:
+            dividend_anomaly = _generate_reports_and_notify(
+                screener, results, screener.total_scanned,
+                all_stock_records=screener.all_stock_records,
+                fetch_success_count=screener.fetch_success_count)
     except Exception as e:
         print(f"❌ 集計・通知処理で予期しないエラー: {e}")
         discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
@@ -3671,6 +3830,9 @@ def main():
                 }, timeout=30)
             except Exception:
                 pass
+
+    if dividend_anomaly:
+        print("⚠️ 配当利回りの単位チェック異常あり（スナップショットは保存済み・終了コードは0）")
 
 
 if __name__ == "__main__":

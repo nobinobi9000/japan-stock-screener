@@ -198,6 +198,19 @@ japan-stock-screener/
 | dead_cross, ma200_breakdown, ichimoku_bearish, bb_lower_break, obv_downtrend, volume_surge_down | 売り6指標（bool） |
 | crash_alert_1d, pct_change_1d | 1日騰落率と急落フラグ（閾値-7%、2026-09-10追加。kabu-signalの「保有目的に関係ない危険アラート」用） |
 
+#### `jvqm_dividend_yield` の単位と境界日（2026-11-19 記録）
+
+- **単位は%（例: 2.98 = 2.98%）**。yfinance の `dividendYield` は既に%単位で、`calc_jvqm()` がそのまま保存する。
+- **約100倍の期間**: `screener_stock_snapshots` の **2026-08-24（保存開始）〜修正反映日の前日** の `jvqm_dividend_yield` は**約100倍の値**
+  （Supabase 集計で確認: 2026-08-24〜2026-11-19 の54日分すべて約100倍。月ごとの正の値の中央値は8月277・9月277・10月282・11月298、最小4.0、最大2,229〜2,542。途中での単位切替なし。日本株の実利回りは2〜3%程度）。
+  kabu-signal の記録では 2026-07-06 時点でも約100倍。
+- **原因**: Yahoo（yfinance）の `dividendYield` が%単位で返るのに、旧コードが小数前提で `×100` していた二重変換（推定。Yahoo 側の変更時期は未確認）。
+- **修正内容**: `×100` を除去。行単位の範囲チェック（負・30超は None）、バッチ単位の単位チェック（正の値の中央値が0.5〜8の外、範囲外が5%超、配当値を持つ行が30%未満のときスナップショットは保存したうえで、管理者へDiscord通知＋GitHub Actionsの警告アノテーション（`::warning::`）＋ログに警告。**終了コードは0のまま**＝`docs/latest.json` のコミットと Kabu-Note 自動起動は止めない。2026-11-19ユーザー決定。Actionsの実行サマリーの警告を見落とさないこと）。`dividendRate÷株価` との照合はログのみ。
+- **修正反映日（境界日）: ＿＿＿＿（未記入。commit・本番反映後に、反映後の最初の `snapshot_date` を記入する）**
+- **過去分は書き換えない**。`jvqm_score` の過去値は当時の通知・画面に出た事実のため。**境界日をまたぐ `jvqm_dividend_yield` / `jvqm_score`（配当項）の比較・集計は不可**。
+  境界日より前の配当利回りを使う場合は÷100が必要（過去の `jvqm_score` は、配当値のある銘柄が一律+2＝配当項が水増しされていた）。
+- テスト: `tests/test_dividend_yield.py`（`PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/test_dividend_yield.py`）
+
 書き込み元: `export_snapshot_to_supabase()`（`stock_screener_v3_multiplan.py:3233`）。
 `name`カラムはNOT NULL制約があるため、コード側で必ず何らかの文字列にフォールバックしている（コメント参照）。
 
