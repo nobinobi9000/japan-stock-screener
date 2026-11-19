@@ -25,8 +25,13 @@ ALERT_TO_EMAIL = "suzukidaichisansyou@gmail.com"
 # Kabu-Note 起動用（秘密は含まない）
 KABU_NOTE_REPO = "Kabu-Note"
 KABU_NOTE_WORKFLOW_FILE = "daily_update.yml"
-# "true" の間は GET のみ（dispatch・メール送信をしない）。実運用に切り替えるときに外す／"false" にする
-KABU_NOTE_DRY_RUN = "true"
+# "false" のときだけ実起動する（未設定・"true"・不正値は GET のみ）。2026-11-19 に実運用へ切り替え
+KABU_NOTE_DRY_RUN = "false"
+
+# Workers ログを保存する（過去の実行ログをダッシュボードで見られるようにする。2026-11-19 追加）
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 # 以下はシークレットとして別途登録する（このファイルには書かない）:
 #   wrangler secret put GITHUB_TOKEN

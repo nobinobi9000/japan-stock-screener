@@ -30,5 +30,6 @@ test("C9 vars に秘密様の値が無く、workers_dev=false のまま", () => 
   const values = [...vars.matchAll(/^[A-Z_]+\s*=\s*"([^"]*)"/gm)].map((x) => x[1]);
   for (const v of values) for (const bad of ["github_pat_", "ghp_", "re_", "eyJ"]) assert.equal(v.includes(bad), false);
   assert.match(toml, /^workers_dev\s*=\s*false/m);
-  assert.match(toml, /^KABU_NOTE_DRY_RUN\s*=\s*"true"/m);
+  assert.match(toml, /^KABU_NOTE_DRY_RUN\s*=\s*"false"/m);
+  assert.match(toml, /^\[observability\]\s*\r?\nenabled\s*=\s*true/m);
 });
