@@ -21,6 +21,7 @@
  */
 
 import { kabuNoteTick, KABU_NOTE_CRON_SLOT } from "./kabu-note.js";
+import { myInvestTick } from "./my-invest.js";
 
 // 曜日部分(wrangler.tomlの2-6等)に依存しないよう、「分 時」だけで判定する。
 // 曜日指定を直した際に文字列一致が崩れ、16:30の自動起動が止まった(2026-09-19〜25)ため。
@@ -58,6 +59,12 @@ async function handleScheduled(event, env) {
       await kabuNoteTick(event.scheduledTime, env);
     } catch (e) {
       console.error(`[watchdog] kabu-note tick で予期しないエラー: ${e && e.message}`);
+    }
+    // my-invest も同じ cron に相乗りする。Kabu-Note とは独立した try/catch で、互いの失敗を伝播させない
+    try {
+      await myInvestTick(event.scheduledTime, env);
+    } catch (e) {
+      console.error(`[watchdog] my-invest tick で予期しないエラー: ${e && e.message}`);
     }
     return;
   }

@@ -28,6 +28,12 @@ KABU_NOTE_WORKFLOW_FILE = "daily_update.yml"
 # "false" のときだけ実起動する（未設定・"true"・不正値は GET のみ）。2026-11-19 に実運用へ切り替え
 KABU_NOTE_DRY_RUN = "false"
 
+# my-invest 平日チェック起動用（秘密は含まない。トークンは secret MY_INVEST_GITHUB_TOKEN）
+MY_INVEST_REPO = "my-invest-signal"
+MY_INVEST_WORKFLOW_FILE = "weekday_check.yml"
+# "false" のときだけ実起動する（未設定・"true"・不正値は GET のみ）。既定はDRY
+MY_INVEST_DRY_RUN = "true"
+
 # Workers ログを保存する（過去の実行ログをダッシュボードで見られるようにする。2026-11-19 追加）
 [observability]
 enabled = true
@@ -37,3 +43,4 @@ head_sampling_rate = 1
 #   wrangler secret put GITHUB_TOKEN
 #   wrangler secret put RESEND_API_KEY
 #   wrangler secret put KABU_NOTE_GITHUB_TOKEN   # Kabu-Note 専用PAT（未登録なら GITHUB_TOKEN を使う）
+#   wrangler secret put MY_INVEST_GITHUB_TOKEN   # my-invest 専用PAT（GITHUB_TOKEN へのフォールバックなし）
