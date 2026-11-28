@@ -5,10 +5,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   ENV, KN_CRON, KN_RUNS_RE, KN_DISPATCH_RE, SCREENER_RUNS_RE, SCREENER_JOBS_RE,
-  jstMs, run, invoke, posts,
+  jstMs, run as baseRun, invoke, posts,
 } from "./helpers.js";
 
 const D = "2026-11-18";
+// 起動先の run-name が display_title に入れる値。このファイルの run は既定で実運用(dry_run=false)。
+const LIVE_TITLE = "weekday check (dry_run=false)";
+const DRY_TITLE = "weekday check (dry_run=true)";
+const run = (...args) => ({ ...baseRun(...args), display_title: LIVE_TITLE });
+const titled = (r, title) => ({ ...r, display_title: title });
+const dryRun = (...args) => titled(baseRun(...args), DRY_TITLE);
 const MI_ENV = {
   MY_INVEST_REPO: "invest-repo",
   MY_INVEST_WORKFLOW_FILE: "weekday.yml",
@@ -271,6 +277,138 @@ test("C22 ソースに禁止語が無い", () => {
 test("scheduledTime が無い（debug fetch 経由）場合は何もしない", async () => {
   const r = await invoke({ cron: KN_CRON, scheduledTime: undefined, env: MI_ENV, handler: scenario({}) });
   assert.equal(r.calls.length, 0);
+});
+
+// ---- 手動 DRY 実行の除外（display_title）----
+
+const drySuccess = (id = 50, s = "17:00", e = "17:05") => dryRun(id, D, s, e, "completed", "success");
+const dryFail = (id, s, e) => dryRun(id, D, s, e, "completed", "failure");
+// 表示名が欠損・想定外の run
+const UNKNOWN_TITLES = [
+  undefined, null, "", "my-invest weekday check", "weekday check (dry_run=)",
+  "weekday check (dry_run=TRUE)", "weekday check (dry_run=falsex)",
+];
+const unknown = (title, id = 60, s = "17:30", e = "17:35", status = "completed", concl = "success") =>
+  titled(baseRun(id, D, s, e, status, concl), title);
+
+test("DRY除外: 手動DRYの成功があっても起動する（dry_run=false で POST 1回）", async () => {
+  for (const hhmm of ["17:30", "18:00", "19:25"]) {
+    const r = await tick(hhmm, { invest: [drySuccess()] });
+    assert.equal(classify(r.calls), "dispatch", hhmm);
+    assert.equal(posts(r.calls).length, 1, hhmm);
+    assert.deepEqual(posts(r.calls)[0].body.inputs, { dry_run: "false" });
+  }
+});
+
+test("DRY除外: dry_run=false の成功があれば、DRY の run が混在しても起動しない", async () => {
+  for (const invest of [
+    [ok()],
+    [ok(), drySuccess()],
+    [dryFail(51, "17:50", "17:55"), ok()],
+    [dryRun(52, D, "17:44", "17:45", "in_progress", null), ok()],
+  ]) {
+    const r = await tick("17:55", { invest });
+    assert.equal(posts(r.calls).length, 0);
+    assert.ok(r.logs.some((l) => /成功済み/.test(l)));
+  }
+});
+
+test("DRY除外: DRY の実行中・待機中は起動を止めない", async () => {
+  for (const status of ["in_progress", "queued", "pending", "waiting"]) {
+    const r = await tick("17:35", { invest: [dryRun(53, D, "17:30", "17:31", status, null)] });
+    assert.equal(classify(r.calls), "dispatch", status);
+  }
+});
+
+test("DRY除外: DRY の失敗は失敗回数・再試行の待ちに数えない", async () => {
+  const three = [dryFail(1, "17:00", "17:05"), dryFail(2, "17:10", "17:15"), dryFail(3, "17:20", "17:25")];
+  assert.equal(classify((await tick("17:30", { invest: three })).calls), "dispatch");
+  // 直前に失敗した DRY があっても30分待たない
+  const justNow = [dryFail(4, "17:50", "17:54"), dryRun(5, D, "17:40", "17:45", "completed", "timed_out")];
+  assert.equal(classify((await tick("17:55", { invest: justNow })).calls), "dispatch");
+  // 実運用の失敗2回 + DRY の失敗 は上限(3回)にならない
+  const mixed = [fail(6, "17:30", "17:35"), fail(7, "18:10", "18:15"), dryFail(8, "18:20", "18:25")];
+  assert.equal(classify((await tick("18:50", { invest: mixed })).calls), "dispatch");
+});
+
+test("判別不能: 成功は成功扱いにせず起動し、警告を残す", async () => {
+  for (const title of UNKNOWN_TITLES) {
+    const r = await tick("17:45", { invest: [unknown(title)] });
+    assert.equal(classify(r.calls), "dispatch", String(title));
+    assert.ok(r.warns.some((l) => /判別できない成功 run が1件/.test(l)), String(title));
+  }
+});
+
+test("判別不能: 実運用の成功が別にあれば起動しない", async () => {
+  const r = await tick("17:55", { invest: [unknown(undefined), ok()] });
+  assert.equal(posts(r.calls).length, 0);
+});
+
+test("判別不能: 成功と失敗を合わせて3回で打ち止め（起動を繰り返さない）", async () => {
+  const u = (id) => unknown(undefined, id);
+  assert.equal(classify((await tick("18:30", { invest: [u(1), u(2)] })).calls), "dispatch");
+  for (const invest of [
+    [u(1), u(2), u(3)],
+    [u(1), u(2), fail(3, "17:40", "17:45")],
+    [u(1), fail(2, "17:30", "17:35"), fail(3, "17:40", "17:45")],
+  ]) {
+    const r = await tick("18:30", { invest });
+    assert.equal(posts(r.calls).length, 0);
+    assert.ok(r.warns.some((l) => /上限のため起動しない/.test(l)));
+  }
+  // 起動先の表示名がずっと判別不能でも、1日（5分刻みの全 tick）の起動は3回まで
+  const history = [];
+  let count = 0;
+  for (let m = 17 * 60 + 30; m <= 19 * 60 + 25; m += 5) {
+    const hhmm = `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+    const r = await tick(hhmm, { invest: history });
+    if (classify(r.calls) === "dispatch") history.push(unknown("x", ++count, hhmm, hhmm));
+  }
+  assert.equal(count, 3);
+});
+
+test("判別不能: 実行中は起動を止め、失敗は失敗に数える", async () => {
+  const active = unknown(undefined, 1, "17:30", "17:31", "in_progress", null);
+  assert.equal(classify((await tick("17:35", { invest: [active] })).calls), "none");
+  const f = unknown(undefined, 2, "17:30", "17:40", "completed", "failure");
+  assert.equal(classify((await tick("17:55", { invest: [f] })).calls), "none"); // 30分の待ち
+  assert.equal(classify((await tick("18:10", { invest: [f] })).calls), "dispatch");
+  const cancelled = unknown(undefined, 3, "17:30", "17:35", "completed", "cancelled");
+  const r = await tick("17:40", { invest: [cancelled, cancelled, cancelled] });
+  assert.equal(classify(r.calls), "dispatch");
+});
+
+test("最終確認: DRY の run は除外し、判別不能の成功は成功扱いにしない", async () => {
+  const cases = [
+    [[drySuccess()], /状態: 未起動/],
+    [[dryRun(1, D, "20:00", "20:05", "in_progress", null)], /状態: 未起動/],
+    [[dryFail(2, "19:00", "19:05")], /状態: 未起動/],
+    [[drySuccess(), fail(3, "17:30", "17:40")], /状態: 失敗1回/],
+    [[drySuccess(), run(4, D, "19:50", "20:00", "in_progress", null)], /状態: 実行中/],
+    [[unknown(undefined)], /状態: 実運用の成功を確認できません/],
+    [[unknown("x"), fail(5, "18:00", "18:10")], /状態: 実運用の成功を確認できません/],
+  ];
+  for (const [invest, expected] of cases) {
+    const r = await tick("20:10", { invest });
+    assert.equal(posts(r.calls).filter(isMail).length, 1, String(expected));
+    const body = posts(r.calls).find(isMail).body;
+    assert.match(body.text, expected);
+    for (const w of FORBIDDEN) assert.equal((body.subject + body.text).includes(w), false, w);
+  }
+  for (const invest of [[ok()], [ok(), drySuccess()], [unknown(undefined), ok()]]) {
+    const r = await tick("20:10", { invest });
+    assert.equal(posts(r.calls).length, 0);
+  }
+});
+
+test("DRY除外: Worker が DRY 設定のときも判定は同じで、POST は 0 回", async () => {
+  const env = { MY_INVEST_DRY_RUN: "true" };
+  const d = await tick("17:30", { invest: [drySuccess()] }, { env });
+  assert.equal(posts(d.calls).length, 0);
+  assert.ok(d.logs.some((l) => /\[DRY\].*起動する予定/.test(l)));
+  const m = await tick("20:10", { invest: [drySuccess()] }, { env });
+  assert.equal(posts(m.calls).length, 0);
+  assert.ok(m.logs.some((l) => /\[DRY\].*メールを送る予定（状態: 未起動）/.test(l)));
 });
 
 // ---- 隔離（C19・C21）----

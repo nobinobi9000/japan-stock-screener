@@ -4,11 +4,18 @@
  * 方式(検知型・kabu-note.js と同じ設計): 5分おきの tick で「今日(JST)の run が成功したか」を
  * GitHub の run 結果から毎回導出する。Worker は状態を持たない。
  * screener や Kabu-Note の結果には依存しない(独立した判定)。
- *   17:30〜19:25  DISPATCH 段階（起動・再試行。失敗の完了から30分あけ、失敗3回で打ち止め）
- *   20:10         FINAL 段階（今日の成功 run が無ければ管理者にメール。1日1回）
+ *   17:30〜19:25  DISPATCH 段階（起動・再試行。失敗の完了から30分あけ、上限3回で打ち止め）
+ *   20:10         FINAL 段階（今日の実運用の成功 run が無ければ管理者にメール。1日1回）
  *
  * 休場日の判定はここではしない。起動先が休場・データ未着を自分で判定して正常終了する。
- * 同じ日に成功 run が1回あれば再起動しない（冪等）。cancelled は失敗に数えない。
+ * 同じ日に実運用の成功 run が1回あれば再起動しない（冪等）。cancelled は失敗に数えない。
+ *
+ * run の区別: 起動先の run-name が表示名(display_title)に入れる "dry_run=true|false" で分ける。
+ *   true     … 成功・実行中・失敗のどの判定にも使わない
+ *   false    … 実運用の run
+ *   判別不能 … 成功扱いにしない（黙って止まらないため）。実行中・失敗には数え、
+ *              成功した分は失敗と合わせて1日の上限に数える（起動の繰り返しを防ぐ）。
+ *              二重通知は起動先が同じデータ日付を再通知しないことで防ぐ。
  *
  * 分離方針: screener 経路(既存3 cron)と Kabu-Note から独立している。
  * 時刻は event.scheduledTime（予定時刻）だけから作り、現在時刻には依存しない。
@@ -23,7 +30,7 @@ export const MY_INVEST_CRON_SLOT = "*/5 7-11"; // wrangler.toml の "*/5 7-11 * 
 const WINDOW_START_MIN = 17 * 60 + 30; // 17:30 JST
 const WINDOW_END_MIN = 19 * 60 + 25;   // 19:25 JST（これ以降は起動しない）
 const FINAL_CHECK_MIN = 20 * 60 + 10;  // 20:10 JST
-const MAX_FAILURES = 3;                // 1日の失敗上限（超えたら起動しない）
+const MAX_ATTEMPTS = 3;                // 1日の上限（失敗＋判別不能の成功。達したら起動しない）
 const RETRY_BACKOFF_MIN = 30;          // 失敗 run の完了から次の起動までの間隔
 
 const jstFormatter = new Intl.DateTimeFormat("sv-SE", {
@@ -78,7 +85,14 @@ function repoBase(env) {
   return `${env.GITHUB_OWNER}/${env.MY_INVEST_REPO}`;
 }
 
-/** 今日(JST)に作成された workflow_dispatch の run の要約 */
+/** 表示名から run の種類を返す: "dry" | "live" | "unknown" */
+function runKind(run) {
+  const m = /\bdry_run=(true|false)\b/.exec(String(run.display_title ?? ""));
+  if (!m) return "unknown";
+  return m[1] === "true" ? "dry" : "live";
+}
+
+/** 今日(JST)に作成された workflow_dispatch の run の要約（DRY の run は含めない） */
 async function runsToday(env, today, token) {
   const url =
     `https://api.github.com/repos/${repoBase(env)}` +
@@ -87,10 +101,15 @@ async function runsToday(env, today, token) {
   if (!res.ok) throw await failure("my-invest runs取得失敗", res);
   const body = await res.json();
   const runs = (body.workflow_runs || []).filter(
-    (r) => (r.event === undefined || r.event === "workflow_dispatch") && jstDateOf(r.created_at) === today
+    (r) =>
+      (r.event === undefined || r.event === "workflow_dispatch") &&
+      jstDateOf(r.created_at) === today &&
+      runKind(r) !== "dry"
   );
+  const succeeded = runs.filter((r) => r.status === "completed" && r.conclusion === "success");
   const summary = {
-    success: runs.some((r) => r.status === "completed" && r.conclusion === "success"),
+    success: succeeded.some((r) => runKind(r) === "live"),
+    unknownSuccess: succeeded.filter((r) => runKind(r) === "unknown").length,
     active: runs.some((r) => r.status !== "completed"),
     // cancelled は concurrency による置換なので失敗に数えない
     failures: runs.filter(
@@ -149,12 +168,19 @@ async function dispatchStage(env, today, nowMs) {
       console.log(`[my-invest] ${today} 成功済み。起動しない。`);
       return "skip:done";
     }
+    if (r.unknownSuccess > 0) {
+      console.warn(
+        `[my-invest] ${today} dry_run を判別できない成功 run が${r.unknownSuccess}件。成功扱いにしない（起動先の run-name を確認）。`
+      );
+    }
     if (r.active) {
       console.log(`[my-invest] ${today} 実行中。起動しない。`);
       return "skip:active";
     }
-    if (r.failures.length >= MAX_FAILURES) {
-      console.warn(`[my-invest] ${today} 失敗が${r.failures.length}回。上限のため起動しない（20:10に通知）。`);
+    if (r.failures.length + r.unknownSuccess >= MAX_ATTEMPTS) {
+      console.warn(
+        `[my-invest] ${today} 失敗${r.failures.length}回・判別不能の成功${r.unknownSuccess}回。上限のため起動しない（20:10に通知）。`
+      );
       return "skip:max-attempts";
     }
     if (r.failures.length > 0 && nowMs - r.lastFailureEnd < RETRY_BACKOFF_MIN * 60 * 1000) {
@@ -195,9 +221,11 @@ async function finalStage(env, today) {
     }
     state = r.active
       ? "実行中"
-      : r.failures.length > 0
-        ? `失敗${r.failures.length}回`
-        : "未起動";
+      : r.unknownSuccess > 0
+        ? "実運用の成功を確認できません（dry_run の表示がない run が成功）"
+        : r.failures.length > 0
+          ? `失敗${r.failures.length}回`
+          : "未起動";
   } catch (e) {
     console.error(`[my-invest] FINAL段階でエラー: ${e.message}`);
     state = "確認できませんでした（GitHub APIの取得に失敗）";
